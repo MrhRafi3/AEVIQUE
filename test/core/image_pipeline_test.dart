@@ -153,49 +153,38 @@ void main() {
     });
   });
 
-  group('FilterCatalogue and Signature Vivid', () {
-    test('Contains Signature Vivid and requested filter categories', () {
+  group('FilterCatalogue and Tuned Vivid', () {
+    test('Contains exactly 10 core iPhone-inspired filters', () {
       final allFilters = FilterCatalogue.allFilters;
-      expect(allFilters.length, greaterThanOrEqualTo(20));
+      expect(allFilters.length, equals(10));
 
-      final signatureVivid = FilterCatalogue.findById('signature_vivid');
-      expect(signatureVivid, isNotNull);
-      expect(signatureVivid!.name, 'Signature Vivid');
-      expect(signatureVivid.category, FilterCategory.signature);
-      expect(signatureVivid.state.tune.vibrance, greaterThan(0));
+      final vivid = FilterCatalogue.findById('vivid');
+      expect(vivid, isNotNull);
+      expect(vivid!.name, 'Vivid');
+      // Tuned Vivid: strictly neutral warmth & tint to eliminate orange cast
+      expect(vivid.state.tune.warmth, equals(0.0));
+      expect(vivid.state.tune.tint, equals(0.0));
+      expect(vivid.state.tune.vibrance, greaterThan(0));
 
-      final portraitFilters = FilterCatalogue.getByCategory(
-        FilterCategory.portrait,
-      );
-      expect(portraitFilters, isNotEmpty);
-
-      final natureFilters = FilterCatalogue.getByCategory(
-        FilterCategory.nature,
-      );
-      expect(natureFilters, isNotEmpty);
+      final backwardsVivid = FilterCatalogue.findById('signature_vivid');
+      expect(backwardsVivid, isNotNull);
 
       final bwFilters = FilterCatalogue.getByCategory(FilterCategory.bw);
-      expect(bwFilters, isNotEmpty);
+      expect(bwFilters.length, equals(3)); // Mono, Silvertone, Noir
     });
 
     test('Filter blending at 0% returns neutral identity state', () {
-      final signatureVivid = FilterCatalogue.findById('signature_vivid')!;
-      final blended0 = signatureVivid.blendWithNeutral(0.0);
+      final vivid = FilterCatalogue.findById('vivid')!;
+      final blended0 = vivid.blendWithNeutral(0.0);
       expect(blended0.isIdentity, isTrue);
     });
 
     test('Filter blending at 100% returns full filter parameters', () {
-      final signatureVivid = FilterCatalogue.findById('signature_vivid')!;
-      final blended100 = signatureVivid.blendWithNeutral(100.0);
-      expect(blended100.filterId, 'signature_vivid');
-      expect(
-        blended100.tune.vibrance,
-        equals(signatureVivid.state.tune.vibrance),
-      );
-      expect(
-        blended100.tune.contrast,
-        equals(signatureVivid.state.tune.contrast),
-      );
+      final vivid = FilterCatalogue.findById('vivid')!;
+      final blended100 = vivid.blendWithNeutral(100.0);
+      expect(blended100.filterId, 'vivid');
+      expect(blended100.tune.vibrance, equals(vivid.state.tune.vibrance));
+      expect(blended100.tune.contrast, equals(vivid.state.tune.contrast));
     });
 
     test(
@@ -205,5 +194,85 @@ void main() {
         expect(presets.length, greaterThanOrEqualTo(6));
       },
     );
+  });
+
+  group('Portrait Retouching Engine', () {
+    test('Portrait skin brightening boosts skin midtones', () {
+      // Create a test skin tone image (fair/medium skin: R=210, G=160, B=130)
+      final skinImage = img.Image(width: 40, height: 40);
+      for (final p in skinImage) {
+        p.r = 210;
+        p.g = 160;
+        p.b = 130;
+      }
+
+      final brightened = ImagePipeline.processRawImage(
+        skinImage,
+        const EditState(portrait: PortraitAdjustments(skinBrighten: 40.0)),
+      );
+
+      final pOrig = skinImage.getPixel(20, 20);
+      final pNew = brightened.getPixel(20, 20);
+
+      // Brightened pixel should have higher luminance
+      expect(pNew.r, greaterThan(pOrig.r));
+      expect(pNew.g, greaterThan(pOrig.g));
+      expect(pNew.b, greaterThan(pOrig.b));
+    });
+
+    test('Blemish removal inpaints dark spot on skin', () {
+      // Create a skin-toned image with a dark pimple/blemish in the center
+      final blemishImage = img.Image(width: 50, height: 50);
+      for (final p in blemishImage) {
+        p.r = 200;
+        p.g = 150;
+        p.b = 120;
+      }
+      // Add a dark spot at center (25, 25)
+      for (int dy = -2; dy <= 2; dy++) {
+        for (int dx = -2; dx <= 2; dx++) {
+          final p = blemishImage.getPixel(25 + dx, 25 + dy);
+          p.r = 70;
+          p.g = 40;
+          p.b = 30;
+        }
+      }
+
+      // Heal the blemish at normalized (0.5, 0.5)
+      final healed = ImagePipeline.processRawImage(
+        blemishImage,
+        const EditState(
+          portrait: PortraitAdjustments(
+            blemishes: [BlemishSpot(x: 0.5, y: 0.5, radius: 0.08)],
+          ),
+        ),
+      );
+
+      final centerPixel = healed.getPixel(25, 25);
+      // Dark spot should now be healed close to surrounding skin (200, 150, 120)
+      expect(centerPixel.r, greaterThan(150));
+      expect(centerPixel.g, greaterThan(110));
+    });
+  });
+
+  group('Format Identification', () {
+    test('Correctly identifies JPEG magic bytes', () {
+      final jpegBytes = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x00]);
+      expect(ImagePipeline.identifyFormat(jpegBytes), equals('jpeg'));
+    });
+
+    test('Correctly identifies PNG magic bytes', () {
+      final pngBytes = Uint8List.fromList([
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+      ]);
+      expect(ImagePipeline.identifyFormat(pngBytes), equals('png'));
+    });
   });
 }

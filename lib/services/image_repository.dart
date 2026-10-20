@@ -57,7 +57,10 @@ class DefaultImageRepository implements ImageRepository {
   Future<Uint8List?> loadSampleAsset(String path) async {
     try {
       final byteData = await rootBundle.load(path);
-      return byteData.buffer.asUint8List();
+      return byteData.buffer.asUint8List(
+        byteData.offsetInBytes,
+        byteData.lengthInBytes,
+      );
     } catch (e) {
       return null;
     }
@@ -68,13 +71,18 @@ class DefaultImageRepository implements ImageRepository {
     return const [
       SampleImageItem(
         title: 'Sunset Landscape',
-        assetPath: 'assets/images/sample.jpg',
+        assetPath: 'assets/images/sample_landscape.jpg',
         description: 'Dynamic range golden sunset over lake',
       ),
       SampleImageItem(
         title: 'Studio Portrait',
         assetPath: 'assets/images/sample_portrait.jpg',
         description: 'Warm skin tones and studio lighting',
+      ),
+      SampleImageItem(
+        title: 'Nature & Greenery',
+        assetPath: 'assets/images/sample_nature.jpg',
+        description: 'Rich emerald foliage and outdoor morning light',
       ),
       SampleImageItem(
         title: 'Modern Architecture',

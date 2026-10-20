@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Future<dynamic> Function() fetchBytes,
     String name, {
     String? initialTool,
+    String? initialPresetId,
   }) async {
     setState(() => _isLoading = true);
     try {
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
               initialImageBytes: bytes,
               imageName: name,
               initialTool: initialTool,
+              initialPresetId: initialPresetId,
             ),
           ),
         );
@@ -80,11 +82,6 @@ class _HomeScreenState extends State<HomeScreen> {
           initialTool: 'filters',
         );
       }
-    } else if (index == 3) {
-      // Settings
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
     } else {
       setState(() => _currentNavIndex = index);
     }
@@ -288,10 +285,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // 3. Quick Tools Section (Crop, Adjust, Filters, Effects)
+                  // 3. Quick Tools Section (Crop, Adjust, Portrait, Filters, Effects)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -306,32 +303,41 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _buildQuickToolItem(
-                                icon: Icons.crop_rounded,
-                                label: 'Crop',
-                                toolId: 'crop',
-                              ),
-                              const SizedBox(width: 10),
-                              _buildQuickToolItem(
-                                icon: Icons.tune_rounded,
-                                label: 'Adjust',
-                                toolId: 'tune',
-                              ),
-                              const SizedBox(width: 10),
-                              _buildQuickToolItem(
-                                icon: Icons.filter_vintage_rounded,
-                                label: 'Filters',
-                                toolId: 'filters',
-                              ),
-                              const SizedBox(width: 10),
-                              _buildQuickToolItem(
-                                icon: Icons.auto_awesome_rounded,
-                                label: 'Effects',
-                                toolId: 'effects',
-                              ),
-                            ],
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _buildQuickToolItem(
+                                  icon: Icons.crop_rounded,
+                                  label: 'Crop',
+                                  toolId: 'crop',
+                                ),
+                                const SizedBox(width: 10),
+                                _buildQuickToolItem(
+                                  icon: Icons.tune_rounded,
+                                  label: 'Adjust',
+                                  toolId: 'tune',
+                                ),
+                                const SizedBox(width: 10),
+                                _buildQuickToolItem(
+                                  icon: Icons.face_retouching_natural_rounded,
+                                  label: 'Portrait',
+                                  toolId: 'portrait',
+                                ),
+                                const SizedBox(width: 10),
+                                _buildQuickToolItem(
+                                  icon: Icons.filter_vintage_rounded,
+                                  label: 'Filters',
+                                  toolId: 'filters',
+                                ),
+                                const SizedBox(width: 10),
+                                _buildQuickToolItem(
+                                  icon: Icons.auto_awesome_rounded,
+                                  label: 'Effects',
+                                  toolId: 'effects',
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -376,7 +382,95 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // 5. Featured Section (Landscape, Portrait, Architecture, Food)
+                  // 5. Curated Presets Section
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'CURATED PRESETS',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1.2,
+                                  color: AeviqueTheme.slateGray,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => _onBottomNavTapped(2),
+                                child: const Text(
+                                  'Explore All',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AeviqueTheme.champagneGold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 130,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                _buildCuratedPresetCard(
+                                  id: 'vivid',
+                                  name: 'Vivid',
+                                  subtitle: 'Rich & Natural',
+                                  badge: 'POPULAR',
+                                  accentColor: const Color(0xFFE5A93C),
+                                  samples: samples,
+                                ),
+                                const SizedBox(width: 12),
+                                _buildCuratedPresetCard(
+                                  id: 'vivid_warm',
+                                  name: 'Vivid Warm',
+                                  subtitle: 'Golden Hour',
+                                  accentColor: const Color(0xFFD97736),
+                                  samples: samples,
+                                ),
+                                const SizedBox(width: 12),
+                                _buildCuratedPresetCard(
+                                  id: 'dramatic',
+                                  name: 'Dramatic',
+                                  subtitle: 'Bold Contrast',
+                                  accentColor: const Color(0xFF8B5CF6),
+                                  samples: samples,
+                                ),
+                                const SizedBox(width: 12),
+                                _buildCuratedPresetCard(
+                                  id: 'mono',
+                                  name: 'Mono',
+                                  subtitle: 'Pure B&W',
+                                  accentColor: const Color(0xFFA1A1AA),
+                                  samples: samples,
+                                ),
+                                const SizedBox(width: 12),
+                                _buildCuratedPresetCard(
+                                  id: 'noir',
+                                  name: 'Noir',
+                                  subtitle: 'Crushed Shadows',
+                                  accentColor: const Color(0xFF52525B),
+                                  samples: samples,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // 6. Featured Section (Landscape, Portrait, Architecture, Food, Nature)
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(20, 24, 20, 10),
@@ -514,9 +608,127 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.filter_vintage_outlined),
               label: 'Presets',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              label: 'Settings',
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCuratedPresetCard({
+    required String id,
+    required String name,
+    required String subtitle,
+    String? badge,
+    required Color accentColor,
+    required List<SampleImageItem> samples,
+  }) {
+    return InkWell(
+      onTap: () {
+        final sample = samples.isNotEmpty ? samples.first : null;
+        if (sample != null) {
+          _handleImageSelected(
+            () => widget.imageRepository.loadSampleAsset(sample.assetPath),
+            sample.title,
+            initialTool: 'filters',
+            initialPresetId: id,
+          );
+        } else {
+          _handleImageSelected(
+            widget.imageRepository.pickImageFromGallery,
+            'Photo',
+            initialTool: 'filters',
+            initialPresetId: id,
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 130,
+        decoration: BoxDecoration(
+          color: AeviqueTheme.charcoalSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: accentColor.withValues(alpha: 0.35),
+            width: 1.2,
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              accentColor.withValues(alpha: 0.12),
+              AeviqueTheme.charcoalSurface,
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accentColor.withValues(alpha: 0.2),
+                  ),
+                  child: Icon(
+                    Icons.filter_vintage_rounded,
+                    size: 15,
+                    color: accentColor,
+                  ),
+                ),
+                if (badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AeviqueTheme.champagneGold,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badge,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: AeviqueTheme.deepBlack,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AeviqueTheme.ivory,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    color: AeviqueTheme.slateGray,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ],
         ),
@@ -529,7 +741,8 @@ class _HomeScreenState extends State<HomeScreen> {
     required String label,
     required String toolId,
   }) {
-    return Expanded(
+    return SizedBox(
+      width: 72,
       child: InkWell(
         onTap: () {
           // Open gallery picker and navigate directly into that tool
@@ -556,7 +769,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 label,
                 style: const TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: AeviqueTheme.ivory,
                 ),

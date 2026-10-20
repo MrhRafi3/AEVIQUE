@@ -5,6 +5,7 @@ import 'package:image/image.dart' as img;
 import '../models/edit_state.dart';
 import 'filter_kernels.dart';
 import 'lut_generator.dart';
+import 'portrait_engine.dart';
 
 class PreprocessedImageBundle {
   final img.Image previewImage;
@@ -147,7 +148,12 @@ class ImagePipeline {
       }
     }
 
-    // 4. Tone Adjustments & Curves via LUT (only if modified)
+    // 4. Portrait Retouching (Blemish healing, edge-preserving skin smooth, radiant midtone brightening)
+    if (!state.portrait.isIdentity) {
+      PortraitEngine.applyPortrait(working, state.portrait);
+    }
+
+    // 5. Tone Adjustments & Curves via LUT (only if modified)
     if (!state.tune.isIdentity || !state.curves.isIdentity) {
       final luts = LutGenerator.generate(state.tune, state.curves);
       final rLut = luts.rLut;
@@ -217,6 +223,39 @@ class ImagePipeline {
 
     return working;
   }
+
+  /// Inspects magic headers to identify image format (JPEG, PNG, HEIC/HEIF, WebP).
+  static String identifyFormat(Uint8List bytes) {
+    if (bytes.length >= 3 &&
+        bytes[0] == 0xFF &&
+        bytes[1] == 0xD8 &&
+        bytes[2] == 0xFF) {
+      return 'jpeg';
+    }
+    if (bytes.length >= 8 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4E &&
+        bytes[3] == 0x47 &&
+        bytes[4] == 0x0D &&
+        bytes[5] == 0x0A &&
+        bytes[6] == 0x1A &&
+        bytes[7] == 0x0A) {
+      return 'png';
+    }
+    if (bytes.length >= 12) {
+      final header = String.fromCharCodes(bytes.sublist(4, 12));
+      if (header.contains('ftyp')) {
+        return 'heic';
+      }
+      final riff = String.fromCharCodes(bytes.sublist(0, 4));
+      final webp = String.fromCharCodes(bytes.sublist(8, 12));
+      if (riff == 'RIFF' && webp == 'WEBP') {
+        return 'webp';
+      }
+    }
+    return 'unknown';
+  }
 }
 
 class _PrepareBundleTask {
@@ -234,7 +273,13 @@ class _PrepareBundleTask {
 PreprocessedImageBundle _isolatePrepareBundle(_PrepareBundleTask task) {
   final decoded = img.decodeImage(task.bytes);
   if (decoded == null) {
-    throw Exception('Failed to decode image');
+    final format = ImagePipeline.identifyFormat(task.bytes);
+    if (format == 'heic') {
+      throw Exception(
+        'HEIC/HEIF images require JPEG or PNG conversion before editing.',
+      );
+    }
+    throw Exception('Failed to decode image data (detected format: $format).');
   }
 
   // Generate downscaled preview

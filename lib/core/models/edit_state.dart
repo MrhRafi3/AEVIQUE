@@ -551,6 +551,101 @@ class EffectsAdjustments {
 }
 
 @immutable
+class BlemishSpot {
+  final double x; // normalized 0.0 .. 1.0 (relative to image width)
+  final double y; // normalized 0.0 .. 1.0 (relative to image height)
+  final double radius; // normalized radius (e.g. 0.025)
+
+  const BlemishSpot({required this.x, required this.y, this.radius = 0.025});
+
+  Map<String, dynamic> toJson() => {'x': x, 'y': y, 'radius': radius};
+
+  factory BlemishSpot.fromJson(Map<String, dynamic> json) => BlemishSpot(
+    x: (json['x'] as num).toDouble(),
+    y: (json['y'] as num).toDouble(),
+    radius: (json['radius'] as num?)?.toDouble() ?? 0.025,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BlemishSpot &&
+          runtimeType == other.runtimeType &&
+          (x - other.x).abs() < 1e-4 &&
+          (y - other.y).abs() < 1e-4 &&
+          (radius - other.radius).abs() < 1e-4;
+
+  @override
+  int get hashCode => Object.hash(
+    (x * 1000).round(),
+    (y * 1000).round(),
+    (radius * 1000).round(),
+  );
+}
+
+@immutable
+class PortraitAdjustments {
+  final double skinSmooth; // 0.0 .. 100.0
+  final double skinBrighten; // -50.0 .. 50.0
+  final List<BlemishSpot> blemishes;
+
+  const PortraitAdjustments({
+    this.skinSmooth = 0.0,
+    this.skinBrighten = 0.0,
+    this.blemishes = const [],
+  });
+
+  bool get isIdentity =>
+      skinSmooth.abs() < 1e-4 && skinBrighten.abs() < 1e-4 && blemishes.isEmpty;
+
+  PortraitAdjustments copyWith({
+    double? skinSmooth,
+    double? skinBrighten,
+    List<BlemishSpot>? blemishes,
+  }) => PortraitAdjustments(
+    skinSmooth: skinSmooth ?? this.skinSmooth,
+    skinBrighten: skinBrighten ?? this.skinBrighten,
+    blemishes: blemishes ?? this.blemishes,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'skinSmooth': skinSmooth,
+    'skinBrighten': skinBrighten,
+    'blemishes': blemishes.map((b) => b.toJson()).toList(),
+  };
+
+  factory PortraitAdjustments.fromJson(Map<String, dynamic> json) =>
+      PortraitAdjustments(
+        skinSmooth: (json['skinSmooth'] as num?)?.toDouble() ?? 0.0,
+        skinBrighten: (json['skinBrighten'] as num?)?.toDouble() ?? 0.0,
+        blemishes:
+            (json['blemishes'] as List?)
+                ?.map(
+                  (e) =>
+                      BlemishSpot.fromJson(Map<String, dynamic>.from(e as Map)),
+                )
+                .toList() ??
+            const [],
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PortraitAdjustments &&
+          runtimeType == other.runtimeType &&
+          (skinSmooth - other.skinSmooth).abs() < 1e-4 &&
+          (skinBrighten - other.skinBrighten).abs() < 1e-4 &&
+          listEquals(blemishes, other.blemishes);
+
+  @override
+  int get hashCode => Object.hash(
+    skinSmooth.round(),
+    skinBrighten.round(),
+    Object.hashAll(blemishes),
+  );
+}
+
+@immutable
 class EditState {
   final TuneAdjustments tune;
   final DetailsAdjustments details;
@@ -558,6 +653,7 @@ class EditState {
   final VignetteAdjustments vignette;
   final GeometryAdjustments geometry;
   final EffectsAdjustments effects;
+  final PortraitAdjustments portrait;
   final String? filterId;
   final double
   filterIntensity; // 0.0 .. 100.0 (where 0.0 = 100% original, 100.0 = full filter)
@@ -570,6 +666,7 @@ class EditState {
     this.vignette = const VignetteAdjustments(),
     this.geometry = const GeometryAdjustments(),
     this.effects = const EffectsAdjustments(),
+    this.portrait = const PortraitAdjustments(),
     this.filterId,
     this.filterIntensity = 100.0,
     this.presetName,
@@ -584,6 +681,7 @@ class EditState {
       vignette.isIdentity &&
       geometry.isIdentity &&
       effects.isIdentity &&
+      portrait.isIdentity &&
       filterId == null &&
       presetName == null;
 
@@ -594,6 +692,7 @@ class EditState {
     VignetteAdjustments? vignette,
     GeometryAdjustments? geometry,
     EffectsAdjustments? effects,
+    PortraitAdjustments? portrait,
     String? filterId,
     double? filterIntensity,
     String? presetName,
@@ -606,6 +705,7 @@ class EditState {
     vignette: vignette ?? this.vignette,
     geometry: geometry ?? this.geometry,
     effects: effects ?? this.effects,
+    portrait: portrait ?? this.portrait,
     filterId: clearFilter ? null : (filterId ?? this.filterId),
     filterIntensity: filterIntensity ?? this.filterIntensity,
     presetName: clearPreset ? null : (presetName ?? this.presetName),
@@ -618,6 +718,7 @@ class EditState {
     'vignette': vignette.toJson(),
     'geometry': geometry.toJson(),
     'effects': effects.toJson(),
+    'portrait': portrait.toJson(),
     'filterId': filterId,
     'filterIntensity': filterIntensity,
     'presetName': presetName,
@@ -652,6 +753,11 @@ class EditState {
             Map<String, dynamic>.from(json['effects'] as Map),
           )
         : const EffectsAdjustments(),
+    portrait: json['portrait'] != null
+        ? PortraitAdjustments.fromJson(
+            Map<String, dynamic>.from(json['portrait'] as Map),
+          )
+        : const PortraitAdjustments(),
     filterId: json['filterId'] as String?,
     filterIntensity: (json['filterIntensity'] as num?)?.toDouble() ?? 100.0,
     presetName: json['presetName'] as String?,
@@ -668,6 +774,7 @@ class EditState {
           vignette == other.vignette &&
           geometry == other.geometry &&
           effects == other.effects &&
+          portrait == other.portrait &&
           filterId == other.filterId &&
           (filterIntensity - other.filterIntensity).abs() < 1e-4 &&
           presetName == other.presetName;
@@ -680,6 +787,7 @@ class EditState {
     vignette,
     geometry,
     effects,
+    portrait,
     filterId,
     filterIntensity,
     presetName,

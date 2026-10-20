@@ -13,9 +13,37 @@ void main() {
       expect(state.details.isIdentity, isTrue);
       expect(state.geometry.isIdentity, isTrue);
       expect(state.effects.isIdentity, isTrue);
+      expect(state.portrait.isIdentity, isTrue);
       expect(state.curves.isIdentity, isTrue);
       expect(state.vignette.isIdentity, isTrue);
     });
+
+    test(
+      'PortraitAdjustments copyWith, blemishes and serialization roundtrip',
+      () {
+        final portrait = const PortraitAdjustments(
+          skinSmooth: 35.0,
+          skinBrighten: 15.0,
+          blemishes: [
+            BlemishSpot(x: 0.45, y: 0.55, radius: 0.025),
+            BlemishSpot(x: 0.60, y: 0.70, radius: 0.03),
+          ],
+        );
+        expect(portrait.isIdentity, isFalse);
+        expect(portrait.blemishes.length, 2);
+
+        final state = EditState.identity().copyWith(portrait: portrait);
+        final json = state.toJson();
+        final restored = EditState.fromJson(json);
+
+        expect(restored.portrait.skinSmooth, 35.0);
+        expect(restored.portrait.skinBrighten, 15.0);
+        expect(restored.portrait.blemishes.length, 2);
+        expect(restored.portrait.blemishes.first.x, 0.45);
+        expect(restored.portrait.blemishes.first.y, 0.55);
+        expect(restored, equals(state));
+      },
+    );
 
     test('TuneAdjustments copyWith and identity check', () {
       final tune = const TuneAdjustments().copyWith(

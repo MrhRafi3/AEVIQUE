@@ -48,24 +48,39 @@ class _FiltersPanelState extends State<FiltersPanel> {
   }
 
   void _generateThumbnails() {
-    if (widget.thumbnailBase == null) return;
+    final base = widget.thumbnailBase;
+    if (base == null) return;
 
-    // Generate thumbnails synchronously in background for visible filters
-    for (final filter in FilterCatalogue.allFilters) {
-      if (_thumbCache.containsKey(filter.id)) continue;
-      final processed = ImagePipeline.processRawImage(
-        widget.thumbnailBase!,
-        filter.state,
-      );
-      _thumbCache[filter.id] = Uint8List.fromList(
-        img.encodeJpg(processed, quality: 75),
-      );
-    }
+    // Asynchronously generate thumbnails so the UI remains fluid
+    Future.microtask(() async {
+      for (final filter in FilterCatalogue.allFilters) {
+        if (!mounted) return;
+        if (filter.id == 'original') continue;
+        if (_thumbCache.containsKey(filter.id)) continue;
+
+        // Yield between filters to preserve 60/120fps frame rendering
+        await Future<void>.delayed(Duration.zero);
+        if (!mounted) return;
+
+        final processed = ImagePipeline.processRawImage(base, filter.state);
+        final encoded = Uint8List.fromList(
+          img.encodeJpg(processed, quality: 75),
+        );
+        if (mounted) {
+          setState(() {
+            _thumbCache[filter.id] = encoded;
+          });
+        }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final filters = FilterCatalogue.getByCategory(_selectedCategory);
+    final allCategoryFilters = FilterCatalogue.getByCategory(_selectedCategory);
+    final filters = allCategoryFilters
+        .where((f) => f.id != 'original')
+        .toList();
     final isFilterActive = widget.activeFilterId != null;
 
     return Column(
@@ -97,19 +112,9 @@ class _FiltersPanelState extends State<FiltersPanel> {
               children: [
                 _buildCategoryChip(FilterCategory.all, 'All'),
                 const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.signature, 'Signature'),
+                _buildCategoryChip(FilterCategory.vivid, 'Vivid'),
                 const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.portrait, 'Portrait'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.nature, 'Nature'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.everyday, 'Everyday'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.food, 'Food'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.travel, 'Travel'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.film, 'Film'),
+                _buildCategoryChip(FilterCategory.dramatic, 'Dramatic'),
                 const SizedBox(width: 6),
                 _buildCategoryChip(FilterCategory.bw, 'B&W'),
               ],

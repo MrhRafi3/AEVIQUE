@@ -71,14 +71,20 @@ void main() {
       // Verify Quick Tools
       expect(find.text('Crop'), findsOneWidget);
       expect(find.text('Adjust'), findsOneWidget);
+      expect(find.text('Portrait'), findsOneWidget);
       expect(find.text('Filters'), findsOneWidget);
       expect(find.text('Effects'), findsOneWidget);
 
-      // Verify Bottom Navigation items
+      // Verify Curated Presets
+      expect(find.text('CURATED PRESETS'), findsOneWidget);
+
+      // Verify Bottom Navigation items (Home, Library, Presets - Settings is header-only)
       expect(find.text('Home'), findsOneWidget);
       expect(find.text('Library'), findsOneWidget);
       expect(find.text('Presets'), findsOneWidget);
-      expect(find.text('Settings'), findsOneWidget);
+
+      // Verify Header Settings icon
+      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
 
       // Verify Camera Capture Bar
       expect(find.text('Open Camera'), findsOneWidget);

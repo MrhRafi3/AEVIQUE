@@ -21,8 +21,12 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
+  late Animation<double> _logoFade;
+  late Animation<double> _logoScale;
+  late Animation<double> _wordmarkFade;
+  late Animation<double> _wordmarkSpacing;
+  late Animation<double> _taglineFade;
+  late Animation<double> _creditFade;
   Timer? _navigationTimer;
 
   @override
@@ -30,18 +34,43 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1400),
     );
 
-    _fadeAnimation = CurvedAnimation(
+    // Staged Choreography:
+    // Stage 1 (0.0 - 0.45): Geometric Logo fade & scale in
+    _logoFade = CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutCubic,
+      curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
+    );
+    _logoScale = Tween<double>(begin: 0.88, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.45, curve: Curves.easeOutBack),
+      ),
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    // Stage 2 (0.35 - 0.75): AEVIQUE wordmark reveal with kerning expansion
+    _wordmarkFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.35, 0.75, curve: Curves.easeOutCubic),
+    );
+    _wordmarkSpacing = Tween<double>(begin: 2.0, end: 6.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.35, 0.80, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    // Stage 3 (0.65 - 1.0): Tagline and Developer Credit soft fade
+    _taglineFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.65, 0.95, curve: Curves.easeOutCubic),
+    );
+    _creditFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.75, 1.0, curve: Curves.easeOutCubic),
+    );
 
     _controller.forward();
 
@@ -100,48 +129,64 @@ class _SplashScreenState extends State<SplashScreen>
 
           // Main Center Content: Geometric Logo + Wordmark + Tagline
           Center(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const AeviqueLogo(size: 88, showGlow: true),
-                    const SizedBox(height: 28),
-                    Text(
-                      'AEVIQUE',
-                      style: AeviqueTheme.wordmarkStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 6.0,
-                        color: AeviqueTheme.ivory,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'See Beyond Ordinary.',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: 2.2,
-                        color: AeviqueTheme.slateGray,
-                      ),
-                    ),
-                  ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Stage 1: Geometric Logo
+                FadeTransition(
+                  opacity: _logoFade,
+                  child: ScaleTransition(
+                    scale: _logoScale,
+                    child: const AeviqueLogo(size: 88, showGlow: true),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 28),
+
+                // Stage 2: Brand Wordmark with tracked spacing
+                FadeTransition(
+                  opacity: _wordmarkFade,
+                  child: AnimatedBuilder(
+                    animation: _wordmarkSpacing,
+                    builder: (context, child) {
+                      return Text(
+                        'AEVIQUE',
+                        style: AeviqueTheme.wordmarkStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: _wordmarkSpacing.value,
+                          color: AeviqueTheme.ivory,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Stage 3: Tagline
+                FadeTransition(
+                  opacity: _taglineFade,
+                  child: const Text(
+                    'See Beyond Ordinary.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 2.2,
+                      color: AeviqueTheme.slateGray,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // Subtle Bottom Developer Credit
+          // Subtle Bottom Developer Credit (Exact spelling: Developed by Mrh Rafi)
           Positioned(
             bottom: 24,
             left: 0,
             right: 0,
             child: FadeTransition(
-              opacity: _fadeAnimation,
+              opacity: _creditFade,
               child: const Text(
                 'Developed by Mrh Rafi',
                 textAlign: TextAlign.center,
