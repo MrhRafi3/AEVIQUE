@@ -59,7 +59,7 @@ class _FiltersPanelState extends State<FiltersPanel> {
         if (_thumbCache.containsKey(filter.id)) continue;
 
         // Yield between filters to preserve 60/120fps frame rendering
-        await Future<void>.delayed(Duration.zero);
+        await Future<void>.value();
         if (!mounted) return;
 
         final processed = ImagePipeline.processRawImage(base, filter.state);

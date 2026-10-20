@@ -7,7 +7,7 @@ import '../core/models/edit_state.dart';
 import '../core/models/history_manager.dart';
 import '../core/presets/filter_catalogue.dart';
 import '../theme/aevique_theme.dart';
-import '../theme/luma_theme.dart';
+import '../widgets/aevique_glass.dart';
 import '../widgets/before_after_viewer.dart';
 import '../widgets/crop_overlay_widget.dart';
 import '../widgets/tool_panels/crop_panel.dart';
@@ -19,7 +19,7 @@ import '../widgets/tool_panels/portrait_panel.dart';
 import '../widgets/tool_panels/tune_panel.dart';
 import 'export_screen.dart';
 
-enum ToolCategory { light, color, portrait, effects, detail, crop }
+enum ToolCategory { light, color, portrait, crop, filters }
 
 class EditorScreen extends StatefulWidget {
   final Uint8List initialImageBytes;
@@ -73,7 +73,7 @@ class _EditorScreenState extends State<EditorScreen> {
       if (filter != null) {
         _workingState = filter.state.copyWith(filterId: filter.id);
         _history = HistoryManager(initialState: _workingState);
-        _activeCategory = ToolCategory.effects;
+        _activeCategory = ToolCategory.filters;
         _activeTool = 'filters';
       }
     } else if (widget.initialTool != null) {
@@ -84,12 +84,9 @@ class _EditorScreenState extends State<EditorScreen> {
         _activeCategory = ToolCategory.color;
       } else if (widget.initialTool == 'portrait') {
         _activeCategory = ToolCategory.portrait;
-      } else if (widget.initialTool == 'effects' ||
-          widget.initialTool == 'filters') {
-        _activeCategory = ToolCategory.effects;
-      } else if (widget.initialTool == 'details' ||
-          widget.initialTool == 'detail') {
-        _activeCategory = ToolCategory.detail;
+      } else if (widget.initialTool == 'filters' ||
+          widget.initialTool == 'effects') {
+        _activeCategory = ToolCategory.filters;
       } else {
         _activeCategory = ToolCategory.light;
       }
@@ -250,25 +247,29 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: LumaTheme.surface,
+        backgroundColor: AeviqueTheme.elevatedCharcoal,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: LumaTheme.border, width: 1),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: AeviqueTheme.border.withValues(alpha: 0.8),
+            width: 1,
+          ),
         ),
         title: const Row(
           children: [
             Icon(
               Icons.warning_amber_rounded,
-              color: LumaTheme.accent,
+              color: AeviqueTheme.champagneGold,
               size: 22,
             ),
             SizedBox(width: 8),
             Text(
               'Unsaved Edits',
               style: TextStyle(
+                fontFamily: 'Playfair',
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: LumaTheme.textPrimary,
+                color: AeviqueTheme.ivory,
               ),
             ),
           ],
@@ -276,8 +277,9 @@ class _EditorScreenState extends State<EditorScreen> {
         content: const Text(
           'You have unexported photo adjustments in this editing session. Would you like to preserve or discard them?',
           style: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 13,
-            color: LumaTheme.textSecondary,
+            color: AeviqueTheme.textSecondary,
             height: 1.4,
           ),
         ),
@@ -288,7 +290,7 @@ class _EditorScreenState extends State<EditorScreen> {
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: LumaTheme.border),
+                    side: const BorderSide(color: AeviqueTheme.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -299,6 +301,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   child: const Text(
                     'Discard',
                     style: TextStyle(
+                      fontFamily: 'Inter',
                       color: Color(0xFFEF4444),
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -310,8 +313,10 @@ class _EditorScreenState extends State<EditorScreen> {
               Expanded(
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: LumaTheme.surfaceElevated,
-                    side: const BorderSide(color: LumaTheme.borderLight),
+                    backgroundColor: AeviqueTheme.deepBlack,
+                    side: BorderSide(
+                      color: AeviqueTheme.border.withValues(alpha: 0.8),
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -322,7 +327,8 @@ class _EditorScreenState extends State<EditorScreen> {
                   child: const Text(
                     'Keep Editing',
                     style: TextStyle(
-                      color: LumaTheme.textPrimary,
+                      fontFamily: 'Inter',
+                      color: AeviqueTheme.ivory,
                       fontSize: 13,
                     ),
                   ),
@@ -335,17 +341,26 @@ class _EditorScreenState extends State<EditorScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: LumaTheme.accent,
-                foregroundColor: LumaTheme.background,
+                backgroundColor: AeviqueTheme.champagneGold,
+                foregroundColor: AeviqueTheme.deepBlack,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              icon: const Icon(Icons.ios_share_rounded, size: 16),
+              icon: const Icon(
+                Icons.ios_share_rounded,
+                size: 16,
+                color: AeviqueTheme.deepBlack,
+              ),
               label: const Text(
                 'Save / Export',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AeviqueTheme.deepBlack,
+                ),
               ),
               onPressed: () =>
                   Navigator.of(context).pop(_BackDialogAction.saveAndExport),
@@ -388,7 +403,7 @@ class _EditorScreenState extends State<EditorScreen> {
         _handleBackAction();
       },
       child: Scaffold(
-        backgroundColor: LumaTheme.background,
+        backgroundColor: AeviqueTheme.deepBlack,
         body: SafeArea(
           child: Column(
             children: [
@@ -422,13 +437,16 @@ class _EditorScreenState extends State<EditorScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CircularProgressIndicator(color: LumaTheme.accent),
+                            CircularProgressIndicator(
+                              color: AeviqueTheme.champagneGold,
+                            ),
                             SizedBox(height: 12),
                             Text(
                               'Optimizing Image Canvas...',
                               style: TextStyle(
+                                fontFamily: 'Inter',
                                 fontSize: 12,
-                                color: LumaTheme.textSecondary,
+                                color: AeviqueTheme.textSecondary,
                               ),
                             ),
                           ],
@@ -494,10 +512,12 @@ class _EditorScreenState extends State<EditorScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.65),
+                            color: Colors.black.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: LumaTheme.border,
+                              color: AeviqueTheme.champagneGold.withValues(
+                                alpha: 0.5,
+                              ),
                               width: 0.8,
                             ),
                           ),
@@ -509,17 +529,18 @@ class _EditorScreenState extends State<EditorScreen> {
                                 height: 10,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 1.5,
-                                  color: LumaTheme.accent,
+                                  color: AeviqueTheme.champagneGold,
                                 ),
                               ),
                               SizedBox(width: 6),
                               Text(
                                 'PROCESSING',
                                 style: TextStyle(
+                                  fontFamily: 'Inter',
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.0,
-                                  color: LumaTheme.accent,
+                                  color: AeviqueTheme.champagneGold,
                                 ),
                               ),
                             ],
@@ -530,18 +551,11 @@ class _EditorScreenState extends State<EditorScreen> {
                 ),
               ),
 
-              // Bottom Area: Active Tool Panel OR Tool Category Selector
-              Container(
-                decoration: const BoxDecoration(
-                  color: LumaTheme.surface,
-                  border: Border(
-                    top: BorderSide(color: LumaTheme.border, width: 1),
-                  ),
-                ),
-                child: isToolOpen
-                    ? _buildActiveToolDrawer()
-                    : _buildCategoryAndToolsSelector(),
-              ),
+              // Bottom Area: Active Tool Drawer OR Floating Tool Dock
+              if (isToolOpen)
+                _buildActiveToolDrawer()
+              else
+                _buildFloatingBottomDock(),
             ],
           ),
         ),
@@ -558,15 +572,13 @@ class _EditorScreenState extends State<EditorScreen> {
       builder: (context, constraints) {
         final showPill = constraints.maxWidth >= 420;
 
-        return Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          decoration: const BoxDecoration(
-            color: LumaTheme.background,
-            border: Border(
-              bottom: BorderSide(color: LumaTheme.border, width: 1),
-            ),
-          ),
+        return AeviqueGlass(
+          borderRadius: BorderRadius.zero,
+          opacity: 0.85,
+          blur: 16,
+          showGoldAccent: false,
+          borderWidth: 0.5,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
           child: Row(
             children: [
               // Left: Back button & brand
@@ -576,7 +588,11 @@ class _EditorScreenState extends State<EditorScreen> {
                   padding: EdgeInsets.zero,
                   minimumSize: const Size(28, 28),
                 ),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: AeviqueTheme.ivory,
+                ),
                 tooltip: 'Back to Gallery',
                 onPressed: _handleBackAction,
               ),
@@ -604,13 +620,13 @@ class _EditorScreenState extends State<EditorScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 6),
                     decoration: BoxDecoration(
                       color: isNeutral
-                          ? LumaTheme.surfaceElevated
-                          : LumaTheme.accent.withValues(alpha: 0.15),
+                          ? AeviqueTheme.charcoalSurface
+                          : AeviqueTheme.champagneGold.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isNeutral
-                            ? LumaTheme.border
-                            : LumaTheme.accent.withValues(alpha: 0.5),
+                            ? AeviqueTheme.border
+                            : AeviqueTheme.champagneGold.withValues(alpha: 0.5),
                         width: 1,
                       ),
                     ),
@@ -623,8 +639,8 @@ class _EditorScreenState extends State<EditorScreen> {
                           height: 5,
                           decoration: BoxDecoration(
                             color: isNeutral
-                                ? LumaTheme.textMuted
-                                : LumaTheme.accent,
+                                ? AeviqueTheme.slateGray
+                                : AeviqueTheme.champagneGold,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -639,13 +655,14 @@ class _EditorScreenState extends State<EditorScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 10,
                               fontWeight: isNeutral
                                   ? FontWeight.normal
                                   : FontWeight.w600,
                               color: isNeutral
-                                  ? LumaTheme.textSecondary
-                                  : LumaTheme.accent,
+                                  ? AeviqueTheme.textSecondary
+                                  : AeviqueTheme.champagneGold,
                             ),
                           ),
                         ),
@@ -669,8 +686,8 @@ class _EditorScreenState extends State<EditorScreen> {
                     icon: const Icon(Icons.undo_rounded, size: 18),
                     tooltip: 'Undo',
                     color: _history.canUndo
-                        ? LumaTheme.textPrimary
-                        : LumaTheme.textMuted,
+                        ? AeviqueTheme.ivory
+                        : AeviqueTheme.textMuted,
                     onPressed: _history.canUndo ? _undo : null,
                   ),
                   const SizedBox(width: 2),
@@ -683,24 +700,23 @@ class _EditorScreenState extends State<EditorScreen> {
                     icon: const Icon(Icons.redo_rounded, size: 18),
                     tooltip: 'Redo',
                     color: _history.canRedo
-                        ? LumaTheme.textPrimary
-                        : LumaTheme.textMuted,
+                        ? AeviqueTheme.ivory
+                        : AeviqueTheme.textMuted,
                     onPressed: _history.canRedo ? _redo : null,
                   ),
                   const SizedBox(width: 6),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: LumaTheme.surfaceElevated,
-                      foregroundColor: LumaTheme.accent,
-                      side: const BorderSide(color: LumaTheme.border),
+                      backgroundColor: AeviqueTheme.champagneGold,
+                      foregroundColor: AeviqueTheme.deepBlack,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 5,
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       minimumSize: const Size(24, 26),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                     onPressed: () {
@@ -716,13 +732,19 @@ class _EditorScreenState extends State<EditorScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.ios_share_rounded, size: 12),
-                        SizedBox(width: 3),
+                        Icon(
+                          Icons.ios_share_rounded,
+                          size: 13,
+                          color: AeviqueTheme.deepBlack,
+                        ),
+                        SizedBox(width: 4),
                         Text(
                           'Export',
                           style: TextStyle(
+                            fontFamily: 'Inter',
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                            color: AeviqueTheme.deepBlack,
                           ),
                         ),
                       ],
@@ -889,120 +911,129 @@ class _EditorScreenState extends State<EditorScreen> {
         break;
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Drawer Header with Cancel / Tool Name / Apply
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: const BoxDecoration(
-            color: LumaTheme.surfaceElevated,
-            border: Border(
-              bottom: BorderSide(color: LumaTheme.border, width: 1),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.close_rounded,
-                  color: LumaTheme.textSecondary,
+    return AeviqueGlass(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      opacity: 0.92,
+      borderColor: AeviqueTheme.champagneGold.withValues(alpha: 0.25),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drawer Header with Cancel / Tool Name / Apply
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: AeviqueTheme.border.withValues(alpha: 0.5),
+                  width: 1,
                 ),
-                tooltip: 'Cancel',
-                onPressed: _cancelToolChanges,
               ),
-              Expanded(
-                child: Text(
-                  toolTitle,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: LumaTheme.textPrimary,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: AeviqueTheme.slateGray,
+                    size: 20,
+                  ),
+                  tooltip: 'Cancel',
+                  onPressed: _cancelToolChanges,
+                ),
+                Expanded(
+                  child: Text(
+                    toolTitle,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Playfair',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: AeviqueTheme.ivory,
+                    ),
                   ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.check_rounded, color: LumaTheme.accent),
-                tooltip: 'Apply',
-                onPressed: _applyToolChanges,
-              ),
-            ],
+                IconButton(
+                  icon: const Icon(
+                    Icons.check_rounded,
+                    color: AeviqueTheme.champagneGold,
+                    size: 22,
+                  ),
+                  tooltip: 'Apply',
+                  onPressed: _applyToolChanges,
+                ),
+              ],
+            ),
           ),
-        ),
-        panelContent,
-      ],
+          panelContent,
+        ],
+      ),
     );
   }
 
-  Widget _buildCategoryAndToolsSelector() {
-    List<Widget> toolButtons = [];
-
+  Widget _buildFloatingBottomDock() {
+    List<_ContextualToolItem> contextualTools = [];
     switch (_activeCategory) {
       case ToolCategory.light:
-        toolButtons = [
-          _buildToolItem(
-            Icons.tune_rounded,
-            'Light Adjustments',
-            () => _openTool('light'),
+        contextualTools = const [
+          _ContextualToolItem(
+            toolId: 'light',
+            label: 'Light Adjustments',
+            icon: Icons.tune_rounded,
           ),
-          _buildToolItem(
-            Icons.show_chart_rounded,
-            'Curves',
-            () => _openTool('curves'),
+          _ContextualToolItem(
+            toolId: 'curves',
+            label: 'Curves',
+            icon: Icons.show_chart_rounded,
+          ),
+          _ContextualToolItem(
+            toolId: 'details',
+            label: 'Details',
+            icon: Icons.auto_fix_normal_rounded,
           ),
         ];
         break;
       case ToolCategory.color:
-        toolButtons = [
-          _buildToolItem(
-            Icons.palette_outlined,
-            'Color Balance',
-            () => _openTool('color'),
+        contextualTools = const [
+          _ContextualToolItem(
+            toolId: 'color',
+            label: 'Color Balance',
+            icon: Icons.palette_outlined,
           ),
         ];
         break;
       case ToolCategory.portrait:
-        toolButtons = [
-          _buildToolItem(
-            Icons.face_retouching_natural_rounded,
-            'Portrait Retouch',
-            () => _openTool('portrait'),
-          ),
-        ];
-        break;
-      case ToolCategory.effects:
-        toolButtons = [
-          _buildToolItem(
-            Icons.filter_vintage_rounded,
-            'Filters',
-            () => _openTool('filters'),
-          ),
-          _buildToolItem(
-            Icons.blur_on_rounded,
-            'Effects',
-            () => _openTool('effects'),
-          ),
-        ];
-        break;
-      case ToolCategory.detail:
-        toolButtons = [
-          _buildToolItem(
-            Icons.auto_fix_normal_rounded,
-            'Details',
-            () => _openTool('details'),
+        contextualTools = const [
+          _ContextualToolItem(
+            toolId: 'portrait',
+            label: 'Portrait Retouch',
+            icon: Icons.face_retouching_natural_rounded,
           ),
         ];
         break;
       case ToolCategory.crop:
-        toolButtons = [
-          _buildToolItem(
-            Icons.crop_rotate_rounded,
-            'Crop & Rotate',
-            () => _openTool('crop'),
+        contextualTools = const [
+          _ContextualToolItem(
+            toolId: 'crop',
+            label: 'Crop & Rotate',
+            icon: Icons.crop_rotate_rounded,
+          ),
+        ];
+        break;
+      case ToolCategory.filters:
+        contextualTools = const [
+          _ContextualToolItem(
+            toolId: 'filters',
+            label: 'Filters',
+            icon: Icons.filter_vintage_rounded,
+          ),
+          _ContextualToolItem(
+            toolId: 'effects',
+            label: 'Effects',
+            icon: Icons.blur_on_rounded,
           ),
         ];
         break;
@@ -1011,60 +1042,107 @@ class _EditorScreenState extends State<EditorScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Tool Buttons for current category
-        Container(
-          height: 78,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: toolButtons,
+        // Contextual Sub-tool Pills
+        SizedBox(
+          height: 38,
+          child: Center(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: contextualTools.map((tool) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: InkWell(
+                      onTap: () => _openTool(tool.toolId),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AeviqueTheme.elevatedCharcoal.withValues(
+                            alpha: 0.85,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AeviqueTheme.champagneGold.withValues(
+                              alpha: 0.35,
+                            ),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              tool.icon,
+                              size: 14,
+                              color: AeviqueTheme.champagneGold,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              tool.label,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                                color: AeviqueTheme.ivory,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
-        const Divider(color: LumaTheme.border),
-        // Category Tabs: Light | Color | Effects | Detail | Crop (Scrollable on small screens)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+
+        // Floating Bottom Tool Dock
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+          child: AeviqueGlass(
+            borderRadius: BorderRadius.circular(22),
+            opacity: 0.88,
+            borderColor: AeviqueTheme.border.withValues(alpha: 0.5),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             child: Row(
               children: [
-                _buildCategoryTab(
-                  ToolCategory.light,
-                  'Light',
-                  Icons.lightbulb_outline_rounded,
+                _buildDockCategoryItem(
+                  category: ToolCategory.light,
+                  label: 'Light',
+                  icon: Icons.lightbulb_outline_rounded,
+                  defaultTool: 'light',
                 ),
-                const SizedBox(width: 4),
-                _buildCategoryTab(
-                  ToolCategory.color,
-                  'Color',
-                  Icons.palette_outlined,
+                _buildDockCategoryItem(
+                  category: ToolCategory.color,
+                  label: 'Color',
+                  icon: Icons.palette_outlined,
+                  defaultTool: 'color',
                 ),
-                const SizedBox(width: 4),
-                _buildCategoryTab(
-                  ToolCategory.portrait,
-                  'Portrait',
-                  Icons.face_retouching_natural_rounded,
+                _buildDockCategoryItem(
+                  category: ToolCategory.portrait,
+                  label: 'Portrait',
+                  icon: Icons.face_retouching_natural_rounded,
+                  defaultTool: 'portrait',
                 ),
-                const SizedBox(width: 4),
-                _buildCategoryTab(
-                  ToolCategory.effects,
-                  'Effects',
-                  Icons.auto_awesome_outlined,
+                _buildDockCategoryItem(
+                  category: ToolCategory.crop,
+                  label: 'Crop',
+                  icon: Icons.crop_rotate_rounded,
+                  defaultTool: 'crop',
                 ),
-                const SizedBox(width: 4),
-                _buildCategoryTab(
-                  ToolCategory.detail,
-                  'Detail',
-                  Icons.shutter_speed_outlined,
-                ),
-                const SizedBox(width: 4),
-                _buildCategoryTab(
-                  ToolCategory.crop,
-                  'Crop',
-                  Icons.crop_rotate_rounded,
+                _buildDockCategoryItem(
+                  category: ToolCategory.filters,
+                  label: 'Filters',
+                  icon: Icons.filter_vintage_rounded,
+                  defaultTool: 'filters',
                 ),
               ],
             ),
@@ -1074,74 +1152,66 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  Widget _buildToolItem(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: LumaTheme.surfaceElevated,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: LumaTheme.border, width: 1),
-              ),
-              child: Icon(icon, color: LumaTheme.accent, size: 19),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: LumaTheme.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryTab(ToolCategory category, String label, IconData icon) {
+  Widget _buildDockCategoryItem({
+    required ToolCategory category,
+    required String label,
+    required IconData icon,
+    required String defaultTool,
+  }) {
     final isSelected = _activeCategory == category;
-    return GestureDetector(
-      onTap: () => setState(() => _activeCategory = category),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? LumaTheme.surfaceElevated : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          if (_activeCategory == category) {
+            _openTool(defaultTool);
+          } else {
+            setState(() => _activeCategory = category);
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
             color: isSelected
-                ? LumaTheme.accent.withValues(alpha: 0.4)
+                ? AeviqueTheme.champagneGold.withValues(alpha: 0.14)
                 : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected
+                  ? AeviqueTheme.champagneGold.withValues(alpha: 0.35)
+                  : Colors.transparent,
+              width: 1,
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: isSelected ? LumaTheme.accent : LumaTheme.textMuted,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? LumaTheme.accent : LumaTheme.textSecondary,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 19,
+                color: isSelected
+                    ? AeviqueTheme.champagneGold
+                    : AeviqueTheme.slateGray,
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  letterSpacing: 0.2,
+                  color: isSelected
+                      ? AeviqueTheme.champagneGold
+                      : AeviqueTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1243,3 +1313,15 @@ class _BlemishOverlayPainter extends CustomPainter {
 }
 
 enum _BackDialogAction { keepEditing, discard, saveAndExport }
+
+class _ContextualToolItem {
+  final String toolId;
+  final String label;
+  final IconData icon;
+
+  const _ContextualToolItem({
+    required this.toolId,
+    required this.label,
+    required this.icon,
+  });
+}

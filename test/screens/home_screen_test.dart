@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lumaforge/screens/home_screen.dart';
+import 'package:lumaforge/screens/presets_screen.dart';
 import 'package:lumaforge/services/image_repository.dart';
 import 'package:lumaforge/theme/aevique_theme.dart';
 
@@ -36,9 +38,10 @@ class MockImageRepository implements ImageRepository {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   testWidgets(
-    'HomeScreen displays AEVIQUE branding, hero, quick tools and navigation',
+    'HomeScreen displays AEVIQUE branding, Open Photo, and navigates to Presets',
     (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
@@ -55,39 +58,38 @@ void main() {
           home: HomeScreen(imageRepository: mockRepo),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      // Verify Brand Header
+      // Verify Brand Header & Tagline
       expect(find.text('AEVIQUE'), findsOneWidget);
+      expect(find.text('See Beyond Ordinary.'), findsOneWidget);
 
-      // Verify Hero Presentation
-      expect(find.text('Transform Your Photos'), findsOneWidget);
-      expect(
-        find.text('Professional tools. Stunning results.'),
-        findsOneWidget,
-      );
-      expect(find.text('Start Editing'), findsOneWidget);
+      // Verify Prominent Open Photo primary CTA
+      expect(find.text('Open Photo'), findsOneWidget);
 
-      // Verify Quick Tools
-      expect(find.text('Crop'), findsOneWidget);
-      expect(find.text('Adjust'), findsOneWidget);
-      expect(find.text('Portrait'), findsOneWidget);
-      expect(find.text('Filters'), findsOneWidget);
-      expect(find.text('Effects'), findsOneWidget);
+      // Verify Open Camera action
+      expect(find.text('Open Camera'), findsOneWidget);
 
-      // Verify Curated Presets
-      expect(find.text('CURATED PRESETS'), findsOneWidget);
+      // Verify Recent Edits section and empty state
+      expect(find.text('RECENT EDITS'), findsOneWidget);
+      expect(find.text('Studio Canvas Ready'), findsOneWidget);
 
-      // Verify Bottom Navigation items (Home, Library, Presets - Settings is header-only)
+      // Verify Developer Credit
+      expect(find.text('Developed by Mrh Rafi'), findsOneWidget);
+
+      // Verify Bottom Navigation items: Home and Presets
       expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Library'), findsOneWidget);
       expect(find.text('Presets'), findsOneWidget);
 
       // Verify Header Settings icon
       expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
 
-      // Verify Camera Capture Bar
-      expect(find.text('Open Camera'), findsOneWidget);
+      // Tap Presets bottom navigation item
+      await tester.tap(find.text('Presets'));
+      await tester.pump();
+
+      // Verify PresetsScreen is displayed
+      expect(find.byType(PresetsScreen), findsOneWidget);
     },
   );
 }

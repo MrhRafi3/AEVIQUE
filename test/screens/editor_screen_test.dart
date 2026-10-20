@@ -1,13 +1,18 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
 import 'package:lumaforge/screens/editor_screen.dart';
 import 'package:lumaforge/screens/export_screen.dart';
+import 'package:lumaforge/theme/aevique_theme.dart';
 import 'package:lumaforge/theme/luma_theme.dart';
 import 'package:lumaforge/widgets/tool_panels/tune_panel.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
+
   late Uint8List sampleBytes;
 
   setUp(() {
@@ -21,7 +26,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          theme: LumaTheme.darkTheme,
+          theme: AeviqueTheme.darkTheme,
           home: EditorScreen(
             initialImageBytes: sampleBytes,
             imageName: 'Test Image',
@@ -41,9 +46,9 @@ void main() {
       expect(find.text('Export'), findsOneWidget);
       expect(find.text('Light'), findsOneWidget);
       expect(find.text('Color'), findsOneWidget);
-      expect(find.text('Effects'), findsOneWidget);
-      expect(find.text('Detail'), findsOneWidget);
+      expect(find.text('Portrait'), findsOneWidget);
       expect(find.text('Crop'), findsOneWidget);
+      expect(find.text('Filters'), findsOneWidget);
       expect(find.text('Light Adjustments'), findsOneWidget);
       expect(find.text('Curves'), findsOneWidget);
 

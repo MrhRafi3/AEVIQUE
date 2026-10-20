@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lumaforge/main.dart';
 import 'package:lumaforge/screens/home_screen.dart';
 import 'package:lumaforge/services/image_repository.dart';
@@ -18,6 +19,7 @@ class MockImageRepository implements ImageRepository {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   testWidgets('AeviqueApp launches and displays AEVIQUE branding', (
     WidgetTester tester,
@@ -35,7 +37,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('AEVIQUE'), findsOneWidget);
-    expect(find.text('Transform Your Photos'), findsOneWidget);
-    expect(find.text('Start Editing'), findsOneWidget);
+    expect(find.text('Open Photo'), findsOneWidget);
+    expect(find.text('Open Camera'), findsOneWidget);
+    expect(find.text('Developed by Mrh Rafi'), findsOneWidget);
   });
 }

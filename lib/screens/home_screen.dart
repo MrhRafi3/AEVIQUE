@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import '../services/image_repository.dart';
+import '../services/recent_edits_repository.dart';
 import '../theme/aevique_theme.dart';
+import '../widgets/aevique_glass.dart';
 import '../widgets/aevique_logo.dart';
 import 'editor_screen.dart';
+import 'presets_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ImageRepository imageRepository;
+  final RecentEditsRepository recentEditsRepository;
 
-  HomeScreen({super.key, ImageRepository? imageRepository})
-    : imageRepository = imageRepository ?? DefaultImageRepository();
+  HomeScreen({
+    super.key,
+    ImageRepository? imageRepository,
+    RecentEditsRepository? recentEditsRepository,
+  }) : imageRepository = imageRepository ?? DefaultImageRepository(),
+       recentEditsRepository =
+           recentEditsRepository ?? InMemoryRecentEditsRepository();
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -17,7 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
-  int _currentNavIndex = 0;
+  int _currentNavIndex = 0; // 0: Home, 1: Presets
 
   Future<void> _handleImageSelected(
     Future<dynamic> Function() fetchBytes,
@@ -45,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to load image: $e'),
+          content: Text('Failed to load photograph: $e'),
           backgroundColor: const Color(0xFFEF5350),
         ),
       );
@@ -57,40 +66,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onBottomNavTapped(int index) {
-    if (index == _currentNavIndex && index == 0) return;
-
-    if (index == 1) {
-      // Library -> open system photo library
-      _handleImageSelected(
-        widget.imageRepository.pickImageFromGallery,
-        'Photo Library',
-      );
-    } else if (index == 2) {
-      // Presets / Filters -> Open default sample image directly into Filters panel
-      final samples = widget.imageRepository.getSampleImages();
-      final sample = samples.isNotEmpty ? samples.first : null;
-      if (sample != null) {
-        _handleImageSelected(
-          () => widget.imageRepository.loadSampleAsset(sample.assetPath),
-          sample.title,
-          initialTool: 'filters',
-        );
-      } else {
-        _handleImageSelected(
-          widget.imageRepository.pickImageFromGallery,
-          'Selected Photo',
-          initialTool: 'filters',
-        );
-      }
-    } else {
-      setState(() => _currentNavIndex = index);
-    }
+    if (index == _currentNavIndex) return;
+    setState(() => _currentNavIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    final samples = widget.imageRepository.getSampleImages();
+    if (_currentNavIndex == 1) {
+      // Functional Presets Screen
+      return PresetsScreen(
+        imageRepository: widget.imageRepository,
+        onBackToHome: () => setState(() => _currentNavIndex = 0),
+      );
+    }
 
+    // Home Screen View
     return Scaffold(
       backgroundColor: AeviqueTheme.deepBlack,
       body: SafeArea(
@@ -118,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             : CustomScrollView(
                 slivers: [
-                  // 1. Top Header with Brand Wordmark & Settings
+                  // 1. Top Header with Brand Wordmark & Single Settings Icon
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
@@ -159,18 +149,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // 2. Hero Area: Photographic Presentation Card
+                  // 2. Editorial Hero Presentation: Large Photographic Preview & Prominent Open Photo CTA
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 10,
+                        vertical: 12,
                       ),
                       child: Container(
-                        height: 240,
+                        height: 290,
                         decoration: BoxDecoration(
                           color: AeviqueTheme.charcoalSurface,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(22),
                           border: Border.all(
                             color: AeviqueTheme.champagneGold.withValues(
                               alpha: 0.3,
@@ -182,48 +172,45 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: AeviqueTheme.champagneGold.withValues(
                                 alpha: 0.08,
                               ),
-                              blurRadius: 24,
+                              blurRadius: 28,
                               spreadRadius: 2,
                             ),
                           ],
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Stack(
+                          fit: StackFit.expand,
                           children: [
-                            // Hero Background Image with Subtle Vignette
-                            Positioned.fill(
-                              child: Image.asset(
-                                'assets/images/sample.jpg',
-                                fit: BoxFit.cover,
-                                errorBuilder: (ctx, err, stack) => Container(
-                                  color: AeviqueTheme.charcoalSurface,
+                            // Atmospheric photographic background
+                            Image.asset(
+                              'assets/images/sample.jpg',
+                              fit: BoxFit.cover,
+                              errorBuilder: (ctx, err, stack) => Container(
+                                color: AeviqueTheme.charcoalSurface,
+                              ),
+                            ),
+                            // Dark gradient scrim for editorial legibility
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.25),
+                                    Colors.black.withValues(alpha: 0.88),
+                                  ],
                                 ),
                               ),
                             ),
-                            // Dark Gradient Scrim for readable text
-                            Positioned.fill(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.black.withValues(alpha: 0.3),
-                                      Colors.black.withValues(alpha: 0.85),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Content
+                            // Content & Prominent Open Photo Button
                             Padding(
-                              padding: const EdgeInsets.all(22),
+                              padding: const EdgeInsets.all(24),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   Text(
-                                    'Transform Your Photos',
+                                    'See Beyond Ordinary.',
                                     style: AeviqueTheme.wordmarkStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -233,47 +220,53 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   const Text(
-                                    'Professional tools. Stunning results.',
+                                    'Professional color science and portrait retouching.',
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 13,
                                       color: AeviqueTheme.champagneGoldLight,
-                                      letterSpacing: 0.3,
+                                      letterSpacing: 0.2,
                                     ),
                                   ),
-                                  const SizedBox(height: 18),
-                                  ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          AeviqueTheme.champagneGold,
-                                      foregroundColor: AeviqueTheme.deepBlack,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 22,
-                                        vertical: 12,
+                                  const SizedBox(height: 20),
+
+                                  // Prominent Primary Action: Open Photo
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 48,
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            AeviqueTheme.champagneGold,
+                                        foregroundColor: AeviqueTheme.deepBlack,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                        ),
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
+                                      icon: const Icon(
+                                        Icons.add_photo_alternate_rounded,
+                                        size: 20,
+                                        color: AeviqueTheme.deepBlack,
                                       ),
-                                    ),
-                                    icon: const Icon(
-                                      Icons.add_photo_alternate_rounded,
-                                      size: 18,
-                                    ),
-                                    label: const Text(
-                                      'Start Editing',
-                                      style: TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.5,
+                                      label: const Text(
+                                        'Open Photo',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.5,
+                                          color: AeviqueTheme.deepBlack,
+                                        ),
                                       ),
-                                    ),
-                                    onPressed: () => _handleImageSelected(
-                                      widget
-                                          .imageRepository
-                                          .pickImageFromGallery,
-                                      'Photo',
+                                      onPressed: () => _handleImageSelected(
+                                        widget
+                                            .imageRepository
+                                            .pickImageFromGallery,
+                                        'Photo',
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -285,71 +278,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // 3. Quick Tools Section (Crop, Adjust, Portrait, Filters, Effects)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'QUICK TOOLS',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1.2,
-                              color: AeviqueTheme.slateGray,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                _buildQuickToolItem(
-                                  icon: Icons.crop_rounded,
-                                  label: 'Crop',
-                                  toolId: 'crop',
-                                ),
-                                const SizedBox(width: 10),
-                                _buildQuickToolItem(
-                                  icon: Icons.tune_rounded,
-                                  label: 'Adjust',
-                                  toolId: 'tune',
-                                ),
-                                const SizedBox(width: 10),
-                                _buildQuickToolItem(
-                                  icon: Icons.face_retouching_natural_rounded,
-                                  label: 'Portrait',
-                                  toolId: 'portrait',
-                                ),
-                                const SizedBox(width: 10),
-                                _buildQuickToolItem(
-                                  icon: Icons.filter_vintage_rounded,
-                                  label: 'Filters',
-                                  toolId: 'filters',
-                                ),
-                                const SizedBox(width: 10),
-                                _buildQuickToolItem(
-                                  icon: Icons.auto_awesome_rounded,
-                                  label: 'Effects',
-                                  toolId: 'effects',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // 4. Camera Quick Capture Bar
+                  // 3. Quick Camera Capture Bar
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 6,
+                        vertical: 4,
                       ),
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
@@ -382,201 +316,76 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  // 5. Curated Presets Section
+                  // 4. Recent Edits Section (Real Edits or Elegant Empty State)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'CURATED PRESETS',
+                          const Text(
+                            'RECENT EDITS',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                              color: AeviqueTheme.slateGray,
+                            ),
+                          ),
+                          if (widget.recentEditsRepository
+                              .getRecentEdits()
+                              .isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  widget.recentEditsRepository.clear();
+                                });
+                              },
+                              child: const Text(
+                                'Clear',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1.2,
                                   color: AeviqueTheme.slateGray,
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: () => _onBottomNavTapped(2),
-                                child: const Text(
-                                  'Explore All',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AeviqueTheme.champagneGold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 130,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: [
-                                _buildCuratedPresetCard(
-                                  id: 'vivid',
-                                  name: 'Vivid',
-                                  subtitle: 'Rich & Natural',
-                                  badge: 'POPULAR',
-                                  accentColor: const Color(0xFFE5A93C),
-                                  samples: samples,
-                                ),
-                                const SizedBox(width: 12),
-                                _buildCuratedPresetCard(
-                                  id: 'vivid_warm',
-                                  name: 'Vivid Warm',
-                                  subtitle: 'Golden Hour',
-                                  accentColor: const Color(0xFFD97736),
-                                  samples: samples,
-                                ),
-                                const SizedBox(width: 12),
-                                _buildCuratedPresetCard(
-                                  id: 'dramatic',
-                                  name: 'Dramatic',
-                                  subtitle: 'Bold Contrast',
-                                  accentColor: const Color(0xFF8B5CF6),
-                                  samples: samples,
-                                ),
-                                const SizedBox(width: 12),
-                                _buildCuratedPresetCard(
-                                  id: 'mono',
-                                  name: 'Mono',
-                                  subtitle: 'Pure B&W',
-                                  accentColor: const Color(0xFFA1A1AA),
-                                  samples: samples,
-                                ),
-                                const SizedBox(width: 12),
-                                _buildCuratedPresetCard(
-                                  id: 'noir',
-                                  name: 'Noir',
-                                  subtitle: 'Crushed Shadows',
-                                  accentColor: const Color(0xFF52525B),
-                                  samples: samples,
-                                ),
-                              ],
                             ),
-                          ),
                         ],
                       ),
                     ),
                   ),
 
-                  // 6. Featured Section (Landscape, Portrait, Architecture, Food, Nature)
-                  const SliverToBoxAdapter(
+                  SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(20, 24, 20, 10),
-                      child: Text(
-                        'FEATURED INSPIRATION',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                          color: AeviqueTheme.slateGray,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _buildRecentEditsSection(),
+                    ),
+                  ),
+
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Developed by Mrh Rafi',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                            color: AeviqueTheme.slateGray.withValues(
+                              alpha: 0.7,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
 
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final item = samples[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: InkWell(
-                            onTap: () => _handleImageSelected(
-                              () => widget.imageRepository.loadSampleAsset(
-                                item.assetPath,
-                              ),
-                              item.title,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AeviqueTheme.charcoalSurface,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: AeviqueTheme.border,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: SizedBox(
-                                      width: 76,
-                                      height: 76,
-                                      child: Image.asset(
-                                        item.assetPath,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (ctx, err, stack) =>
-                                            Container(
-                                              color:
-                                                  AeviqueTheme.elevatedCharcoal,
-                                              child: const Icon(
-                                                Icons.photo_outlined,
-                                                color: AeviqueTheme.textMuted,
-                                              ),
-                                            ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.title,
-                                          style: const TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: AeviqueTheme.ivory,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          item.description,
-                                          style: const TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 12,
-                                            color: AeviqueTheme.textMuted,
-                                            height: 1.3,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: AeviqueTheme.champagneGold,
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }, childCount: samples.length),
-                    ),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 28)),
                 ],
               ),
       ),
@@ -601,10 +410,6 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.photo_library_outlined),
-              label: 'Library',
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.filter_vintage_outlined),
               label: 'Presets',
             ),
@@ -614,169 +419,116 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCuratedPresetCard({
-    required String id,
-    required String name,
-    required String subtitle,
-    String? badge,
-    required Color accentColor,
-    required List<SampleImageItem> samples,
-  }) {
-    return InkWell(
-      onTap: () {
-        final sample = samples.isNotEmpty ? samples.first : null;
-        if (sample != null) {
-          _handleImageSelected(
-            () => widget.imageRepository.loadSampleAsset(sample.assetPath),
-            sample.title,
-            initialTool: 'filters',
-            initialPresetId: id,
-          );
-        } else {
-          _handleImageSelected(
-            widget.imageRepository.pickImageFromGallery,
-            'Photo',
-            initialTool: 'filters',
-            initialPresetId: id,
-          );
-        }
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: 130,
-        decoration: BoxDecoration(
-          color: AeviqueTheme.charcoalSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: accentColor.withValues(alpha: 0.35),
-            width: 1.2,
-          ),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              accentColor.withValues(alpha: 0.12),
-              AeviqueTheme.charcoalSurface,
-            ],
-          ),
-        ),
-        padding: const EdgeInsets.all(12),
+  Widget _buildRecentEditsSection() {
+    final recentEdits = widget.recentEditsRepository.getRecentEdits();
+
+    if (recentEdits.isEmpty) {
+      // Elegant Obsidian Glass Empty State
+      return AeviqueGlass(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+        showGoldAccent: true,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: accentColor.withValues(alpha: 0.2),
-                  ),
-                  child: Icon(
-                    Icons.filter_vintage_rounded,
-                    size: 15,
-                    color: accentColor,
-                  ),
-                ),
-                if (badge != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AeviqueTheme.champagneGold,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badge,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: AeviqueTheme.deepBlack,
-                      ),
-                    ),
-                  ),
-              ],
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AeviqueTheme.champagneGold.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.auto_awesome_mosaic_outlined,
+                color: AeviqueTheme.champagneGold,
+                size: 22,
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AeviqueTheme.ivory,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    color: AeviqueTheme.slateGray,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            const SizedBox(height: 14),
+            const Text(
+              'Studio Canvas Ready',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AeviqueTheme.ivory,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Your exported photographs and recent edits will appear here.\nOpen a photo above to begin creating.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                color: AeviqueTheme.slateGray,
+                height: 1.4,
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildQuickToolItem({
-    required IconData icon,
-    required String label,
-    required String toolId,
-  }) {
     return SizedBox(
-      width: 72,
-      child: InkWell(
-        onTap: () {
-          // Open gallery picker and navigate directly into that tool
-          _handleImageSelected(
-            widget.imageRepository.pickImageFromGallery,
-            'Photo',
-            initialTool: toolId,
-          );
-        },
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: AeviqueTheme.charcoalSurface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AeviqueTheme.border, width: 1),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 22, color: AeviqueTheme.champagneGold),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AeviqueTheme.ivory,
+      height: 140,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: recentEdits.length,
+        itemBuilder: (context, index) {
+          final item = recentEdits[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => EditorScreen(
+                      initialImageBytes: item.imageBytes,
+                      imageName: item.name,
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: 120,
+                decoration: BoxDecoration(
+                  color: AeviqueTheme.charcoalSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AeviqueTheme.border),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Image.memory(
+                        item.imageBytes,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AeviqueTheme.ivory,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
