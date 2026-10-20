@@ -34,17 +34,21 @@ void main() {
       });
       await tester.pump();
 
-      // Check initial neutral state pill
+      // Check initial neutral state pill and AEVIQUE brand
+      expect(find.text('AEVIQUE'), findsOneWidget);
       expect(find.text('Original • No Filter'), findsOneWidget);
 
       expect(find.text('Export'), findsOneWidget);
-      expect(find.text('Refine'), findsOneWidget);
-      expect(find.text('Tune Image'), findsOneWidget);
-      expect(find.text('Details'), findsOneWidget);
+      expect(find.text('Light'), findsOneWidget);
+      expect(find.text('Color'), findsOneWidget);
+      expect(find.text('Effects'), findsOneWidget);
+      expect(find.text('Detail'), findsOneWidget);
+      expect(find.text('Crop'), findsOneWidget);
+      expect(find.text('Light Adjustments'), findsOneWidget);
       expect(find.text('Curves'), findsOneWidget);
 
-      // Open Tune Image tool
-      await tester.tap(find.text('Tune Image'));
+      // Open Light Adjustments tool
+      await tester.tap(find.text('Light Adjustments'));
       await tester.pump();
 
       // TunePanel should now be visible with its sliders and Apply/Cancel
@@ -52,8 +56,8 @@ void main() {
       expect(find.byTooltip('Apply'), findsOneWidget);
       expect(find.byTooltip('Cancel'), findsOneWidget);
 
-      // Tap Auto Tune button to change values
-      await tester.tap(find.text('Auto Tune'));
+      // Tap Auto button to change values
+      await tester.tap(find.text('Auto'));
       await tester.pump();
 
       // Tap Apply
@@ -87,7 +91,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(ExportScreen), findsOneWidget);
-      expect(find.text('Export Photo'), findsOneWidget);
+      expect(find.text('EXPORT PHOTO'), findsOneWidget);
     },
   );
 
@@ -127,9 +131,9 @@ void main() {
       await tester.pump();
 
       // Apply an edit
-      await tester.tap(find.text('Tune Image'));
+      await tester.tap(find.text('Light Adjustments'));
       await tester.pump();
-      await tester.tap(find.text('Auto Tune'));
+      await tester.tap(find.text('Auto'));
       await tester.pump();
       await tester.tap(find.byTooltip('Apply'));
       await tester.runAsync(() async {

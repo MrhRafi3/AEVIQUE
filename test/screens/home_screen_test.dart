@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumaforge/screens/home_screen.dart';
 import 'package:lumaforge/services/image_repository.dart';
-import 'package:lumaforge/theme/luma_theme.dart';
+import 'package:lumaforge/theme/aevique_theme.dart';
 
 class MockImageRepository implements ImageRepository {
   @override
@@ -35,22 +35,53 @@ class MockImageRepository implements ImageRepository {
 }
 
 void main() {
-  testWidgets('HomeScreen displays app branding and open actions', (
-    tester,
-  ) async {
-    final mockRepo = MockImageRepository();
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: LumaTheme.darkTheme,
-        home: HomeScreen(imageRepository: mockRepo),
-      ),
-    );
+  testWidgets(
+    'HomeScreen displays AEVIQUE branding, hero, quick tools and navigation',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    expect(find.text('LUMA FORGE'), findsOneWidget);
-    expect(find.text('Open Photo'), findsOneWidget);
-    expect(find.text('Camera'), findsOneWidget);
-    expect(find.text('Sunset Landscape'), findsOneWidget);
-    expect(find.text('Studio Portrait'), findsOneWidget);
-  });
+      final mockRepo = MockImageRepository();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AeviqueTheme.darkTheme,
+          home: HomeScreen(imageRepository: mockRepo),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Brand Header
+      expect(find.text('AEVIQUE'), findsOneWidget);
+
+      // Verify Hero Presentation
+      expect(find.text('Transform Your Photos'), findsOneWidget);
+      expect(
+        find.text('Professional tools. Stunning results.'),
+        findsOneWidget,
+      );
+      expect(find.text('Start Editing'), findsOneWidget);
+
+      // Verify Quick Tools
+      expect(find.text('Crop'), findsOneWidget);
+      expect(find.text('Adjust'), findsOneWidget);
+      expect(find.text('Filters'), findsOneWidget);
+      expect(find.text('Effects'), findsOneWidget);
+
+      // Verify Bottom Navigation items
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Library'), findsOneWidget);
+      expect(find.text('Presets'), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
+
+      // Verify Camera Capture Bar
+      expect(find.text('Open Camera'), findsOneWidget);
+    },
+  );
 }

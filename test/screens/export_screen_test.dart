@@ -61,7 +61,7 @@ void main() {
     });
     await tester.pump();
 
-    expect(find.text('Export Photo'), findsOneWidget);
+    expect(find.text('EXPORT PHOTO'), findsOneWidget);
     expect(find.text('JPEG'), findsOneWidget);
     expect(find.text('PNG'), findsOneWidget);
     expect(find.text('Save to Photos'), findsOneWidget);

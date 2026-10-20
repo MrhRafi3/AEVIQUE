@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/image_repository.dart';
-import '../theme/luma_theme.dart';
+import '../theme/aevique_theme.dart';
+import '../widgets/aevique_logo.dart';
 import 'editor_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ImageRepository imageRepository;
@@ -15,11 +17,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
+  int _currentNavIndex = 0;
 
   Future<void> _handleImageSelected(
     Future<dynamic> Function() fetchBytes,
-    String name,
-  ) async {
+    String name, {
+    String? initialTool,
+  }) async {
     setState(() => _isLoading = true);
     try {
       final bytes = await fetchBytes();
@@ -27,8 +31,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (bytes != null) {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) =>
-                EditorScreen(initialImageBytes: bytes, imageName: name),
+            builder: (context) => EditorScreen(
+              initialImageBytes: bytes,
+              imageName: name,
+              initialTool: initialTool,
+            ),
           ),
         );
       }
@@ -37,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to load image: $e'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: const Color(0xFFEF5350),
         ),
       );
     } finally {
@@ -47,25 +54,66 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _onBottomNavTapped(int index) {
+    if (index == _currentNavIndex && index == 0) return;
+
+    if (index == 1) {
+      // Library -> open system photo library
+      _handleImageSelected(
+        widget.imageRepository.pickImageFromGallery,
+        'Photo Library',
+      );
+    } else if (index == 2) {
+      // Presets / Filters -> Open default sample image directly into Filters panel
+      final samples = widget.imageRepository.getSampleImages();
+      final sample = samples.isNotEmpty ? samples.first : null;
+      if (sample != null) {
+        _handleImageSelected(
+          () => widget.imageRepository.loadSampleAsset(sample.assetPath),
+          sample.title,
+          initialTool: 'filters',
+        );
+      } else {
+        _handleImageSelected(
+          widget.imageRepository.pickImageFromGallery,
+          'Selected Photo',
+          initialTool: 'filters',
+        );
+      }
+    } else if (index == 3) {
+      // Settings
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+    } else {
+      setState(() => _currentNavIndex = index);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final samples = widget.imageRepository.getSampleImages();
 
     return Scaffold(
-      backgroundColor: LumaTheme.background,
+      backgroundColor: AeviqueTheme.deepBlack,
       body: SafeArea(
         child: _isLoading
             ? const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(color: LumaTheme.accent),
-                    SizedBox(height: 16),
+                    CircularProgressIndicator(
+                      color: AeviqueTheme.champagneGold,
+                      strokeWidth: 2.5,
+                    ),
+                    SizedBox(height: 18),
                     Text(
-                      'Loading Image...',
+                      'Preparing Studio Canvas...',
                       style: TextStyle(
-                        color: LumaTheme.textSecondary,
+                        fontFamily: 'Inter',
+                        color: AeviqueTheme.textSecondary,
                         fontSize: 13,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -73,269 +121,449 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             : CustomScrollView(
                 slivers: [
-                  // App Bar Branding
+                  // 1. Top Header with Brand Wordmark & Settings
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: LumaTheme.accent,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  size: 16,
-                                  color: LumaTheme.background,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'LUMA FORGE',
-                                style: TextStyle(
-                                  fontSize: 16,
+                              const AeviqueLogo(size: 28),
+                              const SizedBox(width: 12),
+                              Text(
+                                'AEVIQUE',
+                                style: AeviqueTheme.wordmarkStyle(
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 2.5,
-                                  color: LumaTheme.textPrimary,
+                                  letterSpacing: 4.0,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Precision Mobile Photo Studio',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: LumaTheme.textSecondary,
-                              letterSpacing: 0.2,
+                          IconButton(
+                            icon: const Icon(
+                              Icons.settings_outlined,
+                              color: AeviqueTheme.ivory,
+                              size: 22,
                             ),
+                            tooltip: 'Settings & About',
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const SettingsScreen(),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
                   ),
 
-                  // Hero Action: Open Photo
+                  // 2. Hero Area: Photographic Presentation Card
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 8,
+                        vertical: 10,
                       ),
-                      child: GestureDetector(
-                        onTap: () => _handleImageSelected(
-                          widget.imageRepository.pickImageFromGallery,
-                          'Gallery Photo',
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 36,
-                            horizontal: 24,
-                          ),
-                          decoration: BoxDecoration(
-                            color: LumaTheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: LumaTheme.border,
-                              width: 1,
+                      child: Container(
+                        height: 240,
+                        decoration: BoxDecoration(
+                          color: AeviqueTheme.charcoalSurface,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AeviqueTheme.champagneGold.withValues(
+                              alpha: 0.3,
                             ),
+                            width: 1.2,
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 56,
-                                height: 56,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AeviqueTheme.champagneGold.withValues(
+                                alpha: 0.08,
+                              ),
+                              blurRadius: 24,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Stack(
+                          children: [
+                            // Hero Background Image with Subtle Vignette
+                            Positioned.fill(
+                              child: Image.asset(
+                                'assets/images/sample.jpg',
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, stack) => Container(
+                                  color: AeviqueTheme.charcoalSurface,
+                                ),
+                              ),
+                            ),
+                            // Dark Gradient Scrim for readable text
+                            Positioned.fill(
+                              child: Container(
                                 decoration: BoxDecoration(
-                                  color: LumaTheme.surfaceElevated,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: LumaTheme.accent.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    width: 1.5,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.3),
+                                      Colors.black.withValues(alpha: 0.85),
+                                    ],
                                   ),
                                 ),
-                                child: const Icon(
-                                  Icons.add_photo_alternate_outlined,
-                                  color: LumaTheme.accent,
-                                  size: 26,
-                                ),
                               ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Open Photo',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: LumaTheme.textPrimary,
-                                ),
+                            ),
+                            // Content
+                            Padding(
+                              padding: const EdgeInsets.all(22),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Transform Your Photos',
+                                    style: AeviqueTheme.wordmarkStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                      color: AeviqueTheme.ivory,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Professional tools. Stunning results.',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      color: AeviqueTheme.champagneGoldLight,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          AeviqueTheme.champagneGold,
+                                      foregroundColor: AeviqueTheme.deepBlack,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 22,
+                                        vertical: 12,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.add_photo_alternate_rounded,
+                                      size: 18,
+                                    ),
+                                    label: const Text(
+                                      'Start Editing',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    onPressed: () => _handleImageSelected(
+                                      widget
+                                          .imageRepository
+                                          .pickImageFromGallery,
+                                      'Photo',
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Select high-resolution photo from device',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: LumaTheme.textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
 
-                  // Camera Quick Action
+                  // 3. Quick Tools Section (Crop, Adjust, Filters, Effects)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      child: Row(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: LumaTheme.surfaceElevated,
-                                side: const BorderSide(color: LumaTheme.border),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              icon: const Icon(
-                                Icons.camera_alt_outlined,
-                                size: 18,
-                                color: LumaTheme.textPrimary,
-                              ),
-                              label: const Text(
-                                'Camera',
-                                style: TextStyle(
-                                  color: LumaTheme.textPrimary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              onPressed: () => _handleImageSelected(
-                                widget.imageRepository.pickImageFromCamera,
-                                'Camera Capture',
-                              ),
+                          const Text(
+                            'QUICK TOOLS',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                              color: AeviqueTheme.slateGray,
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _buildQuickToolItem(
+                                icon: Icons.crop_rounded,
+                                label: 'Crop',
+                                toolId: 'crop',
+                              ),
+                              const SizedBox(width: 10),
+                              _buildQuickToolItem(
+                                icon: Icons.tune_rounded,
+                                label: 'Adjust',
+                                toolId: 'tune',
+                              ),
+                              const SizedBox(width: 10),
+                              _buildQuickToolItem(
+                                icon: Icons.filter_vintage_rounded,
+                                label: 'Filters',
+                                toolId: 'filters',
+                              ),
+                              const SizedBox(width: 10),
+                              _buildQuickToolItem(
+                                icon: Icons.auto_awesome_rounded,
+                                label: 'Effects',
+                                toolId: 'effects',
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
                   ),
 
-                  // Sample Photos Header
+                  // 4. Camera Quick Capture Bar
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 6,
+                      ),
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: AeviqueTheme.charcoalSurface,
+                          side: const BorderSide(color: AeviqueTheme.border),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.camera_alt_outlined,
+                          size: 18,
+                          color: AeviqueTheme.champagneGold,
+                        ),
+                        label: const Text(
+                          'Open Camera',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: AeviqueTheme.ivory,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onPressed: () => _handleImageSelected(
+                          widget.imageRepository.pickImageFromCamera,
+                          'Camera Capture',
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 5. Featured Section (Landscape, Portrait, Architecture, Food)
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(20, 24, 20, 10),
                       child: Text(
-                        'Sample Studio Photos',
+                        'FEATURED INSPIRATION',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontFamily: 'Inter',
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                          color: LumaTheme.textSecondary,
+                          letterSpacing: 1.2,
+                          color: AeviqueTheme.slateGray,
                         ),
                       ),
                     ),
                   ),
 
-                  // Sample Photos List
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final sample = samples[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 6,
-                        ),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => _handleImageSelected(
-                            () => widget.imageRepository.loadSampleAsset(
-                              sample.assetPath,
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final item = samples[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () => _handleImageSelected(
+                              () => widget.imageRepository.loadSampleAsset(
+                                item.assetPath,
+                              ),
+                              item.title,
                             ),
-                            sample.title,
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: LumaTheme.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: LumaTheme.border,
-                                width: 1,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AeviqueTheme.charcoalSurface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AeviqueTheme.border,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: SizedBox(
+                                      width: 76,
+                                      height: 76,
+                                      child: Image.asset(
+                                        item.assetPath,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (ctx, err, stack) =>
+                                            Container(
+                                              color:
+                                                  AeviqueTheme.elevatedCharcoal,
+                                              child: const Icon(
+                                                Icons.photo_outlined,
+                                                color: AeviqueTheme.textMuted,
+                                              ),
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.title,
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: AeviqueTheme.ivory,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          item.description,
+                                          style: const TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 12,
+                                            color: AeviqueTheme.textMuted,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AeviqueTheme.champagneGold,
+                                    size: 20,
+                                  ),
+                                ],
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: LumaTheme.surfaceHighlight,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.image_outlined,
-                                    color: LumaTheme.accent,
-                                    size: 24,
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        sample.title,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: LumaTheme.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        sample.description,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: LumaTheme.textMuted,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_forward_ios_rounded,
-                                  size: 14,
-                                  color: LumaTheme.textMuted,
-                                ),
-                              ],
-                            ),
                           ),
-                        ),
-                      );
-                    }, childCount: samples.length),
+                        );
+                      }, childCount: samples.length),
+                    ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
               ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: AeviqueTheme.charcoalSurface,
+          border: Border(top: BorderSide(color: AeviqueTheme.border, width: 1)),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentNavIndex,
+          onTap: _onBottomNavTapped,
+          backgroundColor: AeviqueTheme.charcoalSurface,
+          selectedItemColor: AeviqueTheme.champagneGold,
+          unselectedItemColor: AeviqueTheme.slateGray,
+          selectedFontSize: 11,
+          unselectedFontSize: 11,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.photo_library_outlined),
+              label: 'Library',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.filter_vintage_outlined),
+              label: 'Presets',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: 'Settings',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickToolItem({
+    required IconData icon,
+    required String label,
+    required String toolId,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          // Open gallery picker and navigate directly into that tool
+          _handleImageSelected(
+            widget.imageRepository.pickImageFromGallery,
+            'Photo',
+            initialTool: toolId,
+          );
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: AeviqueTheme.charcoalSurface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AeviqueTheme.border, width: 1),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 22, color: AeviqueTheme.champagneGold),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AeviqueTheme.ivory,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

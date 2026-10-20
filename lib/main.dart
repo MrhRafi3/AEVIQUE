@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'screens/home_screen.dart';
-import 'theme/luma_theme.dart';
+import 'screens/splash_screen.dart';
+import 'theme/aevique_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Dark navigation bar and status bar overlay
+  // Pure dark navigation bar and status bar overlay matching AEVIQUE Deep Black
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: LumaTheme.background,
+      systemNavigationBarColor: AeviqueTheme.deepBlack,
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
 
-  runApp(const LumaForgeApp());
+  runApp(const AeviqueApp());
 }
 
-class LumaForgeApp extends StatelessWidget {
-  const LumaForgeApp({super.key});
+class AeviqueApp extends StatelessWidget {
+  final Widget? home;
+
+  const AeviqueApp({super.key, this.home});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'LumaForge',
+      title: 'AEVIQUE',
       debugShowCheckedModeBanner: false,
-      theme: LumaTheme.darkTheme,
-      home: HomeScreen(),
+      theme: AeviqueTheme.darkTheme,
+      home: home ?? const SplashScreen(),
     );
   }
 }
+
+// Backward-compatible alias
+typedef LumaForgeApp = AeviqueApp;

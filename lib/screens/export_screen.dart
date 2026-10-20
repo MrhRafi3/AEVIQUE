@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
 import '../services/export_service.dart';
-import '../theme/luma_theme.dart';
+import '../theme/aevique_theme.dart';
 
 class ExportScreen extends StatefulWidget {
   final Uint8List sourceBytes;
@@ -71,7 +71,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
     final success = await widget.exportService.saveToGallery(
       _exportedBytes!,
-      name: 'lumaforge_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'aevique_${DateTime.now().millisecondsSinceEpoch}',
     );
 
     if (!mounted) return;
@@ -82,19 +82,19 @@ class _ExportScreenState extends State<ExportScreen> {
         const SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle_outline, color: LumaTheme.accentGreen),
+              Icon(Icons.check_circle_outline, color: Color(0xFF34D399)),
               SizedBox(width: 8),
               Text('Photo saved to gallery successfully!'),
             ],
           ),
-          backgroundColor: LumaTheme.surfaceElevated,
+          backgroundColor: AeviqueTheme.elevatedCharcoal,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to save photo. Check photo permissions.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: Color(0xFFEF5350),
         ),
       );
     }
@@ -104,7 +104,7 @@ class _ExportScreenState extends State<ExportScreen> {
     if (_exportedBytes == null) return;
     final success = await widget.exportService.shareImage(
       _exportedBytes!,
-      name: 'lumaforge_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'aevique_${DateTime.now().millisecondsSinceEpoch}',
     );
 
     if (!mounted) return;
@@ -112,7 +112,7 @@ class _ExportScreenState extends State<ExportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not open share sheet'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: Color(0xFFEF5350),
         ),
       );
     }
@@ -127,15 +127,21 @@ class _ExportScreenState extends State<ExportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LumaTheme.background,
+      backgroundColor: AeviqueTheme.deepBlack,
       appBar: AppBar(
-        title: const Text(
-          'Export Photo',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        backgroundColor: AeviqueTheme.deepBlack,
+        elevation: 0,
+        title: Text(
+          'EXPORT PHOTO',
+          style: AeviqueTheme.wordmarkStyle(
+            fontSize: 16,
+            letterSpacing: 2.5,
+            color: AeviqueTheme.ivory,
+          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: const Icon(Icons.close_rounded, color: AeviqueTheme.ivory),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -151,13 +157,15 @@ class _ExportScreenState extends State<ExportScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const CircularProgressIndicator(
-                            color: LumaTheme.accent,
+                            color: AeviqueTheme.champagneGold,
+                            strokeWidth: 2.5,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             _statusMessage ?? 'Processing...',
                             style: const TextStyle(
-                              color: LumaTheme.textSecondary,
+                              fontFamily: 'Inter',
+                              color: AeviqueTheme.textSecondary,
                               fontSize: 13,
                             ),
                           ),
@@ -167,11 +175,17 @@ class _ExportScreenState extends State<ExportScreen> {
                     ? Container(
                         margin: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AeviqueTheme.champagneGold.withValues(
+                              alpha: 0.3,
+                            ),
+                            width: 1,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              blurRadius: 16,
+                              color: Colors.black.withValues(alpha: 0.7),
+                              blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
                           ],
@@ -184,7 +198,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       )
                     : Text(
                         _statusMessage ?? 'Render Error',
-                        style: const TextStyle(color: Colors.redAccent),
+                        style: const TextStyle(color: Color(0xFFEF5350)),
                       ),
               ),
             ),
@@ -193,10 +207,10 @@ class _ExportScreenState extends State<ExportScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
-                color: LumaTheme.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                color: AeviqueTheme.charcoalSurface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 border: Border(
-                  top: BorderSide(color: LumaTheme.border, width: 1),
+                  top: BorderSide(color: AeviqueTheme.border, width: 1),
                 ),
               ),
               child: Column(
@@ -209,9 +223,10 @@ class _ExportScreenState extends State<ExportScreen> {
                       const Text(
                         'Format',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: LumaTheme.textPrimary,
+                          color: AeviqueTheme.ivory,
                         ),
                       ),
                       Row(
@@ -219,6 +234,15 @@ class _ExportScreenState extends State<ExportScreen> {
                           ChoiceChip(
                             label: const Text('JPEG'),
                             selected: !_outputPng,
+                            selectedColor: AeviqueTheme.champagneGold,
+                            backgroundColor: AeviqueTheme.elevatedCharcoal,
+                            labelStyle: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                              color: !_outputPng
+                                  ? AeviqueTheme.deepBlack
+                                  : AeviqueTheme.ivory,
+                            ),
                             onSelected: (val) {
                               if (val) {
                                 setState(() => _outputPng = false);
@@ -230,6 +254,15 @@ class _ExportScreenState extends State<ExportScreen> {
                           ChoiceChip(
                             label: const Text('PNG'),
                             selected: _outputPng,
+                            selectedColor: AeviqueTheme.champagneGold,
+                            backgroundColor: AeviqueTheme.elevatedCharcoal,
+                            labelStyle: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w600,
+                              color: _outputPng
+                                  ? AeviqueTheme.deepBlack
+                                  : AeviqueTheme.ivory,
+                            ),
                             onSelected: (val) {
                               if (val) {
                                 setState(() => _outputPng = true);
@@ -244,15 +277,16 @@ class _ExportScreenState extends State<ExportScreen> {
 
                   // JPEG Quality Slider
                   if (!_outputPng) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           'JPEG Quality',
                           style: TextStyle(
+                            fontFamily: 'Inter',
                             fontSize: 13,
-                            color: LumaTheme.textSecondary,
+                            color: AeviqueTheme.textSecondary,
                           ),
                         ),
                         Text(
@@ -261,7 +295,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             fontFamily: 'monospace',
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: LumaTheme.accent,
+                            color: AeviqueTheme.champagneGold,
                           ),
                         ),
                       ],
@@ -271,6 +305,8 @@ class _ExportScreenState extends State<ExportScreen> {
                       min: 50.0,
                       max: 100.0,
                       divisions: 50,
+                      activeColor: AeviqueTheme.champagneGold,
+                      inactiveColor: AeviqueTheme.elevatedCharcoal,
                       onChanged: (v) => setState(() => _quality = v),
                       onChangeEnd: (_) => _renderFullResolution(),
                     ),
@@ -285,14 +321,15 @@ class _ExportScreenState extends State<ExportScreen> {
                         const Icon(
                           Icons.data_usage_rounded,
                           size: 14,
-                          color: LumaTheme.textMuted,
+                          color: AeviqueTheme.slateGray,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           'Rendered size: ${_formatFileSize(_exportedBytes!.length)}',
                           style: const TextStyle(
+                            fontFamily: 'Inter',
                             fontSize: 12,
-                            color: LumaTheme.textMuted,
+                            color: AeviqueTheme.slateGray,
                           ),
                         ),
                       ],
@@ -308,22 +345,23 @@ class _ExportScreenState extends State<ExportScreen> {
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(
-                              color: LumaTheme.borderLight,
+                              color: AeviqueTheme.borderLight,
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           icon: const Icon(
                             Icons.share_outlined,
                             size: 18,
-                            color: LumaTheme.textPrimary,
+                            color: AeviqueTheme.ivory,
                           ),
                           label: const Text(
                             'Share',
                             style: TextStyle(
-                              color: LumaTheme.textPrimary,
+                              fontFamily: 'Inter',
+                              color: AeviqueTheme.ivory,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -338,11 +376,12 @@ class _ExportScreenState extends State<ExportScreen> {
                         flex: 2,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: LumaTheme.accent,
-                            foregroundColor: LumaTheme.background,
+                            backgroundColor: AeviqueTheme.champagneGold,
+                            foregroundColor: AeviqueTheme.deepBlack,
                             padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           icon: _isSaving
@@ -351,15 +390,17 @@ class _ExportScreenState extends State<ExportScreen> {
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: LumaTheme.background,
+                                    color: AeviqueTheme.deepBlack,
                                   ),
                                 )
                               : const Icon(Icons.download_rounded, size: 20),
                           label: Text(
                             _isSaving ? 'Saving...' : 'Save to Photos',
                             style: const TextStyle(
+                              fontFamily: 'Inter',
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
                             ),
                           ),
                           onPressed: (_exportedBytes != null && !_isSaving)

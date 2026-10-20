@@ -6,6 +6,7 @@ import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
 import '../core/models/history_manager.dart';
 import '../core/presets/filter_catalogue.dart';
+import '../theme/aevique_theme.dart';
 import '../theme/luma_theme.dart';
 import '../widgets/before_after_viewer.dart';
 import '../widgets/crop_overlay_widget.dart';
@@ -17,16 +18,18 @@ import '../widgets/tool_panels/filters_panel.dart';
 import '../widgets/tool_panels/tune_panel.dart';
 import 'export_screen.dart';
 
-enum ToolCategory { refine, fix, style, presets }
+enum ToolCategory { light, color, effects, detail, crop }
 
 class EditorScreen extends StatefulWidget {
   final Uint8List initialImageBytes;
   final String imageName;
+  final String? initialTool;
 
   const EditorScreen({
     super.key,
     required this.initialImageBytes,
     this.imageName = 'Photo',
+    this.initialTool,
   });
 
   @override
@@ -49,9 +52,9 @@ class _EditorScreenState extends State<EditorScreen> {
   Timer? _debounceTimer;
   int _latestRequestId = 0;
 
-  ToolCategory _activeCategory = ToolCategory.refine;
+  ToolCategory _activeCategory = ToolCategory.light;
   String?
-  _activeTool; // 'tune', 'details', 'curves', 'crop', 'effects', 'presets'
+  _activeTool; // 'light', 'color', 'tune', 'details', 'curves', 'crop', 'effects', 'filters'
 
   @override
   void initState() {
@@ -59,6 +62,23 @@ class _EditorScreenState extends State<EditorScreen> {
     // Neutral initial state: exposure 0, contrast 0, saturation 0, no filters applied
     _history = HistoryManager(initialState: EditState.identity());
     _workingState = _history.current;
+
+    if (widget.initialTool != null) {
+      _activeTool = widget.initialTool;
+      if (widget.initialTool == 'crop') {
+        _activeCategory = ToolCategory.crop;
+      } else if (widget.initialTool == 'color') {
+        _activeCategory = ToolCategory.color;
+      } else if (widget.initialTool == 'effects' ||
+          widget.initialTool == 'filters') {
+        _activeCategory = ToolCategory.effects;
+      } else if (widget.initialTool == 'details' ||
+          widget.initialTool == 'detail') {
+        _activeCategory = ToolCategory.detail;
+      } else {
+        _activeCategory = ToolCategory.light;
+      }
+    }
 
     _initializeImageBundle();
   }
@@ -496,11 +516,26 @@ class _EditorScreenState extends State<EditorScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Close / Back button (safely intercepted)
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-            tooltip: 'Back to Gallery',
-            onPressed: _handleBackAction,
+          // Left: Back button & AEVIQUE wordmark
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                tooltip: 'Back to Gallery',
+                onPressed: _handleBackAction,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                'AEVIQUE',
+                style: AeviqueTheme.wordmarkStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 3.0,
+                  color: AeviqueTheme.ivory,
+                ),
+              ),
+            ],
           ),
 
           // Central State Pill (Shows "Original • No Filter" or Filter Name & Intensity)
@@ -607,13 +642,31 @@ class _EditorScreenState extends State<EditorScreen> {
     Widget panelContent = const SizedBox();
 
     switch (_activeTool) {
+      case 'light':
+        toolTitle = 'Light Adjustments';
+        panelContent = TunePanel(
+          tune: _workingState.tune,
+          mode: TuneMode.light,
+          onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
+        );
+        break;
+      case 'color':
+        toolTitle = 'Color Adjustments';
+        panelContent = TunePanel(
+          tune: _workingState.tune,
+          mode: TuneMode.color,
+          onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
+        );
+        break;
       case 'tune':
         toolTitle = 'Tune Image';
         panelContent = TunePanel(
           tune: _workingState.tune,
+          mode: TuneMode.all,
           onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
         );
         break;
+      case 'detail':
       case 'details':
         toolTitle = 'Details';
         panelContent = DetailsPanel(
@@ -748,17 +801,12 @@ class _EditorScreenState extends State<EditorScreen> {
     List<Widget> toolButtons = [];
 
     switch (_activeCategory) {
-      case ToolCategory.refine:
+      case ToolCategory.light:
         toolButtons = [
           _buildToolItem(
             Icons.tune_rounded,
-            'Tune Image',
-            () => _openTool('tune'),
-          ),
-          _buildToolItem(
-            Icons.auto_fix_normal_rounded,
-            'Details',
-            () => _openTool('details'),
+            'Light Adjustments',
+            () => _openTool('light'),
           ),
           _buildToolItem(
             Icons.show_chart_rounded,
@@ -767,17 +815,22 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ];
         break;
-      case ToolCategory.fix:
+      case ToolCategory.color:
         toolButtons = [
           _buildToolItem(
-            Icons.crop_rotate_rounded,
-            'Crop & Rotate',
-            () => _openTool('crop'),
+            Icons.palette_outlined,
+            'Color Balance',
+            () => _openTool('color'),
           ),
         ];
         break;
-      case ToolCategory.style:
+      case ToolCategory.effects:
         toolButtons = [
+          _buildToolItem(
+            Icons.filter_vintage_rounded,
+            'Filters',
+            () => _openTool('filters'),
+          ),
           _buildToolItem(
             Icons.blur_on_rounded,
             'Effects',
@@ -785,12 +838,21 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ];
         break;
-      case ToolCategory.presets:
+      case ToolCategory.detail:
         toolButtons = [
           _buildToolItem(
-            Icons.filter_vintage_rounded,
-            'Filters',
-            () => _openTool('filters'),
+            Icons.auto_fix_normal_rounded,
+            'Details',
+            () => _openTool('details'),
+          ),
+        ];
+        break;
+      case ToolCategory.crop:
+        toolButtons = [
+          _buildToolItem(
+            Icons.crop_rotate_rounded,
+            'Crop & Rotate',
+            () => _openTool('crop'),
           ),
         ];
         break;
@@ -809,27 +871,36 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ),
         const Divider(color: LumaTheme.border),
-        // Category Tabs: Refine | Fix | Style | Filters
+        // Category Tabs: Light | Color | Effects | Detail | Crop
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildCategoryTab(
-                ToolCategory.refine,
-                'Refine',
-                Icons.tune_rounded,
+                ToolCategory.light,
+                'Light',
+                Icons.lightbulb_outline_rounded,
               ),
-              _buildCategoryTab(ToolCategory.fix, 'Fix', Icons.crop_rounded),
               _buildCategoryTab(
-                ToolCategory.style,
-                'Style',
+                ToolCategory.color,
+                'Color',
+                Icons.palette_outlined,
+              ),
+              _buildCategoryTab(
+                ToolCategory.effects,
+                'Effects',
                 Icons.auto_awesome_outlined,
               ),
               _buildCategoryTab(
-                ToolCategory.presets,
-                'Filters',
-                Icons.filter_vintage_outlined,
+                ToolCategory.detail,
+                'Detail',
+                Icons.shutter_speed_outlined,
+              ),
+              _buildCategoryTab(
+                ToolCategory.crop,
+                'Crop',
+                Icons.crop_rotate_rounded,
               ),
             ],
           ),

@@ -76,6 +76,16 @@ class DefaultImageRepository implements ImageRepository {
         assetPath: 'assets/images/sample_portrait.jpg',
         description: 'Warm skin tones and studio lighting',
       ),
+      SampleImageItem(
+        title: 'Modern Architecture',
+        assetPath: 'assets/images/sample_architecture.jpg',
+        description: 'Geometric perspective and structural lines',
+      ),
+      SampleImageItem(
+        title: 'Artisan Food & Cafe',
+        assetPath: 'assets/images/sample_food.jpg',
+        description: 'Warm tones and still-life textures',
+      ),
     ];
   }
 }
