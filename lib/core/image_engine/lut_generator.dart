@@ -3,37 +3,65 @@ import '../models/edit_state.dart';
 
 class LutGenerator {
   /// Generates 256-element look-up tables for red, green, and blue channels
-  /// combining brightness, contrast, highlights, shadows, warmth, tint, and curves.
+  /// combining exposure, brightness, contrast, highlights, shadows, whites, blacks,
+  /// ambiance, warmth, tint, and curves.
   static ChannelLuts generate(TuneAdjustments tune, ToneCurves curves) {
     final rLut = Uint8List(256);
     final gLut = Uint8List(256);
     final bLut = Uint8List(256);
 
-    // 1. Contrast factor
-    // Using standard contrast formulation: f = 259 * (contrast + 255) / (255 * (259 - contrast))
+    // Fast-path: return identity LUT when no adjustments or curves are applied
+    if (tune.isIdentity && curves.isIdentity) {
+      for (var i = 0; i < 256; i++) {
+        rLut[i] = i;
+        gLut[i] = i;
+        bLut[i] = i;
+      }
+      return ChannelLuts(rLut: rLut, gLut: gLut, bLut: bLut);
+    }
+
+    // 1. Exposure factor (EV scaling: 2^(exposure / 50))
+    final exposureFactor = tune.exposure == 0.0
+        ? 1.0
+        : (tune.exposure > 0
+              ? 1.0 + (tune.exposure / 100.0) * 1.5
+              : 1.0 / (1.0 + (-tune.exposure / 100.0) * 1.5));
+
+    // 2. Contrast factor
+    // Standard contrast formulation: f = 259 * (contrast + 255) / (255 * (259 - contrast))
     final cVal = tune.contrast.clamp(-100.0, 100.0) * 1.5;
     final contrastFactor = (259.0 * (cVal + 255.0)) / (255.0 * (259.0 - cVal));
 
-    // 2. Brightness shift
+    // 3. Brightness shift
     final brightnessShift = tune.brightness.clamp(-100.0, 100.0) * 1.28;
 
-    // 3. Warmth and tint shifts
-    // Warmth: positive boosts red and drops blue; negative boosts blue and drops red
+    // 4. Warmth and tint shifts
+    // Warmth: positive boosts red, drops blue; negative boosts blue, drops red
     final warmthShift = tune.warmth.clamp(-100.0, 100.0) * 0.45;
-    // Tint: positive boosts magenta (R+B) and drops G; negative boosts green
+    // Tint: positive boosts magenta (R+B), drops G; negative boosts green
     final tintShift = tune.tint.clamp(-100.0, 100.0) * 0.45;
 
-    // 4. Precompute spline curves for RGB, R, G, B channels
+    // 5. Precompute spline curves for RGB, R, G, B channels
     final rgbCurve = _interpolateCurve(curves.rgb);
     final rCurve = _interpolateCurve(curves.red);
     final gCurve = _interpolateCurve(curves.green);
     final bCurve = _interpolateCurve(curves.blue);
 
     for (var i = 0; i < 256; i++) {
-      // Base tone calculation (contrast + brightness + highlights/shadows)
-      double base = i.toDouble();
+      // Base tone calculation starting from linear input
+      double base = i.toDouble() * exposureFactor;
 
-      // Highlights adjustment (values > 128)
+      // Whites & Blacks adjustments
+      if (tune.whites != 0.0 && i > 180) {
+        final weight = ((i - 180) / 75.0).clamp(0.0, 1.0);
+        base += tune.whites * 0.5 * weight;
+      }
+      if (tune.blacks != 0.0 && i < 75) {
+        final weight = ((75 - i) / 75.0).clamp(0.0, 1.0);
+        base += tune.blacks * 0.5 * weight;
+      }
+
+      // Highlights adjustment (values > 100)
       if (tune.highlights != 0.0 && i > 100) {
         final weight = ((i - 100) / 155.0).clamp(0.0, 1.0);
         base += tune.highlights * 0.6 * weight;
@@ -55,7 +83,8 @@ class LutGenerator {
       }
 
       // Apply master RGB curve
-      final curvedBase = rgbCurve[base.clamp(0.0, 255.0).round()];
+      final clampedBase = base.clamp(0.0, 255.0).round();
+      final curvedBase = rgbCurve[clampedBase];
 
       // Channel-specific warmth & tint
       final rVal = (curvedBase + warmthShift + (tintShift * 0.6)).clamp(
@@ -77,10 +106,12 @@ class LutGenerator {
     return ChannelLuts(rLut: rLut, gLut: gLut, bLut: bLut);
   }
 
-  /// Interpolates a list of CurvePoint into a 256-element uint8 LUT
+  /// Interpolates a list of CurvePoint into a 256-element uint8 LUT.
+  /// If points represent an identity line (e.g. [(0,0), (1,1)]), it strictly
+  /// produces the linear identity map without introducing unwanted S-curves.
   static Uint8List _interpolateCurve(List<CurvePoint> points) {
     final lut = Uint8List(256);
-    if (points.isEmpty) {
+    if (points.isEmpty || _isIdentityCurve(points)) {
       for (var i = 0; i < 256; i++) {
         lut[i] = i;
       }
@@ -99,7 +130,7 @@ class LutGenerator {
       } else if (normX >= sorted.last.x) {
         lut[i] = (sorted.last.y * 255.0).clamp(0.0, 255.0).round();
       } else {
-        // Find surrounding points
+        // Find surrounding segment [p0, p1]
         var idx = 0;
         while (idx < sorted.length - 1 && sorted[idx + 1].x < normX) {
           idx++;
@@ -109,13 +140,20 @@ class LutGenerator {
         final dx = p1.x - p0.x;
         final t = dx > 0 ? (normX - p0.x) / dx : 0.0;
 
-        // Smooth cubic hermite interpolation
-        final smoothT = t * t * (3.0 - 2.0 * t);
-        final interpolatedY = p0.y + (p1.y - p0.y) * smoothT;
+        // Linear interpolation between consecutive points avoids artificial contrast boosts
+        final interpolatedY = p0.y + (p1.y - p0.y) * t;
         lut[i] = (interpolatedY * 255.0).clamp(0.0, 255.0).round();
       }
     }
     return lut;
+  }
+
+  static bool _isIdentityCurve(List<CurvePoint> points) {
+    if (points.length != 2) return false;
+    return (points[0].x - 0.0).abs() < 1e-4 &&
+        (points[0].y - 0.0).abs() < 1e-4 &&
+        (points[1].x - 1.0).abs() < 1e-4 &&
+        (points[1].y - 1.0).abs() < 1e-4;
   }
 }
 

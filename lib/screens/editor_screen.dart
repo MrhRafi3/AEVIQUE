@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
 import '../core/models/history_manager.dart';
+import '../core/presets/filter_catalogue.dart';
 import '../theme/luma_theme.dart';
 import '../widgets/before_after_viewer.dart';
 import '../widgets/crop_overlay_widget.dart';
@@ -11,7 +13,7 @@ import '../widgets/tool_panels/crop_panel.dart';
 import '../widgets/tool_panels/curves_panel.dart';
 import '../widgets/tool_panels/details_panel.dart';
 import '../widgets/tool_panels/effects_panel.dart';
-import '../widgets/tool_panels/presets_panel.dart';
+import '../widgets/tool_panels/filters_panel.dart';
 import '../widgets/tool_panels/tune_panel.dart';
 import 'export_screen.dart';
 
@@ -35,9 +37,17 @@ class _EditorScreenState extends State<EditorScreen> {
   late HistoryManager _history;
   late EditState _workingState;
 
+  // Cached base images for zero-delay slider updates
+  img.Image? _basePreviewImage;
+  img.Image? _thumbnailImage;
+  Uint8List? _originalPreviewBytes;
+
   Uint8List? _previewBytes;
+  bool _isLoadingBase = true;
   bool _isProcessing = false;
+
   Timer? _debounceTimer;
+  int _latestRequestId = 0;
 
   ToolCategory _activeCategory = ToolCategory.refine;
   String?
@@ -46,9 +56,11 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void initState() {
     super.initState();
+    // Neutral initial state: exposure 0, contrast 0, saturation 0, no filters applied
     _history = HistoryManager(initialState: EditState.identity());
     _workingState = _history.current;
-    _renderPreview(_workingState);
+
+    _initializeImageBundle();
   }
 
   @override
@@ -57,33 +69,73 @@ class _EditorScreenState extends State<EditorScreen> {
     super.dispose();
   }
 
-  void _requestRender(EditState state) {
-    _workingState = state;
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 60), () {
-      _renderPreview(state);
-    });
-  }
-
-  Future<void> _renderPreview(EditState state) async {
-    if (!mounted) return;
-    setState(() => _isProcessing = true);
-
+  Future<void> _initializeImageBundle() async {
     try {
-      final processed = await ImagePipeline.processImage(
+      final bundle = await ImagePipeline.prepareImageBundle(
         widget.initialImageBytes,
-        state,
-        maxDimension: 1200, // Downscale for fast 60fps-level preview updates
-        jpegQuality: 85,
+        maxPreviewDimension: 1200,
+        thumbnailDimension: 80,
       );
 
       if (!mounted) return;
       setState(() {
+        _basePreviewImage = bundle.previewImage;
+        _thumbnailImage = bundle.thumbnailImage;
+        _originalPreviewBytes = bundle.originalPreviewBytes;
+        // At identity, the preview is 100% identical to the original image!
+        _previewBytes = bundle.originalPreviewBytes;
+        _isLoadingBase = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _previewBytes = widget.initialImageBytes;
+        _originalPreviewBytes = widget.initialImageBytes;
+        _isLoadingBase = false;
+      });
+    }
+  }
+
+  void _requestRender(EditState state) {
+    _workingState = state;
+
+    // If returning to neutral state, immediately set original bytes with zero latency
+    if (state.isIdentity && _originalPreviewBytes != null) {
+      _debounceTimer?.cancel();
+      _latestRequestId++;
+      setState(() {
+        _previewBytes = _originalPreviewBytes;
+        _isProcessing = false;
+      });
+      return;
+    }
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 30), () {
+      _executeFastRender(state);
+    });
+  }
+
+  Future<void> _executeFastRender(EditState state) async {
+    if (!mounted || _basePreviewImage == null) return;
+
+    final requestId = ++_latestRequestId;
+    setState(() => _isProcessing = true);
+
+    try {
+      final processed = await ImagePipeline.processPreviewFast(
+        _basePreviewImage!,
+        state,
+        jpegQuality: 90,
+      );
+
+      if (!mounted || requestId != _latestRequestId) return;
+      setState(() {
         _previewBytes = processed;
         _isProcessing = false;
       });
-    } catch (e) {
-      if (!mounted) return;
+    } catch (_) {
+      if (!mounted || requestId != _latestRequestId) return;
       setState(() => _isProcessing = false);
     }
   }
@@ -93,7 +145,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _activeTool = null;
     });
-    _renderPreview(_history.current);
+    _requestRender(_history.current);
   }
 
   void _cancelToolChanges() {
@@ -101,7 +153,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _activeTool = null;
     });
-    _renderPreview(_history.current);
+    _requestRender(_history.current);
   }
 
   void _undo() {
@@ -109,7 +161,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (undone != null) {
       _workingState = undone;
       setState(() {});
-      _renderPreview(undone);
+      _requestRender(undone);
     }
   }
 
@@ -118,7 +170,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (redone != null) {
       _workingState = redone;
       setState(() {});
-      _renderPreview(redone);
+      _requestRender(redone);
     }
   }
 
@@ -129,129 +181,312 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
+  // ----------------------------------------------------
+  // SAFE BACK NAVIGATION & UNSAVED EDITS PROTECTION
+  // ----------------------------------------------------
+  Future<void> _handleBackAction() async {
+    // 1. If inside an active tool, resolve or close that tool first
+    if (_activeTool != null) {
+      if (_workingState != _history.current) {
+        // Discard uncommitted edits in current tool
+        _cancelToolChanges();
+      } else {
+        setState(() => _activeTool = null);
+      }
+      return;
+    }
+
+    // 2. Check if entire session has unsaved edits
+    final hasUnsavedEdits = !_history.current.isIdentity || _history.canUndo;
+
+    if (!hasUnsavedEdits) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    // 3. Show confirmation dialog with Keep Editing, Discard, and Save/Export
+    final action = await showDialog<_BackDialogAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: LumaTheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: LumaTheme.border, width: 1),
+        ),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: LumaTheme.accent,
+              size: 22,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Unsaved Edits',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: LumaTheme.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'You have unexported photo adjustments in this editing session. Would you like to preserve or discard them?',
+          style: TextStyle(
+            fontSize: 13,
+            color: LumaTheme.textSecondary,
+            height: 1.4,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: LumaTheme.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () =>
+                      Navigator.of(context).pop(_BackDialogAction.discard),
+                  child: const Text(
+                    'Discard',
+                    style: TextStyle(
+                      color: Color(0xFFEF4444),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: LumaTheme.surfaceElevated,
+                    side: const BorderSide(color: LumaTheme.borderLight),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () =>
+                      Navigator.of(context).pop(_BackDialogAction.keepEditing),
+                  child: const Text(
+                    'Keep Editing',
+                    style: TextStyle(
+                      color: LumaTheme.textPrimary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: LumaTheme.accent,
+                foregroundColor: LumaTheme.background,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              icon: const Icon(Icons.ios_share_rounded, size: 16),
+              label: const Text(
+                'Save / Export',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () =>
+                  Navigator.of(context).pop(_BackDialogAction.saveAndExport),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || action == null) return;
+
+    switch (action) {
+      case _BackDialogAction.keepEditing:
+        // Remain in editor
+        break;
+      case _BackDialogAction.discard:
+        Navigator.of(context).pop();
+        break;
+      case _BackDialogAction.saveAndExport:
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ExportScreen(
+              sourceBytes: widget.initialImageBytes,
+              state: _history.current,
+            ),
+          ),
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isToolOpen = _activeTool != null;
 
-    return Scaffold(
-      backgroundColor: LumaTheme.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation & Action Bar
-            _buildTopBar(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _handleBackAction();
+      },
+      child: Scaffold(
+        backgroundColor: LumaTheme.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top Navigation & Action Bar
+              _buildTopBar(),
 
-            // Central Image Viewport with Before/After
-            Expanded(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (_previewBytes != null)
-                    InteractiveViewer(
-                      maxScale: 4.0,
-                      minScale: 0.8,
-                      child: Center(
-                        child: BeforeAfterViewer(
-                          originalChild: Image.memory(
-                            widget.initialImageBytes,
-                            fit: BoxFit.contain,
-                          ),
-                          editedChild: Image.memory(
-                            _previewBytes!,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    const Center(
-                      child: CircularProgressIndicator(color: LumaTheme.accent),
-                    ),
-
-                  // Crop interactive overlay (only active when crop tool is open)
-                  if (_activeTool == 'crop')
-                    Positioned.fill(
-                      child: CropOverlayWidget(
-                        cropLeft: _workingState.geometry.cropLeft,
-                        cropTop: _workingState.geometry.cropTop,
-                        cropRight: _workingState.geometry.cropRight,
-                        cropBottom: _workingState.geometry.cropBottom,
-                        onCropChanged: (l, t, r, b) {
-                          _requestRender(
-                            _workingState.copyWith(
-                              geometry: _workingState.geometry.copyWith(
-                                cropLeft: l,
-                                cropTop: t,
-                                cropRight: r,
-                                cropBottom: b,
-                              ),
+              // Central Image Viewport with Before/After
+              Expanded(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (!_isLoadingBase && _previewBytes != null)
+                      InteractiveViewer(
+                        maxScale: 4.0,
+                        minScale: 0.8,
+                        child: Center(
+                          child: BeforeAfterViewer(
+                            originalChild: Image.memory(
+                              _originalPreviewBytes ?? widget.initialImageBytes,
+                              fit: BoxFit.contain,
                             ),
-                          );
-                        },
-                      ),
-                    ),
-
-                  // Processing indicator pill
-                  if (_isProcessing)
-                    Positioned(
-                      top: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
+                            editedChild: Image.memory(
+                              _previewBytes!,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
+                      )
+                    else
+                      const Center(
+                        child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(
-                              width: 10,
-                              height: 10,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: LumaTheme.accent,
-                              ),
-                            ),
-                            SizedBox(width: 6),
+                            CircularProgressIndicator(color: LumaTheme.accent),
+                            SizedBox(height: 12),
                             Text(
-                              'RENDERING',
+                              'Optimizing Image Canvas...',
                               style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
-                                color: LumaTheme.accent,
+                                fontSize: 12,
+                                color: LumaTheme.textSecondary,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
 
-            // Bottom Area: Active Tool Panel OR Tool Category Selector
-            Container(
-              decoration: const BoxDecoration(
-                color: LumaTheme.surface,
-                border: Border(
-                  top: BorderSide(color: LumaTheme.border, width: 1),
+                    // Crop interactive overlay (active when crop tool is open)
+                    if (_activeTool == 'crop')
+                      Positioned.fill(
+                        child: CropOverlayWidget(
+                          cropLeft: _workingState.geometry.cropLeft,
+                          cropTop: _workingState.geometry.cropTop,
+                          cropRight: _workingState.geometry.cropRight,
+                          cropBottom: _workingState.geometry.cropBottom,
+                          onCropChanged: (l, t, r, b) {
+                            _requestRender(
+                              _workingState.copyWith(
+                                geometry: _workingState.geometry.copyWith(
+                                  cropLeft: l,
+                                  cropTop: t,
+                                  cropRight: r,
+                                  cropBottom: b,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                    // Processing indicator pill
+                    if (_isProcessing)
+                      Positioned(
+                        top: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: LumaTheme.border,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 10,
+                                height: 10,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: LumaTheme.accent,
+                                ),
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'PROCESSING',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                  color: LumaTheme.accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              child: isToolOpen
-                  ? _buildActiveToolDrawer()
-                  : _buildCategoryAndToolsSelector(),
-            ),
-          ],
+
+              // Bottom Area: Active Tool Panel OR Tool Category Selector
+              Container(
+                decoration: const BoxDecoration(
+                  color: LumaTheme.surface,
+                  border: Border(
+                    top: BorderSide(color: LumaTheme.border, width: 1),
+                  ),
+                ),
+                child: isToolOpen
+                    ? _buildActiveToolDrawer()
+                    : _buildCategoryAndToolsSelector(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildTopBar() {
+    final activeFilterName = _workingState.presetName;
+    final activeIntensity = _workingState.filterIntensity.round();
+    final isNeutral = _workingState.isIdentity;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: const BoxDecoration(
@@ -261,14 +496,57 @@ class _EditorScreenState extends State<EditorScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Close button
+          // Close / Back button (safely intercepted)
           IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
             tooltip: 'Back to Gallery',
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: _handleBackAction,
           ),
 
-          // Undo / Redo controls
+          // Central State Pill (Shows "Original • No Filter" or Filter Name & Intensity)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: isNeutral
+                  ? LumaTheme.surfaceElevated
+                  : LumaTheme.accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isNeutral
+                    ? LumaTheme.border
+                    : LumaTheme.accent.withValues(alpha: 0.5),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isNeutral ? LumaTheme.textMuted : LumaTheme.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  activeFilterName != null
+                      ? '$activeFilterName • $activeIntensity%'
+                      : (isNeutral ? 'Original • No Filter' : 'Custom Edits'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isNeutral ? FontWeight.normal : FontWeight.w600,
+                    color: isNeutral
+                        ? LumaTheme.textSecondary
+                        : LumaTheme.accent,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Undo / Redo / Export Controls
           Row(
             children: [
               IconButton(
@@ -287,35 +565,37 @@ class _EditorScreenState extends State<EditorScreen> {
                     : LumaTheme.textMuted,
                 onPressed: _history.canRedo ? _redo : null,
               ),
-            ],
-          ),
-
-          // Export button
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: LumaTheme.surfaceElevated,
-              foregroundColor: LumaTheme.accent,
-              side: const BorderSide(color: LumaTheme.border),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            icon: const Icon(Icons.ios_share_rounded, size: 16),
-            label: const Text(
-              'Export',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => ExportScreen(
-                    sourceBytes: widget.initialImageBytes,
-                    state: _history.current,
+              const SizedBox(width: 4),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: LumaTheme.surfaceElevated,
+                  foregroundColor: LumaTheme.accent,
+                  side: const BorderSide(color: LumaTheme.border),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-              );
-            },
+                icon: const Icon(Icons.ios_share_rounded, size: 14),
+                label: const Text(
+                  'Export',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ExportScreen(
+                        sourceBytes: widget.initialImageBytes,
+                        state: _history.current,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -367,27 +647,51 @@ class _EditorScreenState extends State<EditorScreen> {
         );
         break;
       case 'presets':
-        toolTitle = 'Presets';
-        panelContent = PresetsPanel(
-          activePresetName: _workingState.presetName,
-          onPresetSelected: (preset) {
+      case 'filters':
+        toolTitle = 'Filters & Presets';
+        panelContent = FiltersPanel(
+          activeFilterId: _workingState.filterId,
+          filterIntensity: _workingState.filterIntensity,
+          thumbnailBase: _thumbnailImage,
+          onFilterSelected: (filter, intensity) {
+            final blended = filter.blendWithNeutral(intensity);
             _requestRender(
               _workingState.copyWith(
-                presetName: preset.name,
-                tune: preset.state.tune,
-                details: preset.state.details,
-                effects: preset.state.effects,
-                vignette: preset.state.vignette,
+                filterId: filter.id,
+                filterIntensity: intensity,
+                presetName: filter.name,
+                tune: blended.tune,
+                details: blended.details,
+                effects: blended.effects,
+                vignette: blended.vignette,
               ),
             );
           },
-          onClearPreset: () {
+          onIntensityChanged: (newIntensity) {
+            if (_workingState.filterId == null) return;
+            final filter = FilterCatalogue.findById(_workingState.filterId!);
+            if (filter != null) {
+              final blended = filter.blendWithNeutral(newIntensity);
+              _requestRender(
+                _workingState.copyWith(
+                  filterIntensity: newIntensity,
+                  tune: blended.tune,
+                  details: blended.details,
+                  effects: blended.effects,
+                  vignette: blended.vignette,
+                ),
+              );
+            }
+          },
+          onClearFilter: () {
             _requestRender(
               _workingState.copyWith(
+                clearFilter: true,
                 clearPreset: true,
+                filterIntensity: 100.0,
                 tune: const TuneAdjustments(),
-                effects: const EffectsAdjustments(),
                 details: const DetailsAdjustments(),
+                effects: const EffectsAdjustments(),
                 vignette: const VignetteAdjustments(),
               ),
             );
@@ -485,8 +789,8 @@ class _EditorScreenState extends State<EditorScreen> {
         toolButtons = [
           _buildToolItem(
             Icons.filter_vintage_rounded,
-            'Presets',
-            () => _openTool('presets'),
+            'Filters',
+            () => _openTool('filters'),
           ),
         ];
         break;
@@ -505,7 +809,7 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ),
         const Divider(color: LumaTheme.border),
-        // Category Tabs: Refine | Fix | Style | Presets
+        // Category Tabs: Refine | Fix | Style | Filters
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
@@ -524,7 +828,7 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
               _buildCategoryTab(
                 ToolCategory.presets,
-                'Presets',
+                'Filters',
                 Icons.filter_vintage_outlined,
               ),
             ],
@@ -607,3 +911,5 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 }
+
+enum _BackDialogAction { keepEditing, discard, saveAndExport }

@@ -36,6 +36,53 @@ class FilterKernels {
     }
   }
 
+  /// Vibrance boosts less-saturated colors more than already-saturated colors,
+  /// preserving natural skin tones from over-saturation.
+  static void applyVibrance(img.Image image, double vibrance) {
+    if (vibrance == 0.0) return;
+
+    final factor = vibrance / 100.0;
+    for (final pixel in image) {
+      final r = pixel.r;
+      final g = pixel.g;
+      final b = pixel.b;
+
+      final maxVal = math.max(r, math.max(g, b));
+      final minVal = math.min(r, math.min(g, b));
+      final sat = maxVal == 0 ? 0.0 : (maxVal - minVal) / maxVal;
+
+      // Higher weight for lower saturation
+      final satWeight = (1.0 - sat).clamp(0.0, 1.0);
+      final amt = factor * satWeight * 1.25;
+
+      final lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      pixel.r = (r + (r - lum) * amt).round().clamp(0, 255);
+      pixel.g = (g + (g - lum) * amt).round().clamp(0, 255);
+      pixel.b = (b + (b - lum) * amt).round().clamp(0, 255);
+    }
+  }
+
+  /// Clarity enhances local contrast in the midtones with halo-prevention.
+  static void applyClarity(img.Image image, double clarity) {
+    if (clarity == 0.0) return;
+
+    final factor = (clarity / 100.0) * 0.7;
+    for (final pixel in image) {
+      final r = pixel.r;
+      final g = pixel.g;
+      final b = pixel.b;
+      final lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+      // Midtone bell curve: peak at 128
+      final midWeight = 1.0 - ((lum - 128.0).abs() / 128.0).clamp(0.0, 1.0);
+      final delta = (lum - 128.0) * factor * midWeight;
+
+      pixel.r = (r + delta).round().clamp(0, 255);
+      pixel.g = (g + delta).round().clamp(0, 255);
+      pixel.b = (b + delta).round().clamp(0, 255);
+    }
+  }
+
   /// Applies unsharp mask sharpening
   static void applySharpening(img.Image image, double strength) {
     if (strength <= 0.0) return;
@@ -44,8 +91,8 @@ class FilterKernels {
     // Create copy for blurred reference
     final blurred = img.copyResize(
       image,
-      width: image.width ~/ 2,
-      height: image.height ~/ 2,
+      width: math.max(16, image.width ~/ 2),
+      height: math.max(16, image.height ~/ 2),
     );
     final upscaled = img.copyResize(
       blurred,
@@ -139,7 +186,6 @@ class FilterKernels {
     if (strength <= 0.0) return;
 
     final intensity = (strength / 100.0) * 38.0;
-    // Fast pseudo-random generator
     var rngSeed = 1337;
     int nextRng() {
       rngSeed = (rngSeed * 1664525 + 1013904223) & 0x7FFFFFFF;
@@ -159,7 +205,6 @@ class FilterKernels {
     if (strength <= 0.0) return;
 
     final factor = (strength / 100.0) * 0.7;
-    // Downscale to extract glow
     final glowDown = img.copyResize(
       image,
       width: math.max(32, image.width ~/ 4),
@@ -184,7 +229,6 @@ class FilterKernels {
         final p = image.getPixel(x, y);
         final g = glowUp.getPixel(x, y);
 
-        // Screen blend
         p.r = (p.r + g.r * factor).round().clamp(0, 255);
         p.g = (p.g + g.g * factor).round().clamp(0, 255);
         p.b = (p.b + g.b * factor).round().clamp(0, 255);
@@ -203,12 +247,10 @@ class FilterKernels {
       for (var x = 0; x < image.width; x++) {
         final target = image.getPixel(x, y);
 
-        // Sample red from left
         final rx = math.max(0, x - offset);
         final rPixel = copy.getPixel(rx, y);
         target.r = rPixel.r;
 
-        // Sample blue from right
         final bx = math.min(image.width - 1, x + offset);
         final bPixel = copy.getPixel(bx, y);
         target.b = bPixel.b;
@@ -222,7 +264,6 @@ class FilterKernels {
 
     final factor = strength / 100.0;
     for (final p in image) {
-      // Lift blacks (fade)
       p.r = (p.r * (1.0 - factor * 0.15) + factor * 35).round().clamp(0, 255);
       p.g = (p.g * (1.0 - factor * 0.1) + factor * 25).round().clamp(0, 255);
       p.b = (p.b * (1.0 - factor * 0.25) + factor * 15).round().clamp(0, 255);

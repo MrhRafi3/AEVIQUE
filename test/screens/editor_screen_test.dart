@@ -17,7 +17,7 @@ void main() {
   });
 
   testWidgets(
-    'EditorScreen displays preview, tools, and supports opening tools and undo',
+    'EditorScreen displays preview, neutral pill, and supports tools and undo',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -33,6 +33,9 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 300));
       });
       await tester.pump();
+
+      // Check initial neutral state pill
+      expect(find.text('Original • No Filter'), findsOneWidget);
 
       expect(find.text('Export'), findsOneWidget);
       expect(find.text('Refine'), findsOneWidget);
@@ -62,6 +65,8 @@ void main() {
 
       // TunePanel should be closed and Undo button enabled
       expect(find.byType(TunePanel), findsNothing);
+      expect(find.text('Custom Edits'), findsOneWidget);
+
       final undoFinder = find.byTooltip('Undo');
       expect(undoFinder, findsOneWidget);
 
@@ -83,6 +88,88 @@ void main() {
 
       expect(find.byType(ExportScreen), findsOneWidget);
       expect(find.text('Export Photo'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Safe Back Navigation shows confirmation dialog when unsaved edits exist',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: LumaTheme.darkTheme,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => EditorScreen(
+                        initialImageBytes: sampleBytes,
+                        imageName: 'Test Image',
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Open Editor'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Tap to open editor
+      await tester.tap(find.text('Open Editor'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 300));
+      });
+      await tester.pump();
+
+      // Apply an edit
+      await tester.tap(find.text('Tune Image'));
+      await tester.pump();
+      await tester.tap(find.text('Auto Tune'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Apply'));
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 300));
+      });
+      await tester.pump();
+
+      // Tap Back button
+      await tester.tap(find.byTooltip('Back to Gallery'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Unsaved Edits Dialog should appear
+      expect(find.text('Unsaved Edits'), findsOneWidget);
+      expect(find.text('Keep Editing'), findsOneWidget);
+      expect(find.text('Discard'), findsOneWidget);
+      expect(find.text('Save / Export'), findsOneWidget);
+
+      // Tap Keep Editing
+      await tester.tap(find.text('Keep Editing'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('Unsaved Edits'), findsNothing);
+      expect(find.byType(EditorScreen), findsOneWidget);
+
+      // Tap Back again and Discard
+      await tester.tap(find.byTooltip('Back to Gallery'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      await tester.tap(find.text('Discard'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // Should have returned to parent screen
+      expect(find.text('Open Editor'), findsOneWidget);
+      expect(find.byType(EditorScreen), findsNothing);
     },
   );
 }

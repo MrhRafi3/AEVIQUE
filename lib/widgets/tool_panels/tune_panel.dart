@@ -9,16 +9,16 @@ class TunePanel extends StatelessWidget {
 
   const TunePanel({super.key, required this.tune, required this.onChanged});
 
-  void _applyAutoTone() {
+  void _applyAutoTune() {
     onChanged(
       tune.copyWith(
-        brightness: 8.0,
-        contrast: 14.0,
-        saturation: 12.0,
-        ambiance: 15.0,
-        highlights: -10.0,
-        shadows: 12.0,
+        exposure: 5.0,
+        contrast: 12.0,
+        vibrance: 18.0,
+        highlights: -12.0,
+        shadows: 14.0,
         warmth: 4.0,
+        clarity: 8.0,
       ),
     );
   }
@@ -58,7 +58,7 @@ class TunePanel extends StatelessWidget {
                   'Auto Tune',
                   style: TextStyle(color: LumaTheme.textPrimary, fontSize: 12),
                 ),
-                onPressed: _applyAutoTone,
+                onPressed: _applyAutoTune,
               ),
               TextButton.icon(
                 icon: const Icon(
@@ -76,10 +76,15 @@ class TunePanel extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 220,
+          height: 230,
           child: ListView(
             padding: const EdgeInsets.only(bottom: 16),
             children: [
+              LumaSlider(
+                title: 'Exposure',
+                value: tune.exposure,
+                onChanged: (v) => onChanged(tune.copyWith(exposure: v)),
+              ),
               LumaSlider(
                 title: 'Brightness',
                 value: tune.brightness,
@@ -89,16 +94,6 @@ class TunePanel extends StatelessWidget {
                 title: 'Contrast',
                 value: tune.contrast,
                 onChanged: (v) => onChanged(tune.copyWith(contrast: v)),
-              ),
-              LumaSlider(
-                title: 'Saturation',
-                value: tune.saturation,
-                onChanged: (v) => onChanged(tune.copyWith(saturation: v)),
-              ),
-              LumaSlider(
-                title: 'Ambiance',
-                value: tune.ambiance,
-                onChanged: (v) => onChanged(tune.copyWith(ambiance: v)),
               ),
               LumaSlider(
                 title: 'Highlights',
@@ -111,6 +106,26 @@ class TunePanel extends StatelessWidget {
                 onChanged: (v) => onChanged(tune.copyWith(shadows: v)),
               ),
               LumaSlider(
+                title: 'Whites',
+                value: tune.whites,
+                onChanged: (v) => onChanged(tune.copyWith(whites: v)),
+              ),
+              LumaSlider(
+                title: 'Blacks',
+                value: tune.blacks,
+                onChanged: (v) => onChanged(tune.copyWith(blacks: v)),
+              ),
+              LumaSlider(
+                title: 'Vibrance',
+                value: tune.vibrance,
+                onChanged: (v) => onChanged(tune.copyWith(vibrance: v)),
+              ),
+              LumaSlider(
+                title: 'Saturation',
+                value: tune.saturation,
+                onChanged: (v) => onChanged(tune.copyWith(saturation: v)),
+              ),
+              LumaSlider(
                 title: 'Warmth',
                 value: tune.warmth,
                 onChanged: (v) => onChanged(tune.copyWith(warmth: v)),
@@ -119,6 +134,16 @@ class TunePanel extends StatelessWidget {
                 title: 'Tint',
                 value: tune.tint,
                 onChanged: (v) => onChanged(tune.copyWith(tint: v)),
+              ),
+              LumaSlider(
+                title: 'Clarity',
+                value: tune.clarity,
+                onChanged: (v) => onChanged(tune.copyWith(clarity: v)),
+              ),
+              LumaSlider(
+                title: 'Ambiance',
+                value: tune.ambiance,
+                onChanged: (v) => onChanged(tune.copyWith(ambiance: v)),
               ),
             ],
           ),

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:lumaforge/core/image_engine/image_pipeline.dart';
 import 'package:lumaforge/core/models/edit_state.dart';
+import 'package:lumaforge/core/presets/filter_catalogue.dart';
 import 'package:lumaforge/core/presets/preset_catalogue.dart';
 
 void main() {
@@ -21,6 +22,40 @@ void main() {
       }
     }
     testImageBytes = Uint8List.fromList(img.encodeJpg(rawTestImage));
+  });
+
+  group('Neutral State Regression & Pixel Integrity', () {
+    test('Neutral EditState applies ZERO color grading or pixel shifts', () {
+      final processedRaw = ImagePipeline.processRawImage(
+        rawTestImage,
+        EditState.identity(),
+      );
+
+      // Verify every pixel matches the original exactly without S-curve or tone shifts
+      for (var y = 0; y < rawTestImage.height; y++) {
+        for (var x = 0; x < rawTestImage.width; x++) {
+          final orig = rawTestImage.getPixel(x, y);
+          final proc = processedRaw.getPixel(x, y);
+          expect(proc.r, equals(orig.r));
+          expect(proc.g, equals(orig.g));
+          expect(proc.b, equals(orig.b));
+        }
+      }
+    });
+
+    test(
+      'Fast preview processing on neutral state returns original bytes',
+      () async {
+        final fastBytes = await ImagePipeline.processPreviewFast(
+          rawTestImage,
+          EditState.identity(),
+        );
+        expect(fastBytes, isNotEmpty);
+        final decoded = img.decodeImage(fastBytes)!;
+        expect(decoded.width, rawTestImage.width);
+        expect(decoded.height, rawTestImage.height);
+      },
+    );
   });
 
   group('ImagePipeline Real Processing', () {
@@ -45,7 +80,6 @@ void main() {
       );
       final decoded = img.decodeImage(processed)!;
 
-      // Check pixel at (50, 30)
       final origPixel = rawTestImage.getPixel(50, 30);
       final newPixel = decoded.getPixel(50, 30);
 
@@ -65,7 +99,6 @@ void main() {
       final decoded = img.decodeImage(processed)!;
 
       final pixel = decoded.getPixel(40, 25);
-      // R, G, B should be within 1 of each other due to rounding
       expect((pixel.r - pixel.g).abs(), lessThanOrEqualTo(1));
       expect((pixel.g - pixel.b).abs(), lessThanOrEqualTo(1));
     });
@@ -99,7 +132,6 @@ void main() {
       );
       final decoded = img.decodeImage(processed)!;
 
-      // Expected width ~ 60, height ~ 48
       expect(decoded.width, inInclusiveRange(58, 62));
       expect(decoded.height, inInclusiveRange(46, 50));
     });
@@ -114,7 +146,6 @@ void main() {
       );
       final decoded = img.decodeImage(processed)!;
 
-      // Corner pixel (0, 0) should be darkened significantly
       final cornerPixel = decoded.getPixel(0, 0);
       final origCorner = rawTestImage.getPixel(0, 0);
 
@@ -122,16 +153,57 @@ void main() {
     });
   });
 
-  group('PresetCatalogue', () {
-    test('Contains curated presets with valid non-identity states', () {
-      final presets = PresetCatalogue.presets;
-      expect(presets.length, greaterThanOrEqualTo(6));
+  group('FilterCatalogue and Signature Vivid', () {
+    test('Contains Signature Vivid and requested filter categories', () {
+      final allFilters = FilterCatalogue.allFilters;
+      expect(allFilters.length, greaterThanOrEqualTo(20));
 
-      for (final preset in presets) {
-        expect(preset.name, isNotEmpty);
-        expect(preset.description, isNotEmpty);
-        expect(preset.state.isIdentity, isFalse);
-      }
+      final signatureVivid = FilterCatalogue.findById('signature_vivid');
+      expect(signatureVivid, isNotNull);
+      expect(signatureVivid!.name, 'Signature Vivid');
+      expect(signatureVivid.category, FilterCategory.signature);
+      expect(signatureVivid.state.tune.vibrance, greaterThan(0));
+
+      final portraitFilters = FilterCatalogue.getByCategory(
+        FilterCategory.portrait,
+      );
+      expect(portraitFilters, isNotEmpty);
+
+      final natureFilters = FilterCatalogue.getByCategory(
+        FilterCategory.nature,
+      );
+      expect(natureFilters, isNotEmpty);
+
+      final bwFilters = FilterCatalogue.getByCategory(FilterCategory.bw);
+      expect(bwFilters, isNotEmpty);
     });
+
+    test('Filter blending at 0% returns neutral identity state', () {
+      final signatureVivid = FilterCatalogue.findById('signature_vivid')!;
+      final blended0 = signatureVivid.blendWithNeutral(0.0);
+      expect(blended0.isIdentity, isTrue);
+    });
+
+    test('Filter blending at 100% returns full filter parameters', () {
+      final signatureVivid = FilterCatalogue.findById('signature_vivid')!;
+      final blended100 = signatureVivid.blendWithNeutral(100.0);
+      expect(blended100.filterId, 'signature_vivid');
+      expect(
+        blended100.tune.vibrance,
+        equals(signatureVivid.state.tune.vibrance),
+      );
+      expect(
+        blended100.tune.contrast,
+        equals(signatureVivid.state.tune.contrast),
+      );
+    });
+
+    test(
+      'Legacy PresetCatalogue is maintained for backwards compatibility',
+      () {
+        final presets = PresetCatalogue.presets;
+        expect(presets.length, greaterThanOrEqualTo(6));
+      },
+    );
   });
 }

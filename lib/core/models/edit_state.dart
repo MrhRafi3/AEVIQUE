@@ -46,8 +46,10 @@ class ToneCurves {
 
   static bool _isChannelIdentity(List<CurvePoint> points) {
     if (points.length != 2) return false;
-    return (points[0].x == 0.0 && points[0].y == 0.0) &&
-        (points[1].x == 1.0 && points[1].y == 1.0);
+    return (points[0].x - 0.0).abs() < 1e-4 &&
+        (points[0].y - 0.0).abs() < 1e-4 &&
+        (points[1].x - 1.0).abs() < 1e-4 &&
+        (points[1].y - 1.0).abs() < 1e-4;
   }
 
   ToneCurves copyWith({
@@ -121,77 +123,112 @@ class ToneCurves {
 
 @immutable
 class TuneAdjustments {
+  final double exposure; // -100 .. 100 (EV tone scale)
   final double brightness; // -100 .. 100
   final double contrast; // -100 .. 100
   final double saturation; // -100 .. 100
+  final double vibrance; // -100 .. 100 (skin-protecting saturation)
   final double ambiance; // -100 .. 100
   final double highlights; // -100 .. 100
   final double shadows; // -100 .. 100
+  final double whites; // -100 .. 100
+  final double blacks; // -100 .. 100
   final double warmth; // -100 .. 100
   final double tint; // -100 .. 100
+  final double clarity; // -100 .. 100
 
   const TuneAdjustments({
+    this.exposure = 0.0,
     this.brightness = 0.0,
     this.contrast = 0.0,
     this.saturation = 0.0,
+    this.vibrance = 0.0,
     this.ambiance = 0.0,
     this.highlights = 0.0,
     this.shadows = 0.0,
+    this.whites = 0.0,
+    this.blacks = 0.0,
     this.warmth = 0.0,
     this.tint = 0.0,
+    this.clarity = 0.0,
   });
 
   bool get isIdentity =>
+      exposure == 0.0 &&
       brightness == 0.0 &&
       contrast == 0.0 &&
       saturation == 0.0 &&
+      vibrance == 0.0 &&
       ambiance == 0.0 &&
       highlights == 0.0 &&
       shadows == 0.0 &&
+      whites == 0.0 &&
+      blacks == 0.0 &&
       warmth == 0.0 &&
-      tint == 0.0;
+      tint == 0.0 &&
+      clarity == 0.0;
 
   TuneAdjustments copyWith({
+    double? exposure,
     double? brightness,
     double? contrast,
     double? saturation,
+    double? vibrance,
     double? ambiance,
     double? highlights,
     double? shadows,
+    double? whites,
+    double? blacks,
     double? warmth,
     double? tint,
+    double? clarity,
   }) => TuneAdjustments(
+    exposure: exposure ?? this.exposure,
     brightness: brightness ?? this.brightness,
     contrast: contrast ?? this.contrast,
     saturation: saturation ?? this.saturation,
+    vibrance: vibrance ?? this.vibrance,
     ambiance: ambiance ?? this.ambiance,
     highlights: highlights ?? this.highlights,
     shadows: shadows ?? this.shadows,
+    whites: whites ?? this.whites,
+    blacks: blacks ?? this.blacks,
     warmth: warmth ?? this.warmth,
     tint: tint ?? this.tint,
+    clarity: clarity ?? this.clarity,
   );
 
   Map<String, dynamic> toJson() => {
+    'exposure': exposure,
     'brightness': brightness,
     'contrast': contrast,
     'saturation': saturation,
+    'vibrance': vibrance,
     'ambiance': ambiance,
     'highlights': highlights,
     'shadows': shadows,
+    'whites': whites,
+    'blacks': blacks,
     'warmth': warmth,
     'tint': tint,
+    'clarity': clarity,
   };
 
   factory TuneAdjustments.fromJson(Map<String, dynamic> json) =>
       TuneAdjustments(
+        exposure: (json['exposure'] as num?)?.toDouble() ?? 0.0,
         brightness: (json['brightness'] as num?)?.toDouble() ?? 0.0,
         contrast: (json['contrast'] as num?)?.toDouble() ?? 0.0,
         saturation: (json['saturation'] as num?)?.toDouble() ?? 0.0,
+        vibrance: (json['vibrance'] as num?)?.toDouble() ?? 0.0,
         ambiance: (json['ambiance'] as num?)?.toDouble() ?? 0.0,
         highlights: (json['highlights'] as num?)?.toDouble() ?? 0.0,
         shadows: (json['shadows'] as num?)?.toDouble() ?? 0.0,
+        whites: (json['whites'] as num?)?.toDouble() ?? 0.0,
+        blacks: (json['blacks'] as num?)?.toDouble() ?? 0.0,
         warmth: (json['warmth'] as num?)?.toDouble() ?? 0.0,
         tint: (json['tint'] as num?)?.toDouble() ?? 0.0,
+        clarity: (json['clarity'] as num?)?.toDouble() ?? 0.0,
       );
 
   @override
@@ -199,25 +236,35 @@ class TuneAdjustments {
       identical(this, other) ||
       other is TuneAdjustments &&
           runtimeType == other.runtimeType &&
+          exposure == other.exposure &&
           brightness == other.brightness &&
           contrast == other.contrast &&
           saturation == other.saturation &&
+          vibrance == other.vibrance &&
           ambiance == other.ambiance &&
           highlights == other.highlights &&
           shadows == other.shadows &&
+          whites == other.whites &&
+          blacks == other.blacks &&
           warmth == other.warmth &&
-          tint == other.tint;
+          tint == other.tint &&
+          clarity == other.clarity;
 
   @override
   int get hashCode => Object.hash(
+    exposure,
     brightness,
     contrast,
     saturation,
+    vibrance,
     ambiance,
     highlights,
     shadows,
+    whites,
+    blacks,
     warmth,
     tint,
+    clarity,
   );
 }
 
@@ -511,6 +558,9 @@ class EditState {
   final VignetteAdjustments vignette;
   final GeometryAdjustments geometry;
   final EffectsAdjustments effects;
+  final String? filterId;
+  final double
+  filterIntensity; // 0.0 .. 100.0 (where 0.0 = 100% original, 100.0 = full filter)
   final String? presetName;
 
   const EditState({
@@ -520,6 +570,8 @@ class EditState {
     this.vignette = const VignetteAdjustments(),
     this.geometry = const GeometryAdjustments(),
     this.effects = const EffectsAdjustments(),
+    this.filterId,
+    this.filterIntensity = 100.0,
     this.presetName,
   });
 
@@ -532,6 +584,7 @@ class EditState {
       vignette.isIdentity &&
       geometry.isIdentity &&
       effects.isIdentity &&
+      filterId == null &&
       presetName == null;
 
   EditState copyWith({
@@ -541,7 +594,10 @@ class EditState {
     VignetteAdjustments? vignette,
     GeometryAdjustments? geometry,
     EffectsAdjustments? effects,
+    String? filterId,
+    double? filterIntensity,
     String? presetName,
+    bool clearFilter = false,
     bool clearPreset = false,
   }) => EditState(
     tune: tune ?? this.tune,
@@ -550,6 +606,8 @@ class EditState {
     vignette: vignette ?? this.vignette,
     geometry: geometry ?? this.geometry,
     effects: effects ?? this.effects,
+    filterId: clearFilter ? null : (filterId ?? this.filterId),
+    filterIntensity: filterIntensity ?? this.filterIntensity,
     presetName: clearPreset ? null : (presetName ?? this.presetName),
   );
 
@@ -560,6 +618,8 @@ class EditState {
     'vignette': vignette.toJson(),
     'geometry': geometry.toJson(),
     'effects': effects.toJson(),
+    'filterId': filterId,
+    'filterIntensity': filterIntensity,
     'presetName': presetName,
   };
 
@@ -592,6 +652,8 @@ class EditState {
             Map<String, dynamic>.from(json['effects'] as Map),
           )
         : const EffectsAdjustments(),
+    filterId: json['filterId'] as String?,
+    filterIntensity: (json['filterIntensity'] as num?)?.toDouble() ?? 100.0,
     presetName: json['presetName'] as String?,
   );
 
@@ -606,6 +668,8 @@ class EditState {
           vignette == other.vignette &&
           geometry == other.geometry &&
           effects == other.effects &&
+          filterId == other.filterId &&
+          (filterIntensity - other.filterIntensity).abs() < 1e-4 &&
           presetName == other.presetName;
 
   @override
@@ -616,6 +680,8 @@ class EditState {
     vignette,
     geometry,
     effects,
+    filterId,
+    filterIntensity,
     presetName,
   );
 }

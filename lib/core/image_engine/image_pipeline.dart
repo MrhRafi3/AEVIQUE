@@ -6,17 +6,44 @@ import '../models/edit_state.dart';
 import 'filter_kernels.dart';
 import 'lut_generator.dart';
 
+class PreprocessedImageBundle {
+  final img.Image previewImage;
+  final img.Image thumbnailImage;
+  final Uint8List originalPreviewBytes;
+
+  const PreprocessedImageBundle({
+    required this.previewImage,
+    required this.thumbnailImage,
+    required this.originalPreviewBytes,
+  });
+}
+
 class ImagePipeline {
+  /// Decodes and downscales source bytes once into a cached preview and thumbnail bundle.
+  static Future<PreprocessedImageBundle> prepareImageBundle(
+    Uint8List sourceBytes, {
+    int maxPreviewDimension = 1200,
+    int thumbnailDimension = 80,
+  }) async {
+    return compute(
+      _isolatePrepareBundle,
+      _PrepareBundleTask(
+        bytes: sourceBytes,
+        maxPreviewDimension: maxPreviewDimension,
+        thumbnailDimension: thumbnailDimension,
+      ),
+    );
+  }
+
   /// Asynchronously processes source image bytes through the non-destructive edit pipeline.
-  /// If [maxDimension] is provided, the image is downscaled for rapid preview editing.
+  /// Used for full-resolution rendering on export.
   static Future<Uint8List> processImage(
     Uint8List sourceBytes,
     EditState state, {
     int? maxDimension,
-    int jpegQuality = 90,
+    int jpegQuality = 92,
     bool outputPng = false,
   }) async {
-    // For small or moderate workloads, compute asynchronously
     return compute(
       _isolateProcessEntry,
       _PipelineTask(
@@ -29,6 +56,27 @@ class ImagePipeline {
     );
   }
 
+  /// Rapidly processes an in-memory preview image for slider interactivity.
+  static Future<Uint8List> processPreviewFast(
+    img.Image previewBase,
+    EditState state, {
+    int jpegQuality = 88,
+  }) async {
+    if (state.isIdentity) {
+      // Identity state requires zero pixel changes - fast return
+      return Uint8List.fromList(img.encodeJpg(previewBase, quality: 95));
+    }
+
+    return compute(
+      _isolateProcessFastEntry,
+      _FastPipelineTask(
+        image: previewBase,
+        state: state,
+        jpegQuality: jpegQuality,
+      ),
+    );
+  }
+
   /// Synchronously processes an image through the full pipeline
   static img.Image processRawImage(
     img.Image source,
@@ -36,6 +84,11 @@ class ImagePipeline {
     int? maxDimension,
   }) {
     var working = img.Image.from(source);
+
+    // Fast path: if state is completely neutral, return copy untouched
+    if (state.isIdentity && maxDimension == null) {
+      return working;
+    }
 
     // 1. Geometry: Rotation and Flips
     if (state.geometry.rotationQuarterTurns % 4 != 0) {
@@ -72,7 +125,7 @@ class ImagePipeline {
       working = img.copyCrop(working, x: x, y: y, width: w, height: h);
     }
 
-    // 3. Optional downscale for fast interactive preview rendering
+    // 3. Optional downscale
     if (maxDimension != null &&
         (working.width > maxDimension || working.height > maxDimension)) {
       if (working.width >= working.height) {
@@ -94,48 +147,137 @@ class ImagePipeline {
       }
     }
 
-    // 4. Tone Adjustments & Curves via LUT
-    final luts = LutGenerator.generate(state.tune, state.curves);
-    final rLut = luts.rLut;
-    final gLut = luts.gLut;
-    final bLut = luts.bLut;
+    // 4. Tone Adjustments & Curves via LUT (only if modified)
+    if (!state.tune.isIdentity || !state.curves.isIdentity) {
+      final luts = LutGenerator.generate(state.tune, state.curves);
+      final rLut = luts.rLut;
+      final gLut = luts.gLut;
+      final bLut = luts.bLut;
 
-    for (final pixel in working) {
-      final r = pixel.r.toInt().clamp(0, 255);
-      final g = pixel.g.toInt().clamp(0, 255);
-      final b = pixel.b.toInt().clamp(0, 255);
+      for (final pixel in working) {
+        final r = pixel.r.toInt().clamp(0, 255);
+        final g = pixel.g.toInt().clamp(0, 255);
+        final b = pixel.b.toInt().clamp(0, 255);
 
-      pixel.r = rLut[r];
-      pixel.g = gLut[g];
-      pixel.b = bLut[b];
+        pixel.r = rLut[r];
+        pixel.g = gLut[g];
+        pixel.b = bLut[b];
+      }
     }
 
-    // 5. Saturation & B/W
-    FilterKernels.applySaturationAndBw(
-      working,
-      state.tune.saturation,
-      state.effects.bwMode,
-    );
+    // 5. Vibrance (preserves skin tones) & Clarity (local midtone contrast)
+    if (state.tune.vibrance != 0.0) {
+      FilterKernels.applyVibrance(working, state.tune.vibrance);
+    }
+    if (state.tune.clarity != 0.0) {
+      FilterKernels.applyClarity(working, state.tune.clarity);
+    }
 
-    // 6. Photographic Style Effects
-    FilterKernels.applyVintage(working, state.effects.vintage);
-    FilterKernels.applyDrama(working, state.effects.drama);
-    FilterKernels.applyBloom(working, state.effects.bloom);
-    FilterKernels.applyChromaticAberration(
-      working,
-      state.effects.chromaticAberration,
-    );
-    FilterKernels.applyFilmGrain(working, state.effects.grain);
+    // 6. Global Saturation & B/W
+    if (state.tune.saturation != 0.0 || state.effects.bwMode) {
+      FilterKernels.applySaturationAndBw(
+        working,
+        state.tune.saturation,
+        state.effects.bwMode,
+      );
+    }
 
-    // 7. Vignette
-    FilterKernels.applyVignette(working, state.vignette);
+    // 7. Photographic Style Effects (only if active)
+    if (state.effects.vintage != 0.0) {
+      FilterKernels.applyVintage(working, state.effects.vintage);
+    }
+    if (state.effects.drama != 0.0) {
+      FilterKernels.applyDrama(working, state.effects.drama);
+    }
+    if (state.effects.bloom != 0.0) {
+      FilterKernels.applyBloom(working, state.effects.bloom);
+    }
+    if (state.effects.chromaticAberration != 0.0) {
+      FilterKernels.applyChromaticAberration(
+        working,
+        state.effects.chromaticAberration,
+      );
+    }
+    if (state.effects.grain != 0.0) {
+      FilterKernels.applyFilmGrain(working, state.effects.grain);
+    }
 
-    // 8. Details (Sharpening and Structure)
-    FilterKernels.applyStructure(working, state.details.structure);
-    FilterKernels.applySharpening(working, state.details.sharpening);
+    // 8. Vignette
+    if (!state.vignette.isIdentity) {
+      FilterKernels.applyVignette(working, state.vignette);
+    }
+
+    // 9. Details (Structure & Sharpening)
+    if (state.details.structure != 0.0) {
+      FilterKernels.applyStructure(working, state.details.structure);
+    }
+    if (state.details.sharpening != 0.0) {
+      FilterKernels.applySharpening(working, state.details.sharpening);
+    }
 
     return working;
   }
+}
+
+class _PrepareBundleTask {
+  final Uint8List bytes;
+  final int maxPreviewDimension;
+  final int thumbnailDimension;
+
+  _PrepareBundleTask({
+    required this.bytes,
+    required this.maxPreviewDimension,
+    required this.thumbnailDimension,
+  });
+}
+
+PreprocessedImageBundle _isolatePrepareBundle(_PrepareBundleTask task) {
+  final decoded = img.decodeImage(task.bytes);
+  if (decoded == null) {
+    throw Exception('Failed to decode image');
+  }
+
+  // Generate downscaled preview
+  img.Image preview;
+  if (decoded.width > task.maxPreviewDimension ||
+      decoded.height > task.maxPreviewDimension) {
+    if (decoded.width >= decoded.height) {
+      final h = (decoded.height * (task.maxPreviewDimension / decoded.width))
+          .round();
+      preview = img.copyResize(
+        decoded,
+        width: task.maxPreviewDimension,
+        height: math.max(1, h),
+      );
+    } else {
+      final w = (decoded.width * (task.maxPreviewDimension / decoded.height))
+          .round();
+      preview = img.copyResize(
+        decoded,
+        width: math.max(1, w),
+        height: task.maxPreviewDimension,
+      );
+    }
+  } else {
+    preview = decoded;
+  }
+
+  // Generate tiny thumbnail for live filter carousel previews
+  final thumb = img.copyResize(
+    preview,
+    width: task.thumbnailDimension,
+    height: task.thumbnailDimension,
+  );
+
+  final origPreviewBytes = Uint8List.fromList(
+    img.encodeJpg(preview, quality: 95),
+  );
+
+  return PreprocessedImageBundle(
+    previewImage: preview,
+    thumbnailImage: thumb,
+    originalPreviewBytes: origPreviewBytes,
+  );
 }
 
 class _PipelineTask {
@@ -149,7 +291,7 @@ class _PipelineTask {
     required this.bytes,
     required this.state,
     this.maxDimension,
-    this.jpegQuality = 90,
+    this.jpegQuality = 92,
     this.outputPng = false,
   });
 }
@@ -173,4 +315,23 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
       img.encodeJpg(processed, quality: task.jpegQuality),
     );
   }
+}
+
+class _FastPipelineTask {
+  final img.Image image;
+  final EditState state;
+  final int jpegQuality;
+
+  _FastPipelineTask({
+    required this.image,
+    required this.state,
+    required this.jpegQuality,
+  });
+}
+
+Uint8List _isolateProcessFastEntry(_FastPipelineTask task) {
+  final processed = ImagePipeline.processRawImage(task.image, task.state);
+  return Uint8List.fromList(
+    img.encodeJpg(processed, quality: task.jpegQuality),
+  );
 }
