@@ -45,15 +45,20 @@ class LumaSlider extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onDoubleTap: () => onReset != null ? onReset!() : onChanged(0.0),
+                onDoubleTap: () =>
+                    onReset != null ? onReset!() : onChanged(0.0),
                 child: Row(
                   children: [
                     Text(
                       title,
                       style: TextStyle(
                         fontSize: 13,
-                        fontWeight: isNonZero ? FontWeight.w600 : FontWeight.w500,
-                        color: isNonZero ? LumaTheme.textPrimary : LumaTheme.textSecondary,
+                        fontWeight: isNonZero
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: isNonZero
+                            ? LumaTheme.textPrimary
+                            : LumaTheme.textSecondary,
                       ),
                     ),
                     if (isNonZero) ...[
@@ -73,7 +78,10 @@ class LumaSlider extends StatelessWidget {
               GestureDetector(
                 onTap: () => onReset != null ? onReset!() : onChanged(0.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: isNonZero
                         ? LumaTheme.accent.withValues(alpha: 0.15)

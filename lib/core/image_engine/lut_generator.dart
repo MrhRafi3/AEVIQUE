@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:typed_data';
 import '../models/edit_state.dart';
 
@@ -59,9 +58,15 @@ class LutGenerator {
       final curvedBase = rgbCurve[base.clamp(0.0, 255.0).round()];
 
       // Channel-specific warmth & tint
-      final rVal = (curvedBase + warmthShift + (tintShift * 0.6)).clamp(0.0, 255.0);
+      final rVal = (curvedBase + warmthShift + (tintShift * 0.6)).clamp(
+        0.0,
+        255.0,
+      );
       final gVal = (curvedBase - (tintShift * 0.8)).clamp(0.0, 255.0);
-      final bVal = (curvedBase - warmthShift + (tintShift * 0.6)).clamp(0.0, 255.0);
+      final bVal = (curvedBase - warmthShift + (tintShift * 0.6)).clamp(
+        0.0,
+        255.0,
+      );
 
       // Apply individual channel curves
       rLut[i] = rCurve[rVal.round()];

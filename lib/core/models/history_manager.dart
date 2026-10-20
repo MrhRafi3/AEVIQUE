@@ -5,10 +5,7 @@ class HistoryManager {
   int _currentIndex = 0;
   final int maxHistory;
 
-  HistoryManager({
-    EditState? initialState,
-    this.maxHistory = 50,
-  }) {
+  HistoryManager({EditState? initialState, this.maxHistory = 50}) {
     _stack.add(initialState ?? EditState.identity());
     _currentIndex = 0;
   }

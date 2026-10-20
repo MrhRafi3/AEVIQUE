@@ -144,17 +144,37 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
             children: [
               Row(
                 children: [
-                  _buildChannelTab(CurveChannel.rgb, 'RGB', LumaTheme.textPrimary),
+                  _buildChannelTab(
+                    CurveChannel.rgb,
+                    'RGB',
+                    LumaTheme.textPrimary,
+                  ),
                   const SizedBox(width: 8),
-                  _buildChannelTab(CurveChannel.red, 'Red', const Color(0xFFEF4444)),
+                  _buildChannelTab(
+                    CurveChannel.red,
+                    'Red',
+                    const Color(0xFFEF4444),
+                  ),
                   const SizedBox(width: 8),
-                  _buildChannelTab(CurveChannel.green, 'Green', const Color(0xFF10B981)),
+                  _buildChannelTab(
+                    CurveChannel.green,
+                    'Green',
+                    const Color(0xFF10B981),
+                  ),
                   const SizedBox(width: 8),
-                  _buildChannelTab(CurveChannel.blue, 'Blue', const Color(0xFF3B82F6)),
+                  _buildChannelTab(
+                    CurveChannel.blue,
+                    'Blue',
+                    const Color(0xFF3B82F6),
+                  ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 20, color: LumaTheme.textSecondary),
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  size: 20,
+                  color: LumaTheme.textSecondary,
+                ),
                 tooltip: 'Reset Channel Curve',
                 onPressed: _resetCurrentChannel,
               ),
@@ -174,7 +194,10 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final size = Size(constraints.maxWidth, constraints.maxHeight);
+                  final size = Size(
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                  );
                   return GestureDetector(
                     onPanDown: (d) => _handlePanDown(d.localPosition, size),
                     onPanUpdate: (d) => _handlePanUpdate(d.localPosition, size),
@@ -205,7 +228,9 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : LumaTheme.surfaceElevated,
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : LumaTheme.surfaceElevated,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
@@ -226,7 +251,9 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? LumaTheme.textPrimary : LumaTheme.textSecondary,
+                color: isSelected
+                    ? LumaTheme.textPrimary
+                    : LumaTheme.textSecondary,
               ),
             ),
           ],

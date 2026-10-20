@@ -5,7 +5,9 @@ import 'package:lumaforge/widgets/before_after_viewer.dart';
 import 'package:lumaforge/widgets/luma_slider.dart';
 
 void main() {
-  testWidgets('LumaSlider displays title, value, and triggers onChanged', (tester) async {
+  testWidgets('LumaSlider displays title, value, and triggers onChanged', (
+    tester,
+  ) async {
     double currentValue = 0.0;
 
     await tester.pumpWidget(
@@ -37,7 +39,9 @@ void main() {
     expect(currentValue, greaterThan(0.0));
   });
 
-  testWidgets('BeforeAfterViewer toggles original on press-and-hold', (tester) async {
+  testWidgets('BeforeAfterViewer toggles original on press-and-hold', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: LumaTheme.darkTheme,

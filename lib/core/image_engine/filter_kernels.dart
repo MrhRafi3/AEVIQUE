@@ -11,7 +11,9 @@ class FilterKernels {
   ) {
     if (saturation == 0.0 && !bwMode) return;
 
-    final satFactor = bwMode ? 0.0 : ((saturation + 100.0) / 100.0).clamp(0.0, 3.0);
+    final satFactor = bwMode
+        ? 0.0
+        : ((saturation + 100.0) / 100.0).clamp(0.0, 3.0);
 
     for (final pixel in image) {
       final r = pixel.r;
@@ -40,17 +42,34 @@ class FilterKernels {
 
     final factor = (strength / 100.0) * 1.5;
     // Create copy for blurred reference
-    final blurred = img.copyResize(image, width: image.width ~/ 2, height: image.height ~/ 2);
-    final upscaled = img.copyResize(blurred, width: image.width, height: image.height);
+    final blurred = img.copyResize(
+      image,
+      width: image.width ~/ 2,
+      height: image.height ~/ 2,
+    );
+    final upscaled = img.copyResize(
+      blurred,
+      width: image.width,
+      height: image.height,
+    );
 
     for (var y = 0; y < image.height; y++) {
       for (var x = 0; x < image.width; x++) {
         final orig = image.getPixel(x, y);
         final blurPix = upscaled.getPixel(x, y);
 
-        final newR = (orig.r + (orig.r - blurPix.r) * factor).round().clamp(0, 255);
-        final newG = (orig.g + (orig.g - blurPix.g) * factor).round().clamp(0, 255);
-        final newB = (orig.b + (orig.b - blurPix.b) * factor).round().clamp(0, 255);
+        final newR = (orig.r + (orig.r - blurPix.r) * factor).round().clamp(
+          0,
+          255,
+        );
+        final newG = (orig.g + (orig.g - blurPix.g) * factor).round().clamp(
+          0,
+          255,
+        );
+        final newB = (orig.b + (orig.b - blurPix.b) * factor).round().clamp(
+          0,
+          255,
+        );
 
         orig.r = newR;
         orig.g = newG;
@@ -141,7 +160,11 @@ class FilterKernels {
 
     final factor = (strength / 100.0) * 0.7;
     // Downscale to extract glow
-    final glowDown = img.copyResize(image, width: math.max(32, image.width ~/ 4), height: math.max(32, image.height ~/ 4));
+    final glowDown = img.copyResize(
+      image,
+      width: math.max(32, image.width ~/ 4),
+      height: math.max(32, image.height ~/ 4),
+    );
     for (final p in glowDown) {
       final lum = 0.2126 * p.r + 0.7152 * p.g + 0.0722 * p.b;
       if (lum < 160) {
@@ -150,7 +173,11 @@ class FilterKernels {
         p.b = 0;
       }
     }
-    final glowUp = img.copyResize(glowDown, width: image.width, height: image.height);
+    final glowUp = img.copyResize(
+      glowDown,
+      width: image.width,
+      height: image.height,
+    );
 
     for (var y = 0; y < image.height; y++) {
       for (var x = 0; x < image.width; x++) {

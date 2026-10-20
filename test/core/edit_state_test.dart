@@ -18,7 +18,10 @@ void main() {
     });
 
     test('TuneAdjustments copyWith and identity check', () {
-      final tune = const TuneAdjustments().copyWith(brightness: 25.0, contrast: -10.0);
+      final tune = const TuneAdjustments().copyWith(
+        brightness: 25.0,
+        contrast: -10.0,
+      );
       expect(tune.brightness, 25.0);
       expect(tune.contrast, -10.0);
       expect(tune.isIdentity, isFalse);
@@ -45,10 +48,7 @@ void main() {
           saturation: 30.0,
           warmth: 10.0,
         ),
-        effects: const EffectsAdjustments(
-          bwMode: true,
-          grain: 40.0,
-        ),
+        effects: const EffectsAdjustments(bwMode: true, grain: 40.0),
         geometry: const GeometryAdjustments(
           rotationQuarterTurns: 2,
           cropLeft: 0.1,
@@ -139,8 +139,12 @@ void main() {
     test('Reset restores initial state', () {
       final initial = EditState.identity();
       final history = HistoryManager(initialState: initial);
-      history.push(initial.copyWith(tune: const TuneAdjustments(brightness: 50.0)));
-      history.push(initial.copyWith(tune: const TuneAdjustments(brightness: 80.0)));
+      history.push(
+        initial.copyWith(tune: const TuneAdjustments(brightness: 50.0)),
+      );
+      history.push(
+        initial.copyWith(tune: const TuneAdjustments(brightness: 80.0)),
+      );
 
       expect(history.historyLength, 3);
       history.reset();

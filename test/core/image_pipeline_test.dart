@@ -39,7 +39,10 @@ void main() {
       final brightState = EditState.identity().copyWith(
         tune: const TuneAdjustments(brightness: 50.0),
       );
-      final processed = await ImagePipeline.processImage(testImageBytes, brightState);
+      final processed = await ImagePipeline.processImage(
+        testImageBytes,
+        brightState,
+      );
       final decoded = img.decodeImage(processed)!;
 
       // Check pixel at (50, 30)
@@ -55,7 +58,10 @@ void main() {
       final bwState = EditState.identity().copyWith(
         effects: const EffectsAdjustments(bwMode: true),
       );
-      final processed = await ImagePipeline.processImage(testImageBytes, bwState);
+      final processed = await ImagePipeline.processImage(
+        testImageBytes,
+        bwState,
+      );
       final decoded = img.decodeImage(processed)!;
 
       final pixel = decoded.getPixel(40, 25);
@@ -68,7 +74,10 @@ void main() {
       final rotateState = EditState.identity().copyWith(
         geometry: const GeometryAdjustments(rotationQuarterTurns: 1),
       );
-      final processed = await ImagePipeline.processImage(testImageBytes, rotateState);
+      final processed = await ImagePipeline.processImage(
+        testImageBytes,
+        rotateState,
+      );
       final decoded = img.decodeImage(processed)!;
 
       expect(decoded.width, 60);
@@ -84,7 +93,10 @@ void main() {
           cropBottom: 0.9,
         ),
       );
-      final processed = await ImagePipeline.processImage(testImageBytes, cropState);
+      final processed = await ImagePipeline.processImage(
+        testImageBytes,
+        cropState,
+      );
       final decoded = img.decodeImage(processed)!;
 
       // Expected width ~ 60, height ~ 48
@@ -96,7 +108,10 @@ void main() {
       final vignetteState = EditState.identity().copyWith(
         vignette: const VignetteAdjustments(amount: -80.0, radius: 40.0),
       );
-      final processed = await ImagePipeline.processImage(testImageBytes, vignetteState);
+      final processed = await ImagePipeline.processImage(
+        testImageBytes,
+        vignetteState,
+      );
       final decoded = img.decodeImage(processed)!;
 
       // Corner pixel (0, 0) should be darkened significantly

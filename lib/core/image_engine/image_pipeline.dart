@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import '../models/edit_state.dart';
@@ -52,10 +51,23 @@ class ImagePipeline {
 
     // 2. Geometry: Crop
     if (state.geometry.hasCrop) {
-      final x = (state.geometry.cropLeft * working.width).round().clamp(0, working.width - 1);
-      final y = (state.geometry.cropTop * working.height).round().clamp(0, working.height - 1);
-      final w = ((state.geometry.cropRight - state.geometry.cropLeft) * working.width).round().clamp(1, working.width - x);
-      final h = ((state.geometry.cropBottom - state.geometry.cropTop) * working.height).round().clamp(1, working.height - y);
+      final x = (state.geometry.cropLeft * working.width).round().clamp(
+        0,
+        working.width - 1,
+      );
+      final y = (state.geometry.cropTop * working.height).round().clamp(
+        0,
+        working.height - 1,
+      );
+      final w =
+          ((state.geometry.cropRight - state.geometry.cropLeft) * working.width)
+              .round()
+              .clamp(1, working.width - x);
+      final h =
+          ((state.geometry.cropBottom - state.geometry.cropTop) *
+                  working.height)
+              .round()
+              .clamp(1, working.height - y);
 
       working = img.copyCrop(working, x: x, y: y, width: w, height: h);
     }
@@ -64,11 +76,21 @@ class ImagePipeline {
     if (maxDimension != null &&
         (working.width > maxDimension || working.height > maxDimension)) {
       if (working.width >= working.height) {
-        final targetH = (working.height * (maxDimension / working.width)).round();
-        working = img.copyResize(working, width: maxDimension, height: math.max(1, targetH));
+        final targetH = (working.height * (maxDimension / working.width))
+            .round();
+        working = img.copyResize(
+          working,
+          width: maxDimension,
+          height: math.max(1, targetH),
+        );
       } else {
-        final targetW = (working.width * (maxDimension / working.height)).round();
-        working = img.copyResize(working, width: math.max(1, targetW), height: maxDimension);
+        final targetW = (working.width * (maxDimension / working.height))
+            .round();
+        working = img.copyResize(
+          working,
+          width: math.max(1, targetW),
+          height: maxDimension,
+        );
       }
     }
 
@@ -99,7 +121,10 @@ class ImagePipeline {
     FilterKernels.applyVintage(working, state.effects.vintage);
     FilterKernels.applyDrama(working, state.effects.drama);
     FilterKernels.applyBloom(working, state.effects.bloom);
-    FilterKernels.applyChromaticAberration(working, state.effects.chromaticAberration);
+    FilterKernels.applyChromaticAberration(
+      working,
+      state.effects.chromaticAberration,
+    );
     FilterKernels.applyFilmGrain(working, state.effects.grain);
 
     // 7. Vignette
@@ -144,6 +169,8 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
   if (task.outputPng) {
     return Uint8List.fromList(img.encodePng(processed));
   } else {
-    return Uint8List.fromList(img.encodeJpg(processed, quality: task.jpegQuality));
+    return Uint8List.fromList(
+      img.encodeJpg(processed, quality: task.jpegQuality),
+    );
   }
 }

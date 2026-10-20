@@ -19,7 +19,8 @@ class PresetCatalogue {
     PresetItem(
       id: 'portra_warm',
       name: 'Portra Warm',
-      description: 'Gentle warmth, soft skin highlights, and fine analog character',
+      description:
+          'Gentle warmth, soft skin highlights, and fine analog character',
       state: EditState(
         presetName: 'Portra Warm',
         tune: TuneAdjustments(
@@ -30,15 +31,14 @@ class PresetCatalogue {
           contrast: -8.0,
           saturation: 8.0,
         ),
-        effects: EffectsAdjustments(
-          grain: 15.0,
-        ),
+        effects: EffectsAdjustments(grain: 15.0),
       ),
     ),
     PresetItem(
       id: 'noir_contrast',
       name: 'Noir Contrast',
-      description: 'Deep blacks, commanding midtone contrast, and crisp monochrome tone',
+      description:
+          'Deep blacks, commanding midtone contrast, and crisp monochrome tone',
       state: EditState(
         presetName: 'Noir Contrast',
         tune: TuneAdjustments(
@@ -46,14 +46,8 @@ class PresetCatalogue {
           highlights: -15.0,
           shadows: -10.0,
         ),
-        details: DetailsAdjustments(
-          sharpening: 25.0,
-          structure: 20.0,
-        ),
-        effects: EffectsAdjustments(
-          bwMode: true,
-          grain: 20.0,
-        ),
+        details: DetailsAdjustments(sharpening: 25.0, structure: 20.0),
+        effects: EffectsAdjustments(bwMode: true, grain: 20.0),
       ),
     ),
     PresetItem(
@@ -70,10 +64,7 @@ class PresetCatalogue {
           highlights: 10.0,
           shadows: 8.0,
         ),
-        details: DetailsAdjustments(
-          sharpening: 35.0,
-          structure: 15.0,
-        ),
+        details: DetailsAdjustments(sharpening: 35.0, structure: 15.0),
       ),
     ),
     PresetItem(
@@ -89,9 +80,7 @@ class PresetCatalogue {
           shadows: 18.0,
           saturation: 15.0,
         ),
-        effects: EffectsAdjustments(
-          bloom: 22.0,
-        ),
+        effects: EffectsAdjustments(bloom: 22.0),
       ),
     ),
     PresetItem(
@@ -106,10 +95,7 @@ class PresetCatalogue {
           highlights: -20.0,
           shadows: 15.0,
         ),
-        effects: EffectsAdjustments(
-          drama: 30.0,
-          vintage: 20.0,
-        ),
+        effects: EffectsAdjustments(drama: 30.0, vintage: 20.0),
         vignette: VignetteAdjustments(
           amount: -45.0,
           radius: 55.0,
@@ -120,7 +106,8 @@ class PresetCatalogue {
     PresetItem(
       id: 'vibrant_nature',
       name: 'Vibrant Nature',
-      description: 'Punchy vivid colors, deep dynamic range, and rich sky greens',
+      description:
+          'Punchy vivid colors, deep dynamic range, and rich sky greens',
       state: EditState(
         presetName: 'Vibrant Nature',
         tune: TuneAdjustments(
@@ -130,16 +117,14 @@ class PresetCatalogue {
           highlights: -10.0,
           shadows: 12.0,
         ),
-        details: DetailsAdjustments(
-          sharpening: 20.0,
-          structure: 25.0,
-        ),
+        details: DetailsAdjustments(sharpening: 20.0, structure: 25.0),
       ),
     ),
     PresetItem(
       id: 'vintage_70s',
       name: 'Vintage 70s',
-      description: 'Retro washed warmth, subtle fade, and heavy analog film grain',
+      description:
+          'Retro washed warmth, subtle fade, and heavy analog film grain',
       state: EditState(
         presetName: 'Vintage 70s',
         tune: TuneAdjustments(
@@ -148,14 +133,8 @@ class PresetCatalogue {
           contrast: -12.0,
           saturation: -10.0,
         ),
-        effects: EffectsAdjustments(
-          vintage: 45.0,
-          grain: 40.0,
-        ),
-        vignette: VignetteAdjustments(
-          amount: -35.0,
-          radius: 50.0,
-        ),
+        effects: EffectsAdjustments(vintage: 45.0, grain: 40.0),
+        vignette: VignetteAdjustments(amount: -35.0, radius: 50.0),
       ),
     ),
   ];

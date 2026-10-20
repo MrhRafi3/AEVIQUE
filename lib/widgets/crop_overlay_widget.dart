@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/luma_theme.dart';
 
@@ -9,7 +8,8 @@ class CropOverlayWidget extends StatefulWidget {
   final double cropTop;
   final double cropRight;
   final double cropBottom;
-  final Function(double left, double top, double right, double bottom) onCropChanged;
+  final Function(double left, double top, double right, double bottom)
+  onCropChanged;
 
   const CropOverlayWidget({
     super.key,
@@ -35,10 +35,18 @@ class _CropOverlayWidgetState extends State<CropOverlayWidget> {
     final r = widget.cropRight * size.width;
     final b = widget.cropBottom * size.height;
 
-    if ((local - Offset(l, t)).distance < handleHitRadius) return _Handle.topLeft;
-    if ((local - Offset(r, t)).distance < handleHitRadius) return _Handle.topRight;
-    if ((local - Offset(l, b)).distance < handleHitRadius) return _Handle.bottomLeft;
-    if ((local - Offset(r, b)).distance < handleHitRadius) return _Handle.bottomRight;
+    if ((local - Offset(l, t)).distance < handleHitRadius) {
+      return _Handle.topLeft;
+    }
+    if ((local - Offset(r, t)).distance < handleHitRadius) {
+      return _Handle.topRight;
+    }
+    if ((local - Offset(l, b)).distance < handleHitRadius) {
+      return _Handle.bottomLeft;
+    }
+    if ((local - Offset(r, b)).distance < handleHitRadius) {
+      return _Handle.bottomRight;
+    }
 
     if (local.dx >= l && local.dx <= r && local.dy >= t && local.dy <= b) {
       return _Handle.inside;
@@ -175,9 +183,17 @@ class _CropPainter extends CustomPainter {
     final w = r - l;
     final h = b - t;
     canvas.drawLine(Offset(l + w / 3, t), Offset(l + w / 3, b), gridPaint);
-    canvas.drawLine(Offset(l + 2 * w / 3, t), Offset(l + 2 * w / 3, b), gridPaint);
+    canvas.drawLine(
+      Offset(l + 2 * w / 3, t),
+      Offset(l + 2 * w / 3, b),
+      gridPaint,
+    );
     canvas.drawLine(Offset(l, t + h / 3), Offset(r, t + h / 3), gridPaint);
-    canvas.drawLine(Offset(l, t + 2 * h / 3), Offset(r, t + 2 * h / 3), gridPaint);
+    canvas.drawLine(
+      Offset(l, t + 2 * h / 3),
+      Offset(r, t + 2 * h / 3),
+      gridPaint,
+    );
 
     // 4. Corner Handles
     final handlePaint = Paint()

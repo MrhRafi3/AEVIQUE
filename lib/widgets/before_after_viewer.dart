@@ -42,7 +42,10 @@ class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
             Positioned(
               top: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(20),
@@ -51,7 +54,11 @@ class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.compare_rounded, color: LumaTheme.accent, size: 14),
+                    Icon(
+                      Icons.compare_rounded,
+                      color: LumaTheme.accent,
+                      size: 14,
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'ORIGINAL',
