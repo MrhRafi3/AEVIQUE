@@ -73,6 +73,19 @@ class ImagePipeline {
     int jpegQuality = 92,
     bool outputPng = false,
   }) async {
+    if (AeviqueNativeEngine.engineMode == EngineMode.nativeOnly) {
+      if (!AeviqueNativeEngine.isAvailable) {
+        throw StateError(
+          'EngineMode.nativeOnly requested but native library is unavailable or not loaded.',
+        );
+      }
+      if (!isNativePhase3Compatible(state)) {
+        throw UnsupportedError(
+          'EngineMode.nativeOnly requested but EditState contains adjustments unsupported by native image core.',
+        );
+      }
+    }
+
     return compute(
       _isolateProcessEntry,
       _PipelineTask(
@@ -81,6 +94,8 @@ class ImagePipeline {
         maxDimension: maxDimension,
         jpegQuality: jpegQuality,
         outputPng: outputPng,
+        customLibraryPath: AeviqueNativeEngine.activeLibraryPath,
+        engineMode: AeviqueNativeEngine.engineMode,
       ),
     );
   }
@@ -520,6 +535,8 @@ class _PipelineTask {
   final int? maxDimension;
   final int jpegQuality;
   final bool outputPng;
+  final String? customLibraryPath;
+  final EngineMode engineMode;
 
   _PipelineTask({
     required this.bytes,
@@ -527,15 +544,120 @@ class _PipelineTask {
     this.maxDimension,
     this.jpegQuality = 92,
     this.outputPng = false,
+    this.customLibraryPath,
+    this.engineMode = EngineMode.auto,
   });
 }
 
 Uint8List _isolateProcessEntry(_PipelineTask task) {
+  // 1. Initialize native engine state in the background isolate
+  if (task.engineMode != EngineMode.dartOnly) {
+    AeviqueNativeEngine.tryLoad(customLibraryPath: task.customLibraryPath);
+    AeviqueNativeEngine.engineMode = task.engineMode;
+  } else {
+    AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+  }
+
+  // 2. Decode the image
   final decoded = img.decodeImage(task.bytes);
   if (decoded == null) {
     throw Exception('Failed to decode image data');
   }
 
+  // 3. Strict nativeOnly validation
+  if (task.engineMode == EngineMode.nativeOnly) {
+    if (!AeviqueNativeEngine.isAvailable) {
+      throw StateError(
+        'EngineMode.nativeOnly requested but native library is unavailable or not loaded in export isolate.',
+      );
+    }
+    if (!ImagePipeline.isNativePhase3Compatible(task.state)) {
+      throw UnsupportedError(
+        'EngineMode.nativeOnly requested but EditState contains adjustments unsupported by native image core.',
+      );
+    }
+  }
+
+  // 4. Native Full-Resolution Export Fast Path
+  if (AeviqueNativeEngine.isAvailable &&
+      ImagePipeline.isNativePhase3Compatible(task.state)) {
+    try {
+      final engine = AeviqueNativeEngine.instance;
+      if (engine != null) {
+        var working = decoded;
+
+        // Downscale if requested
+        if (task.maxDimension != null &&
+            (working.width > task.maxDimension! || working.height > task.maxDimension!)) {
+          if (working.width >= working.height) {
+            final targetH = (working.height * (task.maxDimension! / working.width)).round();
+            working = img.copyResize(
+              working,
+              width: task.maxDimension!,
+              height: math.max(1, targetH),
+            );
+          } else {
+            final targetW = (working.width * (task.maxDimension! / working.height)).round();
+            working = img.copyResize(
+              working,
+              width: math.max(1, targetW),
+              height: task.maxDimension!,
+            );
+          }
+        }
+
+        // Use 4 channels for PNG (or images with alpha), 3 channels for standard JPEG export
+        final numChannels = (task.outputPng || (working.numChannels == 4 && working.hasAlpha)) ? 4 : 3;
+        final rawBytes = (working.numChannels == numChannels)
+            ? working.toUint8List()
+            : working.convert(numChannels: numChannels).toUint8List();
+
+        // Process in-place through native C++ tone & curves engine
+        final processedBytes = engine.processRgba8(
+          rgbaBytes: rawBytes,
+          width: working.width,
+          height: working.height,
+          exposure: task.state.tune.exposure,
+          contrast: task.state.tune.contrast,
+          saturation: task.state.tune.saturation,
+          brightness: task.state.tune.brightness,
+          warmth: task.state.tune.warmth,
+          tint: task.state.tune.tint,
+          highlights: task.state.tune.highlights,
+          shadows: task.state.tune.shadows,
+          whites: task.state.tune.whites,
+          blacks: task.state.tune.blacks,
+          ambiance: task.state.tune.ambiance,
+          curves: task.state.curves,
+          inPlace: true,
+          numChannels: numChannels,
+        );
+
+        final resultImage = img.Image.fromBytes(
+          width: working.width,
+          height: working.height,
+          bytes: processedBytes.buffer,
+          numChannels: numChannels,
+          order: (numChannels == 4) ? img.ChannelOrder.rgba : img.ChannelOrder.rgb,
+        );
+
+        if (task.outputPng) {
+          return Uint8List.fromList(img.encodePng(resultImage));
+        } else {
+          return Uint8List.fromList(
+            img.encodeJpg(resultImage, quality: task.jpegQuality),
+          );
+        }
+      }
+    } catch (e) {
+      if (task.engineMode == EngineMode.nativeOnly) {
+        rethrow;
+      }
+      // In auto mode, fall through to Dart fallback
+    }
+  }
+
+  // 5. Dart Fallback Pipeline
   final processed = ImagePipeline.processRawImage(
     decoded,
     task.state,

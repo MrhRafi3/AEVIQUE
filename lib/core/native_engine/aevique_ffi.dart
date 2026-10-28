@@ -32,6 +32,7 @@ class AeviqueStatusCode {
 class AeviquePixelFormat {
   static const int rgba8888 = 0;
   static const int bgra8888 = 1;
+  static const int rgb888 = 2;
 }
 
 /// Image buffer struct matching AeviqueImageBuffer in aevique_engine.h
@@ -160,6 +161,9 @@ class AeviqueNativeEngine {
   /// Global engine execution mode.
   static EngineMode engineMode = EngineMode.auto;
 
+  /// Cached active library path used across isolate boundaries.
+  static String? activeLibraryPath;
+
   /// Cached singleton instance of the native engine.
   static AeviqueNativeEngine? _instance;
 
@@ -215,6 +219,7 @@ class AeviqueNativeEngine {
     ffi.DynamicLibrary dylib;
     if (customLibraryPath != null && customLibraryPath.isNotEmpty) {
       dylib = ffi.DynamicLibrary.open(customLibraryPath);
+      activeLibraryPath = customLibraryPath;
     } else if (Platform.isMacOS) {
       final exeDir = File(Platform.resolvedExecutable).parent.path;
       final defaultPaths = [
@@ -230,11 +235,17 @@ class AeviqueNativeEngine {
           break;
         }
       }
-      dylib = ffi.DynamicLibrary.open(foundPath ?? 'libaevique_core.dylib');
+      final resolved = foundPath ?? 'libaevique_core.dylib';
+      dylib = ffi.DynamicLibrary.open(resolved);
+      activeLibraryPath = resolved;
     } else if (Platform.isLinux || Platform.isAndroid) {
-      dylib = ffi.DynamicLibrary.open('libaevique_core.so');
+      const libName = 'libaevique_core.so';
+      dylib = ffi.DynamicLibrary.open(libName);
+      activeLibraryPath = libName;
     } else if (Platform.isWindows) {
-      dylib = ffi.DynamicLibrary.open('aevique_core.dll');
+      const libName = 'aevique_core.dll';
+      dylib = ffi.DynamicLibrary.open(libName);
+      activeLibraryPath = libName;
     } else {
       throw UnsupportedError('Unsupported operating system for AeviqueNativeEngine: ${Platform.operatingSystem}');
     }
@@ -307,17 +318,30 @@ class AeviqueNativeEngine {
     double ambiance = 0.0,
     ToneCurves? curves,
     bool inPlace = false,
+    int numChannels = 4,
   }) {
-    final totalBytes = width * height * 4;
+    if (width <= 0 || height <= 0 || width > 65536 || height > 65536) {
+      throw ArgumentError('Invalid image dimensions for native processing: ${width}x$height');
+    }
+    if (numChannels != 3 && numChannels != 4) {
+      throw ArgumentError('Only 3-channel (RGB) or 4-channel (RGBA) buffers are supported: $numChannels');
+    }
+
+    final totalBytes = width * height * numChannels;
     if (rgbaBytes.lengthInBytes < totalBytes) {
       throw ArgumentError(
-        'Input byte array length (${rgbaBytes.lengthInBytes}) is smaller than required ($totalBytes) for ${width}x${height} RGBA8',
+        'Input byte array length (${rgbaBytes.lengthInBytes}) is smaller than required ($totalBytes) for ${width}x${height} x $numChannels channels',
       );
     }
 
     // Allocate native buffers using calloc
     final srcDataPtr = calloc<ffi.Uint8>(totalBytes);
     final dstDataPtr = inPlace ? srcDataPtr : calloc<ffi.Uint8>(totalBytes);
+    if (srcDataPtr.address == 0 || dstDataPtr.address == 0) {
+      if (srcDataPtr.address != 0) calloc.free(srcDataPtr);
+      if (!inPlace && dstDataPtr.address != 0) calloc.free(dstDataPtr);
+      throw OutOfMemoryError();
+    }
 
     // Copy input bytes into native memory via high-speed memory block copy
     final nativeView = srcDataPtr.asTypedList(totalBytes);
@@ -333,19 +357,22 @@ class AeviqueNativeEngine {
     ffi.Pointer<AeviqueCurvePoint> greenPts = ffi.Pointer.fromAddress(0);
     ffi.Pointer<AeviqueCurvePoint> bluePts = ffi.Pointer.fromAddress(0);
 
+    final format = (numChannels == 3) ? AeviquePixelFormat.rgb888 : AeviquePixelFormat.rgba8888;
+    final stride = width * numChannels;
+
     try {
       srcBuf.ref.data = srcDataPtr;
       srcBuf.ref.width = width;
       srcBuf.ref.height = height;
-      srcBuf.ref.strideBytes = width * 4;
-      srcBuf.ref.format = AeviquePixelFormat.rgba8888;
+      srcBuf.ref.strideBytes = stride;
+      srcBuf.ref.format = format;
 
       if (!inPlace) {
         dstBuf.ref.data = dstDataPtr;
         dstBuf.ref.width = width;
         dstBuf.ref.height = height;
-        dstBuf.ref.strideBytes = width * 4;
-        dstBuf.ref.format = AeviquePixelFormat.rgba8888;
+        dstBuf.ref.strideBytes = stride;
+        dstBuf.ref.format = format;
       }
 
       advParams.ref.exposure = exposure;

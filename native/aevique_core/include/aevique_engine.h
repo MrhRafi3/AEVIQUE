@@ -34,6 +34,7 @@ typedef enum AeviqueStatus {
 typedef enum AeviquePixelFormat {
     AEVIQUE_PIXEL_FORMAT_RGBA8888       = 0,
     AEVIQUE_PIXEL_FORMAT_BGRA8888       = 1,
+    AEVIQUE_PIXEL_FORMAT_RGB888         = 2,
 } AeviquePixelFormat;
 
 /**

@@ -117,6 +117,11 @@ static bool test_invalid_dimensions_and_stride() {
     TEST_ASSERT(aevique_process_tone_rgba8(&buf, &dst, &params) == AEVIQUE_ERROR_INVALID_DIMENSIONS,
                 "Src/Dst width mismatch must return INVALID_DIMENSIONS");
 
+    buf.width = 70000; // Exceeds 65536 max limit
+    buf.stride_bytes = 70000 * 4;
+    TEST_ASSERT(aevique_process_tone_rgba8(&buf, &buf, &params) == AEVIQUE_ERROR_INVALID_DIMENSIONS,
+                "Width > 65536 must return INVALID_DIMENSIONS");
+
     return true;
 }
 

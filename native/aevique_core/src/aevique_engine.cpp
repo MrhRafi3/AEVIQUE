@@ -113,24 +113,34 @@ AeviqueStatus aevique_process_advanced_tone_rgba8(
             return AEVIQUE_ERROR_NULL_POINTER;
         }
 
-        // 2. Validate dimensions
-        if (src->width <= 0 || src->height <= 0 || dst->width <= 0 || dst->height <= 0) {
+        // 2. Validate dimensions and guard against integer overflow
+        if (src->width <= 0 || src->height <= 0 || dst->width <= 0 || dst->height <= 0 ||
+            src->width > 65536 || src->height > 65536) {
             return AEVIQUE_ERROR_INVALID_DIMENSIONS;
         }
         if (src->width != dst->width || src->height != dst->height) {
             return AEVIQUE_ERROR_INVALID_DIMENSIONS;
         }
 
-        // 3. Validate stride
-        int32_t min_stride = src->width * 4;
-        if (src->stride_bytes < min_stride || dst->stride_bytes < min_stride) {
-            return AEVIQUE_ERROR_INVALID_STRIDE;
+        // 3. Validate pixel formats
+        if (src->format != dst->format) {
+            return AEVIQUE_ERROR_INVALID_DIMENSIONS;
         }
-
-        // 4. Validate pixel formats
-        if (src->format != AEVIQUE_PIXEL_FORMAT_RGBA8888 || dst->format != AEVIQUE_PIXEL_FORMAT_RGBA8888) {
+        if (src->format != AEVIQUE_PIXEL_FORMAT_RGBA8888 &&
+            src->format != AEVIQUE_PIXEL_FORMAT_RGB888) {
             return AEVIQUE_ERROR_UNSUPPORTED_FORMAT;
         }
+
+        const int32_t bpp = (src->format == AEVIQUE_PIXEL_FORMAT_RGB888) ? 3 : 4;
+
+        // 4. Validate stride and check 64-bit integer overflow
+        int64_t min_stride_64 = static_cast<int64_t>(src->width) * static_cast<int64_t>(bpp);
+        if (min_stride_64 > INT32_MAX ||
+            static_cast<int64_t>(src->stride_bytes) < min_stride_64 ||
+            static_cast<int64_t>(dst->stride_bytes) < min_stride_64) {
+            return AEVIQUE_ERROR_INVALID_STRIDE;
+        }
+        int32_t min_stride = static_cast<int32_t>(min_stride_64);
 
         // 5. Validate parameters for NaN or Infinity
         if (std::isnan(params->exposure) || std::isinf(params->exposure) ||
@@ -293,6 +303,7 @@ AeviqueStatus aevique_process_advanced_tone_rgba8(
         const int32_t height = src->height;
         const int32_t src_stride = src->stride_bytes;
         const int32_t dst_stride = dst->stride_bytes;
+        const int32_t channels = bpp;
 
         if (is_neutral_sat) {
             // Tone-only fast loop (3 1D LUT lookups per pixel, zero floating-point arithmetic)
@@ -301,13 +312,15 @@ AeviqueStatus aevique_process_advanced_tone_rgba8(
                 uint8_t* dst_row = dst->data + y * dst_stride;
 
                 for (int32_t x = 0; x < width; x++) {
-                    const uint8_t* s = src_row + (x * 4);
-                    uint8_t* d = dst_row + (x * 4);
+                    const uint8_t* s = src_row + (x * channels);
+                    uint8_t* d = dst_row + (x * channels);
 
                     d[0] = r_lut[s[0]];
                     d[1] = g_lut[s[1]];
                     d[2] = b_lut[s[2]];
-                    d[3] = s[3]; // Preserve alpha
+                    if (channels == 4) {
+                        d[3] = s[3]; // Preserve alpha
+                    }
                 }
             }
         } else {
@@ -317,8 +330,8 @@ AeviqueStatus aevique_process_advanced_tone_rgba8(
                 uint8_t* dst_row = dst->data + y * dst_stride;
 
                 for (int32_t x = 0; x < width; x++) {
-                    const uint8_t* s = src_row + (x * 4);
-                    uint8_t* d = dst_row + (x * 4);
+                    const uint8_t* s = src_row + (x * channels);
+                    uint8_t* d = dst_row + (x * channels);
 
                     uint8_t r_tone = r_lut[s[0]];
                     uint8_t g_tone = g_lut[s[1]];
@@ -332,7 +345,9 @@ AeviqueStatus aevique_process_advanced_tone_rgba8(
                     d[0] = clamp_u8(r_out);
                     d[1] = clamp_u8(g_out);
                     d[2] = clamp_u8(b_out);
-                    d[3] = s[3]; // Preserve alpha
+                    if (channels == 4) {
+                        d[3] = s[3]; // Preserve alpha
+                    }
                 }
             }
         }

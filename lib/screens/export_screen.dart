@@ -26,6 +26,7 @@ class _ExportScreenState extends State<ExportScreen> {
   bool _isSaving = false;
   Uint8List? _exportedBytes;
   String? _statusMessage;
+  int _activeRenderId = 0;
 
   bool _outputPng = false;
   double _quality = 92.0;
@@ -37,6 +38,7 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Future<void> _renderFullResolution() async {
+    final renderId = ++_activeRenderId;
     setState(() {
       _isRendering = true;
       _statusMessage = 'Rendering full-resolution photo...';
@@ -50,14 +52,14 @@ class _ExportScreenState extends State<ExportScreen> {
         outputPng: _outputPng,
       );
 
-      if (!mounted) return;
+      if (!mounted || renderId != _activeRenderId) return;
       setState(() {
         _exportedBytes = result;
         _isRendering = false;
         _statusMessage = null;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || renderId != _activeRenderId) return;
       setState(() {
         _isRendering = false;
         _statusMessage = 'Render failed: $e';
