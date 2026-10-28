@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
 import '../core/models/history_manager.dart';
+import '../core/native_engine/aevique_ffi.dart';
 import '../core/presets/filter_catalogue.dart';
 import '../theme/aevique_theme.dart';
 import '../widgets/aevique_glass.dart';
@@ -47,7 +49,9 @@ class _EditorScreenState extends State<EditorScreen> {
   img.Image? _basePreviewImage;
   img.Image? _thumbnailImage;
   Uint8List? _originalPreviewBytes;
+  Uint8List? _rawPreviewRgba8;
 
+  ui.Image? _previewUiImage;
   Uint8List? _previewBytes;
   bool _isLoadingBase = true;
   bool _isProcessing = false;
@@ -98,6 +102,8 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _previewUiImage?.dispose();
+    _previewUiImage = null;
     super.dispose();
   }
 
@@ -114,6 +120,7 @@ class _EditorScreenState extends State<EditorScreen> {
         _basePreviewImage = bundle.previewImage;
         _thumbnailImage = bundle.thumbnailImage;
         _originalPreviewBytes = bundle.originalPreviewBytes;
+        _rawPreviewRgba8 = bundle.rawPreviewRgba8;
         // At identity, the preview is 100% identical to the original image!
         _previewBytes = bundle.originalPreviewBytes;
         _isLoadingBase = false;
@@ -139,6 +146,9 @@ class _EditorScreenState extends State<EditorScreen> {
     if (state.isIdentity && _originalPreviewBytes != null) {
       _debounceTimer?.cancel();
       _latestRequestId++;
+      final oldUiImage = _previewUiImage;
+      _previewUiImage = null;
+      oldUiImage?.dispose();
       setState(() {
         _previewBytes = _originalPreviewBytes;
         _isProcessing = false;
@@ -146,8 +156,14 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
+    // Adapt debounce: 16ms (60fps) for fast native RGBA path, 30ms for Dart isolate fallback
+    final debounceDuration = (AeviqueNativeEngine.isAvailable &&
+            ImagePipeline.isNativeCompatible(state))
+        ? const Duration(milliseconds: 16)
+        : const Duration(milliseconds: 30);
+
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 30), () {
+    _debounceTimer = Timer(debounceDuration, () {
       _executeFastRender(state);
     });
   }
@@ -159,17 +175,30 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() => _isProcessing = true);
 
     try {
-      final processed = await ImagePipeline.processPreviewFast(
-        _basePreviewImage!,
-        state,
+      final frame = await ImagePipeline.renderPreviewFrame(
+        previewBase: _basePreviewImage!,
+        rawPreviewRgba8: _rawPreviewRgba8,
+        state: state,
         jpegQuality: 90,
       );
 
-      if (!mounted || requestId != _latestRequestId) return;
+      if (!mounted || requestId != _latestRequestId) {
+        // Discard stale frame to prevent memory leak
+        frame.dispose();
+        return;
+      }
+
+      final oldUiImage = _previewUiImage;
       setState(() {
-        _previewBytes = processed;
+        if (frame.isNative) {
+          _previewUiImage = frame.uiImage;
+        } else {
+          _previewUiImage = null;
+          _previewBytes = frame.jpegBytes;
+        }
         _isProcessing = false;
       });
+      oldUiImage?.dispose();
     } catch (_) {
       if (!mounted || requestId != _latestRequestId) return;
       setState(() => _isProcessing = false);
@@ -415,7 +444,8 @@ class _EditorScreenState extends State<EditorScreen> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    if (!_isLoadingBase && _previewBytes != null)
+                    if (!_isLoadingBase &&
+                        (_previewUiImage != null || _previewBytes != null))
                       InteractiveViewer(
                         maxScale: 4.0,
                         minScale: 0.8,
@@ -425,10 +455,15 @@ class _EditorScreenState extends State<EditorScreen> {
                               _originalPreviewBytes ?? widget.initialImageBytes,
                               fit: BoxFit.contain,
                             ),
-                            editedChild: Image.memory(
-                              _previewBytes!,
-                              fit: BoxFit.contain,
-                            ),
+                            editedChild: _previewUiImage != null
+                                ? RawImage(
+                                    image: _previewUiImage!,
+                                    fit: BoxFit.contain,
+                                  )
+                                : Image.memory(
+                                    _previewBytes!,
+                                    fit: BoxFit.contain,
+                                  ),
                           ),
                         ),
                       )

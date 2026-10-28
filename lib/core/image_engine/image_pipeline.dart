@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import '../models/edit_state.dart';
+import '../native_engine/aevique_ffi.dart';
 import 'filter_kernels.dart';
 import 'lut_generator.dart';
 import 'portrait_engine.dart';
@@ -11,12 +13,38 @@ class PreprocessedImageBundle {
   final img.Image previewImage;
   final img.Image thumbnailImage;
   final Uint8List originalPreviewBytes;
+  final Uint8List? rawPreviewRgba8;
 
   const PreprocessedImageBundle({
     required this.previewImage,
     required this.thumbnailImage,
     required this.originalPreviewBytes,
+    this.rawPreviewRgba8,
   });
+}
+
+/// Result of rendering an editing preview frame, either via native raw RGBA or Dart fallback JPEG.
+class PreviewFrame {
+  final ui.Image? uiImage;
+  final Uint8List? jpegBytes;
+  final bool isNative;
+  final double renderLatencyMs;
+
+  const PreviewFrame.native({
+    required ui.Image this.uiImage,
+    this.renderLatencyMs = 0.0,
+  })  : jpegBytes = null,
+        isNative = true;
+
+  const PreviewFrame.fallback({
+    required Uint8List this.jpegBytes,
+    this.renderLatencyMs = 0.0,
+  })  : uiImage = null,
+        isNative = false;
+
+  void dispose() {
+    uiImage?.dispose();
+  }
 }
 
 class ImagePipeline {
@@ -75,6 +103,163 @@ class ImagePipeline {
         state: state,
         jpegQuality: jpegQuality,
       ),
+    );
+  }
+
+  /// Checks whether an EditState is purely composed of Phase 1 native adjustments
+  /// (Exposure, Contrast, Saturation) with no other effects, curves, portrait, or filters.
+  static bool isNativePhase1Compatible(EditState state) {
+    if (state.filterId != null || state.presetName != null) return false;
+    if (!state.details.isIdentity) return false;
+    if (!state.curves.isIdentity) return false;
+    if (!state.vignette.isIdentity) return false;
+    if (!state.geometry.isIdentity) return false;
+    if (!state.effects.isIdentity) return false;
+    if (!state.portrait.isIdentity) return false;
+
+    final t = state.tune;
+    if (t.brightness != 0.0 ||
+        t.vibrance != 0.0 ||
+        t.ambiance != 0.0 ||
+        t.highlights != 0.0 ||
+        t.shadows != 0.0 ||
+        t.whites != 0.0 ||
+        t.blacks != 0.0 ||
+        t.warmth != 0.0 ||
+        t.tint != 0.0 ||
+        t.clarity != 0.0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /// Checks whether an EditState is supported by Phase 3 advanced native tone engine
+  /// (Exposure, Contrast, Saturation, Brightness, Warmth, Tint, Highlights, Shadows,
+  /// Whites, Blacks, Ambiance, and Tone Curves).
+  static bool isNativePhase3Compatible(EditState state) {
+    if (state.filterId != null || state.presetName != null) return false;
+    if (!state.details.isIdentity) return false;
+    if (!state.vignette.isIdentity) return false;
+    if (!state.geometry.isIdentity) return false;
+    if (!state.effects.isIdentity) return false;
+    if (!state.portrait.isIdentity) return false;
+
+    final t = state.tune;
+    // Vibrance and Clarity are deferred to Phase 4/5
+    if (t.vibrance != 0.0 || t.clarity != 0.0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /// Alias for the latest native engine compatibility check.
+  static bool isNativeCompatible(EditState state) => isNativePhase3Compatible(state);
+
+  /// Asynchronously decodes raw RGBA8 bytes directly into a GPU-backed [ui.Image],
+  /// bypassing any intermediate JPEG compression.
+  static Future<ui.Image> decodeRgbaPixels(
+    Uint8List rgbaBytes,
+    int width,
+    int height,
+  ) {
+    final completer = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      rgbaBytes,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      (ui.Image image) {
+        completer.complete(image);
+      },
+    );
+    return completer.future;
+  }
+
+  /// Renders a preview frame using the native C++ engine with direct raw RGBA GPU decoding
+  /// if compatible and available, otherwise falling back seamlessly to the Dart pipeline with JPEG output.
+  static Future<PreviewFrame> renderPreviewFrame({
+    required img.Image previewBase,
+    required Uint8List? rawPreviewRgba8,
+    required EditState state,
+    int jpegQuality = 90,
+  }) async {
+    final sw = Stopwatch()..start();
+
+    // Check if eligible for native Phase 3 RGBA fast path
+    if (AeviqueNativeEngine.isAvailable &&
+        rawPreviewRgba8 != null &&
+        isNativePhase3Compatible(state)) {
+      try {
+        final engine = AeviqueNativeEngine.instance;
+        if (engine != null) {
+          final processedRgba = engine.processRgba8(
+            rgbaBytes: rawPreviewRgba8,
+            width: previewBase.width,
+            height: previewBase.height,
+            exposure: state.tune.exposure,
+            contrast: state.tune.contrast,
+            saturation: state.tune.saturation,
+            brightness: state.tune.brightness,
+            warmth: state.tune.warmth,
+            tint: state.tune.tint,
+            highlights: state.tune.highlights,
+            shadows: state.tune.shadows,
+            whites: state.tune.whites,
+            blacks: state.tune.blacks,
+            ambiance: state.tune.ambiance,
+            curves: state.curves,
+            inPlace: false,
+          );
+
+          final uiImage = await decodeRgbaPixels(
+            processedRgba,
+            previewBase.width,
+            previewBase.height,
+          );
+          sw.stop();
+          return PreviewFrame.native(
+            uiImage: uiImage,
+            renderLatencyMs: sw.elapsedMicroseconds / 1000.0,
+          );
+        }
+      } catch (e) {
+        if (AeviqueNativeEngine.engineMode == EngineMode.nativeOnly) {
+          rethrow;
+        }
+        // Fall back gracefully to Dart on any native error in auto mode
+      }
+    }
+
+    if (AeviqueNativeEngine.engineMode == EngineMode.nativeOnly) {
+      if (!AeviqueNativeEngine.isAvailable) {
+        throw StateError(
+          'EngineMode.nativeOnly requested but native library is unavailable or not loaded.',
+        );
+      }
+      if (rawPreviewRgba8 == null) {
+        throw StateError(
+          'EngineMode.nativeOnly requested but rawPreviewRgba8 buffer is null.',
+        );
+      }
+      if (!isNativePhase3Compatible(state)) {
+        throw UnsupportedError(
+          'EngineMode.nativeOnly requested but EditState contains adjustments unsupported by native image core.',
+        );
+      }
+    }
+
+    // Fallback: Pure Dart isolate pipeline (returns encoded JPEG)
+    final jpegBytes = await processPreviewFast(
+      previewBase,
+      state,
+      jpegQuality: jpegQuality,
+    );
+    sw.stop();
+    return PreviewFrame.fallback(
+      jpegBytes: jpegBytes,
+      renderLatencyMs: sw.elapsedMicroseconds / 1000.0,
     );
   }
 
@@ -318,10 +503,14 @@ PreprocessedImageBundle _isolatePrepareBundle(_PrepareBundleTask task) {
     img.encodeJpg(preview, quality: 95),
   );
 
+  final rgbaPreview = preview.convert(numChannels: 4);
+  final rawRgba = rgbaPreview.toUint8List();
+
   return PreprocessedImageBundle(
     previewImage: preview,
     thumbnailImage: thumb,
     originalPreviewBytes: origPreviewBytes,
+    rawPreviewRgba8: rawRgba,
   );
 }
 

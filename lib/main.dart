@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/native_engine/aevique_ffi.dart';
 import 'screens/splash_screen.dart';
 import 'theme/aevique_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize native C++ image engine if dynamic library is available on host platform
+  AeviqueNativeEngine.tryLoad();
 
   // Pure dark navigation bar and status bar overlay matching AEVIQUE Deep Black
   SystemChrome.setSystemUIOverlayStyle(
