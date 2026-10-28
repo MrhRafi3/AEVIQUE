@@ -1,7 +1,7 @@
 import 'dart:ffi' as ffi;
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import '../models/edit_state.dart';
 
 /// Engine execution mode for AEVIQUE image engine.
@@ -132,29 +132,33 @@ typedef _GetVersionDart = int Function();
 typedef _StatusToStringC = ffi.Pointer<Utf8> Function(ffi.Int32 status);
 typedef _StatusToStringDart = ffi.Pointer<Utf8> Function(int status);
 
-typedef _ProcessToneC = ffi.Int32 Function(
-  ffi.Pointer<AeviqueImageBuffer> src,
-  ffi.Pointer<AeviqueImageBuffer> dst,
-  ffi.Pointer<AeviqueToneParameters> params,
-);
-typedef _ProcessToneDart = int Function(
-  ffi.Pointer<AeviqueImageBuffer> src,
-  ffi.Pointer<AeviqueImageBuffer> dst,
-  ffi.Pointer<AeviqueToneParameters> params,
-);
+typedef _ProcessToneC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueToneParameters> params,
+    );
+typedef _ProcessToneDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueToneParameters> params,
+    );
 
-typedef _ProcessAdvancedToneC = ffi.Int32 Function(
-  ffi.Pointer<AeviqueImageBuffer> src,
-  ffi.Pointer<AeviqueImageBuffer> dst,
-  ffi.Pointer<AeviqueAdvancedToneParameters> params,
-  ffi.Pointer<AeviqueToneCurves> curves,
-);
-typedef _ProcessAdvancedToneDart = int Function(
-  ffi.Pointer<AeviqueImageBuffer> src,
-  ffi.Pointer<AeviqueImageBuffer> dst,
-  ffi.Pointer<AeviqueAdvancedToneParameters> params,
-  ffi.Pointer<AeviqueToneCurves> curves,
-);
+typedef _ProcessAdvancedToneC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueAdvancedToneParameters> params,
+      ffi.Pointer<AeviqueToneCurves> curves,
+    );
+typedef _ProcessAdvancedToneDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueAdvancedToneParameters> params,
+      ffi.Pointer<AeviqueToneCurves> curves,
+    );
 
 /// Safe, high-level Dart FFI wrapper for AEVIQUE native C++ engine.
 class AeviqueNativeEngine {
@@ -178,9 +182,25 @@ class AeviqueNativeEngine {
   /// Returns `true` if successful, `false` otherwise without throwing.
   static bool tryLoad({String? customLibraryPath}) {
     try {
-      _instance = AeviqueNativeEngine.load(customLibraryPath: customLibraryPath);
+      _instance = AeviqueNativeEngine.load(
+        customLibraryPath: customLibraryPath,
+      );
+      if (kDebugMode) {
+        final ver = _instance!.getVersion();
+        final major = (ver >> 16) & 0xFF;
+        final minor = (ver >> 8) & 0xFF;
+        final patch = ver & 0xFF;
+        debugPrint(
+          '[AEVIQUE-NATIVE] Dynamic library loaded: "$activeLibraryPath" (core v$major.$minor.$patch, mode: $engineMode)',
+        );
+      }
       return true;
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AEVIQUE-NATIVE] Dynamic library load failed: $e (path: "$customLibraryPath")',
+        );
+      }
       // In production or test environments where native dylib is absent, fall back gracefully
       _instance = null;
       return false;
@@ -202,15 +222,17 @@ class AeviqueNativeEngine {
     _getVersion = _dylib.lookupFunction<_GetVersionC, _GetVersionDart>(
       'aevique_get_version',
     );
-    _statusToString = _dylib.lookupFunction<_StatusToStringC, _StatusToStringDart>(
-      'aevique_status_to_string',
-    );
+    _statusToString = _dylib
+        .lookupFunction<_StatusToStringC, _StatusToStringDart>(
+          'aevique_status_to_string',
+        );
     _processTone = _dylib.lookupFunction<_ProcessToneC, _ProcessToneDart>(
       'aevique_process_tone_rgba8',
     );
-    _processAdvancedTone = _dylib.lookupFunction<_ProcessAdvancedToneC, _ProcessAdvancedToneDart>(
-      'aevique_process_advanced_tone_rgba8',
-    );
+    _processAdvancedTone = _dylib
+        .lookupFunction<_ProcessAdvancedToneC, _ProcessAdvancedToneDart>(
+          'aevique_process_advanced_tone_rgba8',
+        );
   }
 
   /// Loads the AEVIQUE native engine dynamic library.
@@ -247,7 +269,9 @@ class AeviqueNativeEngine {
       dylib = ffi.DynamicLibrary.open(libName);
       activeLibraryPath = libName;
     } else {
-      throw UnsupportedError('Unsupported operating system for AeviqueNativeEngine: ${Platform.operatingSystem}');
+      throw UnsupportedError(
+        'Unsupported operating system for AeviqueNativeEngine: ${Platform.operatingSystem}',
+      );
     }
 
     return AeviqueNativeEngine._(dylib);
@@ -286,7 +310,9 @@ class AeviqueNativeEngine {
     );
   }
 
-  static ffi.Pointer<AeviqueCurvePoint> _allocateCurvePoints(List<CurvePoint> points) {
+  static ffi.Pointer<AeviqueCurvePoint> _allocateCurvePoints(
+    List<CurvePoint> points,
+  ) {
     if (points.isEmpty) return ffi.Pointer.fromAddress(0);
     final ptr = calloc<AeviqueCurvePoint>(points.length);
     for (int i = 0; i < points.length; i++) {
@@ -321,16 +347,20 @@ class AeviqueNativeEngine {
     int numChannels = 4,
   }) {
     if (width <= 0 || height <= 0 || width > 65536 || height > 65536) {
-      throw ArgumentError('Invalid image dimensions for native processing: ${width}x$height');
+      throw ArgumentError(
+        'Invalid image dimensions for native processing: ${width}x$height',
+      );
     }
     if (numChannels != 3 && numChannels != 4) {
-      throw ArgumentError('Only 3-channel (RGB) or 4-channel (RGBA) buffers are supported: $numChannels');
+      throw ArgumentError(
+        'Only 3-channel (RGB) or 4-channel (RGBA) buffers are supported: $numChannels',
+      );
     }
 
     final totalBytes = width * height * numChannels;
     if (rgbaBytes.lengthInBytes < totalBytes) {
       throw ArgumentError(
-        'Input byte array length (${rgbaBytes.lengthInBytes}) is smaller than required ($totalBytes) for ${width}x${height} x $numChannels channels',
+        'Input byte array length (${rgbaBytes.lengthInBytes}) is smaller than required ($totalBytes) for ${width}x$height x $numChannels channels',
       );
     }
 
@@ -357,7 +387,9 @@ class AeviqueNativeEngine {
     ffi.Pointer<AeviqueCurvePoint> greenPts = ffi.Pointer.fromAddress(0);
     ffi.Pointer<AeviqueCurvePoint> bluePts = ffi.Pointer.fromAddress(0);
 
-    final format = (numChannels == 3) ? AeviquePixelFormat.rgb888 : AeviquePixelFormat.rgba8888;
+    final format = (numChannels == 3)
+        ? AeviquePixelFormat.rgb888
+        : AeviquePixelFormat.rgba8888;
     final stride = width * numChannels;
 
     try {
@@ -438,4 +470,3 @@ class AeviqueNativeEngine {
     }
   }
 }
-

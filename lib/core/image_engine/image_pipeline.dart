@@ -169,6 +169,41 @@ class ImagePipeline {
     return true;
   }
 
+  /// Returns a human-readable diagnosis why an [EditState] or environment cannot use the native engine.
+  static String getNativeIncompatibilityReason(EditState state) {
+    if (AeviqueNativeEngine.engineMode == EngineMode.dartOnly) {
+      return 'engineMode is dartOnly';
+    }
+    if (!AeviqueNativeEngine.isAvailable) {
+      return 'native library is not loaded';
+    }
+    if (state.presetName != null) {
+      return 'preset active: "${state.presetName}" (requires Dart LUT engine)';
+    }
+    if (state.filterId != null) {
+      return 'filter active: "${state.filterId}" (requires Dart filter kernel)';
+    }
+    if (!state.details.isIdentity) {
+      return 'details active (sharpening: ${state.details.sharpening}, structure: ${state.details.structure})';
+    }
+    if (!state.vignette.isIdentity) {
+      return 'vignette active (amount: ${state.vignette.amount})';
+    }
+    if (!state.geometry.isIdentity) {
+      return 'geometry active (rotation: ${state.geometry.rotationQuarterTurns}, flipH: ${state.geometry.flipHorizontal}, flipV: ${state.geometry.flipVertical})';
+    }
+    if (!state.effects.isIdentity) {
+      return 'effects active (grain, etc.)';
+    }
+    if (!state.portrait.isIdentity) {
+      return 'portrait active (skin smoothing, face adjustments)';
+    }
+    if (state.tune.vibrance != 0.0 || state.tune.clarity != 0.0) {
+      return 'vibrance/clarity active (vibrance: ${state.tune.vibrance}, clarity: ${state.tune.clarity})';
+    }
+    return 'incompatible state';
+  }
+
   /// Alias for the latest native engine compatibility check.
   static bool isNativeCompatible(EditState state) => isNativePhase3Compatible(state);
 
@@ -190,6 +225,41 @@ class ImagePipeline {
       },
     );
     return completer.future;
+  }
+
+  static int _lastPreviewLogTime = 0;
+  static bool? _lastPreviewWasNative;
+  static String? _lastPreviewFallbackReason;
+
+  static void _logPreviewDiagnostics({
+    required bool isNative,
+    required int width,
+    required int height,
+    required double latencyMs,
+    String? fallbackReason,
+  }) {
+    if (!kDebugMode) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final transition =
+        (_lastPreviewWasNative != isNative) ||
+        (_lastPreviewFallbackReason != fallbackReason);
+
+    if (transition || (now - _lastPreviewLogTime >= 1500)) {
+      _lastPreviewLogTime = now;
+      _lastPreviewWasNative = isNative;
+      _lastPreviewFallbackReason = fallbackReason;
+      if (isNative) {
+        debugPrint(
+          '[AEVIQUE-ENGINE] Preview rendered via NATIVE C++ '
+          '(${width}x$height RGBA, latency: ${latencyMs.toStringAsFixed(1)}ms)',
+        );
+      } else {
+        debugPrint(
+          '[AEVIQUE-ENGINE] Preview rendered via DART FALLBACK '
+          '(reason: $fallbackReason, ${width}x$height JPEG, latency: ${latencyMs.toStringAsFixed(1)}ms)',
+        );
+      }
+    }
   }
 
   /// Renders a preview frame using the native C++ engine with direct raw RGBA GPU decoding
@@ -234,14 +304,26 @@ class ImagePipeline {
             previewBase.height,
           );
           sw.stop();
+          final latencyMs = sw.elapsedMicroseconds / 1000.0;
+          _logPreviewDiagnostics(
+            isNative: true,
+            width: previewBase.width,
+            height: previewBase.height,
+            latencyMs: latencyMs,
+          );
           return PreviewFrame.native(
             uiImage: uiImage,
-            renderLatencyMs: sw.elapsedMicroseconds / 1000.0,
+            renderLatencyMs: latencyMs,
           );
         }
       } catch (e) {
         if (AeviqueNativeEngine.engineMode == EngineMode.nativeOnly) {
           rethrow;
+        }
+        if (kDebugMode) {
+          debugPrint(
+            '[AEVIQUE-ENGINE] Native preview processing threw error, falling back to Dart: $e',
+          );
         }
         // Fall back gracefully to Dart on any native error in auto mode
       }
@@ -266,15 +348,26 @@ class ImagePipeline {
     }
 
     // Fallback: Pure Dart isolate pipeline (returns encoded JPEG)
+    final fallbackReason = rawPreviewRgba8 == null
+        ? 'rawPreviewRgba8 buffer is null'
+        : getNativeIncompatibilityReason(state);
     final jpegBytes = await processPreviewFast(
       previewBase,
       state,
       jpegQuality: jpegQuality,
     );
     sw.stop();
+    final latencyMs = sw.elapsedMicroseconds / 1000.0;
+    _logPreviewDiagnostics(
+      isNative: false,
+      width: previewBase.width,
+      height: previewBase.height,
+      latencyMs: latencyMs,
+      fallbackReason: fallbackReason,
+    );
     return PreviewFrame.fallback(
       jpegBytes: jpegBytes,
-      renderLatencyMs: sw.elapsedMicroseconds / 1000.0,
+      renderLatencyMs: latencyMs,
     );
   }
 
@@ -550,6 +643,8 @@ class _PipelineTask {
 }
 
 Uint8List _isolateProcessEntry(_PipelineTask task) {
+  final totalSw = Stopwatch()..start();
+
   // 1. Initialize native engine state in the background isolate
   if (task.engineMode != EngineMode.dartOnly) {
     AeviqueNativeEngine.tryLoad(customLibraryPath: task.customLibraryPath);
@@ -613,6 +708,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
             : working.convert(numChannels: numChannels).toUint8List();
 
         // Process in-place through native C++ tone & curves engine
+        final nativeSw = Stopwatch()..start();
         final processedBytes = engine.processRgba8(
           rgbaBytes: rawBytes,
           width: working.width,
@@ -632,6 +728,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
           inPlace: true,
           numChannels: numChannels,
         );
+        nativeSw.stop();
 
         final resultImage = img.Image.fromBytes(
           width: working.width,
@@ -641,36 +738,64 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
           order: (numChannels == 4) ? img.ChannelOrder.rgba : img.ChannelOrder.rgb,
         );
 
+        final Uint8List encoded;
         if (task.outputPng) {
-          return Uint8List.fromList(img.encodePng(resultImage));
+          encoded = Uint8List.fromList(img.encodePng(resultImage));
         } else {
-          return Uint8List.fromList(
+          encoded = Uint8List.fromList(
             img.encodeJpg(resultImage, quality: task.jpegQuality),
           );
         }
+        totalSw.stop();
+        if (kDebugMode) {
+          debugPrint(
+            '[AEVIQUE-ENGINE] Full-resolution export processed via NATIVE C++ '
+            '(${working.width}x${working.height}, channels: $numChannels, format: ${task.outputPng ? 'PNG' : 'JPEG'}, '
+            'nativeTime: ${nativeSw.elapsedMilliseconds}ms, totalTime: ${totalSw.elapsedMilliseconds}ms)',
+          );
+        }
+        return encoded;
       }
     } catch (e) {
       if (task.engineMode == EngineMode.nativeOnly) {
         rethrow;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[AEVIQUE-ENGINE] Full-resolution native export threw error, falling back to Dart: $e',
+        );
       }
       // In auto mode, fall through to Dart fallback
     }
   }
 
   // 5. Dart Fallback Pipeline
+  final fallbackReason = ImagePipeline.getNativeIncompatibilityReason(task.state);
+  final dartSw = Stopwatch()..start();
   final processed = ImagePipeline.processRawImage(
     decoded,
     task.state,
     maxDimension: task.maxDimension,
   );
 
+  final Uint8List encoded;
   if (task.outputPng) {
-    return Uint8List.fromList(img.encodePng(processed));
+    encoded = Uint8List.fromList(img.encodePng(processed));
   } else {
-    return Uint8List.fromList(
+    encoded = Uint8List.fromList(
       img.encodeJpg(processed, quality: task.jpegQuality),
     );
   }
+  dartSw.stop();
+  totalSw.stop();
+  if (kDebugMode) {
+    debugPrint(
+      '[AEVIQUE-ENGINE] Full-resolution export processed via DART FALLBACK '
+      '(reason: $fallbackReason, ${decoded.width}x${decoded.height}, format: ${task.outputPng ? 'PNG' : 'JPEG'}, '
+      'dartTime: ${dartSw.elapsedMilliseconds}ms, totalTime: ${totalSw.elapsedMilliseconds}ms)',
+    );
+  }
+  return encoded;
 }
 
 class _FastPipelineTask {

@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
@@ -39,6 +39,11 @@ class _ExportScreenState extends State<ExportScreen> {
 
   Future<void> _renderFullResolution() async {
     final renderId = ++_activeRenderId;
+    if (kDebugMode) {
+      debugPrint(
+        '[AEVIQUE-EXPORT] Starting full-resolution render #$renderId (format: ${_outputPng ? 'PNG' : 'JPEG'}, quality: ${_quality.round()})',
+      );
+    }
     setState(() {
       _isRendering = true;
       _statusMessage = 'Rendering full-resolution photo...';
@@ -52,14 +57,38 @@ class _ExportScreenState extends State<ExportScreen> {
         outputPng: _outputPng,
       );
 
-      if (!mounted || renderId != _activeRenderId) return;
+      if (!mounted || renderId != _activeRenderId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[AEVIQUE-EXPORT] Render #$renderId discarded (active: $_activeRenderId, mounted: $mounted)',
+          );
+        }
+        return;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[AEVIQUE-EXPORT] Render #$renderId completed successfully (${_formatFileSize(result.lengthInBytes)})',
+        );
+      }
       setState(() {
         _exportedBytes = result;
         _isRendering = false;
         _statusMessage = null;
       });
     } catch (e) {
-      if (!mounted || renderId != _activeRenderId) return;
+      if (!mounted || renderId != _activeRenderId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[AEVIQUE-EXPORT] Render #$renderId error discarded (active: $_activeRenderId, mounted: $mounted): $e',
+          );
+        }
+        return;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[AEVIQUE-EXPORT] Render #$renderId failed: $e',
+        );
+      }
       setState(() {
         _isRendering = false;
         _statusMessage = 'Render failed: $e';
