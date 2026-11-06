@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/luma_theme.dart';
+import 'package:flutter/services.dart';
+import '../theme/aevique_theme.dart';
 
 class BeforeAfterViewer extends StatefulWidget {
   final Widget originalChild;
@@ -21,6 +22,7 @@ class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
   bool _showingOriginal = false;
 
   void _onPressDown() {
+    HapticFeedback.selectionClick();
     setState(() => _showingOriginal = true);
   }
 
@@ -42,30 +44,33 @@ class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
             Positioned(
               top: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.75),
+                  color: Colors.black.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: LumaTheme.accent, width: 1),
+                  border: Border.all(
+                    color: AeviqueTheme.accentAmber,
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AeviqueTheme.accentAmber.withValues(alpha: 0.25),
+                      blurRadius: 14,
+                    ),
+                  ],
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.compare_rounded,
-                      color: LumaTheme.accent,
-                      size: 14,
-                    ),
+                    Icon(Icons.compare_rounded, color: AeviqueTheme.accentAmberLight, size: 14),
                     SizedBox(width: 6),
                     Text(
                       'ORIGINAL',
                       style: TextStyle(
-                        color: LumaTheme.accent,
+                        fontFamily: 'Inter',
+                        color: Colors.white,
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: 1.0,
                       ),
                     ),

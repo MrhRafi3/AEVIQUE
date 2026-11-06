@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/models/edit_state.dart';
-import '../theme/luma_theme.dart';
+import '../theme/aevique_theme.dart';
+import 'aevique_glass.dart';
 
 enum CurveChannel { rgb, red, green, blue }
 
 class CurveEditorWidget extends StatefulWidget {
   final ToneCurves curves;
   final ValueChanged<ToneCurves> onCurvesChanged;
+  final bool compactMode;
 
   const CurveEditorWidget({
     super.key,
     required this.curves,
     required this.onCurvesChanged,
+    this.compactMode = false,
   });
 
   @override
@@ -38,7 +42,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
   Color get _activeColor {
     switch (_selectedChannel) {
       case CurveChannel.rgb:
-        return LumaTheme.textPrimary;
+        return AeviqueTheme.accentAmber;
       case CurveChannel.red:
         return const Color(0xFFEF4444);
       case CurveChannel.green:
@@ -72,7 +76,6 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
     final normX = (localPosition.dx / size.width).clamp(0.0, 1.0);
     final normY = (1.0 - (localPosition.dy / size.height)).clamp(0.0, 1.0);
 
-    // Find nearest point within radius 24px
     int? nearestIndex;
     var minDistance = 24.0;
 
@@ -88,8 +91,9 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
 
     if (nearestIndex != null) {
       _activePointIndex = nearestIndex;
+      HapticFeedback.selectionClick();
     } else {
-      // Add new point
+      HapticFeedback.lightImpact();
       points.add(CurvePoint(normX, normY));
       points.sort((a, b) => a.x.compareTo(b.x));
       _activePointIndex = points.indexWhere((p) => (p.x - normX).abs() < 1e-4);
@@ -107,7 +111,6 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
     final normX = (localPosition.dx / size.width).clamp(0.0, 1.0);
     final normY = (1.0 - (localPosition.dy / size.height)).clamp(0.0, 1.0);
 
-    // End points only move vertically
     if (_activePointIndex == 0) {
       points[0] = CurvePoint(0.0, normY);
     } else if (_activePointIndex == points.length - 1) {
@@ -128,15 +131,44 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
   }
 
   void _resetCurrentChannel() {
+    HapticFeedback.lightImpact();
     _updateChannelPoints(const [CurvePoint(0.0, 0.0), CurvePoint(1.0, 1.0)]);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.compactMode) {
+      return AspectRatio(
+        aspectRatio: 1.0,
+        child: AeviqueGlass(
+          borderRadius: BorderRadius.circular(16),
+          padding: const EdgeInsets.all(8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final size = Size(constraints.maxWidth, constraints.maxHeight);
+              return GestureDetector(
+                onPanDown: (d) => _handlePanDown(d.localPosition, size),
+                onPanUpdate: (d) => _handlePanUpdate(d.localPosition, size),
+                onPanEnd: (_) => _handlePanEnd(),
+                child: CustomPaint(
+                  size: size,
+                  painter: _CurvePainter(
+                    points: _activePoints,
+                    curveColor: _activeColor,
+                    activePointIndex: _activePointIndex,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Channel Tabs
+        // Channel Selector Tabs
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
@@ -144,60 +176,35 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
             children: [
               Row(
                 children: [
-                  _buildChannelTab(
-                    CurveChannel.rgb,
-                    'RGB',
-                    LumaTheme.textPrimary,
-                  ),
+                  _buildChannelTab(CurveChannel.rgb, 'RGB', AeviqueTheme.accentAmber),
                   const SizedBox(width: 8),
-                  _buildChannelTab(
-                    CurveChannel.red,
-                    'Red',
-                    const Color(0xFFEF4444),
-                  ),
+                  _buildChannelTab(CurveChannel.red, 'Red', const Color(0xFFEF4444)),
                   const SizedBox(width: 8),
-                  _buildChannelTab(
-                    CurveChannel.green,
-                    'Green',
-                    const Color(0xFF10B981),
-                  ),
+                  _buildChannelTab(CurveChannel.green, 'Green', const Color(0xFF10B981)),
                   const SizedBox(width: 8),
-                  _buildChannelTab(
-                    CurveChannel.blue,
-                    'Blue',
-                    const Color(0xFF3B82F6),
-                  ),
+                  _buildChannelTab(CurveChannel.blue, 'Blue', const Color(0xFF3B82F6)),
                 ],
               ),
               IconButton(
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  size: 20,
-                  color: LumaTheme.textSecondary,
-                ),
-                tooltip: 'Reset Channel Curve',
+                icon: const Icon(Icons.refresh_rounded, size: 18, color: Colors.white70),
+                tooltip: 'Reset Channel',
                 onPressed: _resetCurrentChannel,
               ),
             ],
           ),
         ),
-        // Interactive Curve Canvas
+
+        // Interactive Tone Curve Canvas
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
           child: AspectRatio(
             aspectRatio: 1.0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: LumaTheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: LumaTheme.border, width: 1),
-              ),
+            child: AeviqueGlass(
+              borderRadius: BorderRadius.circular(20),
+              padding: const EdgeInsets.all(12),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final size = Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  );
+                  final size = Size(constraints.maxWidth, constraints.maxHeight);
                   return GestureDetector(
                     onPanDown: (d) => _handlePanDown(d.localPosition, size),
                     onPanUpdate: (d) => _handlePanUpdate(d.localPosition, size),
@@ -223,40 +230,29 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
   Widget _buildChannelTab(CurveChannel channel, String label, Color color) {
     final isSelected = _selectedChannel == channel;
     return GestureDetector(
-      onTap: () => setState(() => _selectedChannel = channel),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _selectedChannel = channel);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: 0.2)
-              : LumaTheme.surfaceElevated,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0x401E1E26),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.transparent,
-            width: 1.5,
+            color: isSelected ? color : AeviqueTheme.border,
+            width: isSelected ? 1.2 : 0.8,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? LumaTheme.textPrimary
-                    : LumaTheme.textSecondary,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+          ),
         ),
       ),
     );
@@ -271,90 +267,111 @@ class _CurvePainter extends CustomPainter {
   _CurvePainter({
     required this.points,
     required this.curveColor,
-    this.activePointIndex,
+    required this.activePointIndex,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // 1. Grid lines (subtle dark lines)
     final gridPaint = Paint()
-      ..color = LumaTheme.border
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..color = Colors.white.withValues(alpha: 0.1)
+      ..strokeWidth = 0.6;
 
-    // Draw 4x4 Grid
     for (var i = 1; i < 4; i++) {
-      final dx = size.width * (i / 4.0);
-      final dy = size.height * (i / 4.0);
-      canvas.drawLine(Offset(dx, 0), Offset(dx, size.height), gridPaint);
-      canvas.drawLine(Offset(0, dy), Offset(size.width, dy), gridPaint);
+      final x = (w / 4) * i;
+      final y = (h / 4) * i;
+      canvas.drawLine(Offset(x, 0), Offset(x, h), gridPaint);
+      canvas.drawLine(Offset(0, y), Offset(w, y), gridPaint);
     }
 
-    // Diagonal reference line
+    // 2. Diagonal neutral baseline
     final diagPaint = Paint()
-      ..color = LumaTheme.borderLight.withValues(alpha: 0.5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-    canvas.drawLine(Offset(0, size.height), Offset(size.width, 0), diagPaint);
+      ..color = Colors.white.withValues(alpha: 0.18)
+      ..strokeWidth = 0.8;
+    canvas.drawLine(Offset(0, h), Offset(w, 0), diagPaint);
 
-    if (points.isEmpty) return;
+    if (points.length < 2) return;
 
-    // Draw Smooth Spline
-    final path = Path();
-    for (var i = 0; i < 256; i++) {
-      final normX = i / 255.0;
-      final normY = _interpolate(normX, points);
-      final px = normX * size.width;
-      final py = (1.0 - normY) * size.height;
-      if (i == 0) {
-        path.moveTo(px, py);
-      } else {
-        path.lineTo(px, py);
-      }
+    // 3. Glowing Spline curve
+    final curvePath = Path();
+    final firstPx = points.first.x * w;
+    final firstPy = (1.0 - points.first.y) * h;
+    curvePath.moveTo(firstPx, firstPy);
+
+    // Natural cubic spline sampling
+    for (var x = 0; x <= w; x += 2) {
+      final normX = x / w;
+      final normY = _evaluateSpline(normX, points);
+      final py = (1.0 - normY) * h;
+      curvePath.lineTo(x.toDouble(), py);
     }
 
-    final curvePaint = Paint()
+    // Ambient curve glow
+    final glowPaint = Paint()
+      ..color = curveColor.withValues(alpha: 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0;
+    canvas.drawPath(curvePath, glowPaint);
+
+    final linePaint = Paint()
       ..color = curveColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
+      ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
-    canvas.drawPath(path, curvePaint);
+    canvas.drawPath(curvePath, linePaint);
 
-    // Draw Control Points
+    // 4. Draggable Node points
+    final pointBgPaint = Paint()
+      ..color = const Color(0xFF0C0C10)
+      ..style = PaintingStyle.fill;
+
+    final pointStrokePaint = Paint()
+      ..color = curveColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
     for (var i = 0; i < points.length; i++) {
-      final p = points[i];
-      final px = p.x * size.width;
-      final py = (1.0 - p.y) * size.height;
+      final px = points[i].x * w;
+      final py = (1.0 - points[i].y) * h;
       final isActive = i == activePointIndex;
+      final radius = isActive ? 6.5 : 4.5;
 
-      // Outer glow/ring
-      final ringPaint = Paint()
-        ..color = isActive ? curveColor : LumaTheme.surfaceHighlight
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(px, py), isActive ? 7.0 : 5.0, ringPaint);
+      canvas.drawCircle(Offset(px, py), radius, pointBgPaint);
+      canvas.drawCircle(Offset(px, py), radius, pointStrokePaint);
 
-      // Inner dot
-      final dotPaint = Paint()
-        ..color = isActive ? LumaTheme.background : curveColor
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(px, py), isActive ? 3.5 : 2.5, dotPaint);
+      if (isActive) {
+        final activeFill = Paint()
+          ..color = curveColor
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(px, py), radius * 0.5, activeFill);
+      }
     }
   }
 
-  double _interpolate(double normX, List<CurvePoint> pts) {
-    if (pts.isEmpty) return normX;
-    if (normX <= pts.first.x) return pts.first.y;
-    if (normX >= pts.last.x) return pts.last.y;
+  double _evaluateSpline(double x, List<CurvePoint> pts) {
+    if (x <= pts.first.x) return pts.first.y;
+    if (x >= pts.last.x) return pts.last.y;
 
-    var idx = 0;
-    while (idx < pts.length - 1 && pts[idx + 1].x < normX) {
-      idx++;
+    for (var i = 0; i < pts.length - 1; i++) {
+      if (x >= pts[i].x && x <= pts[i + 1].x) {
+        final dx = pts[i + 1].x - pts[i].x;
+        if (dx.abs() < 1e-6) return pts[i].y;
+        final t = (x - pts[i].x) / dx;
+        // Smooth Hermite interpolation
+        final h00 = (1 + 2 * t) * (1 - t) * (1 - t);
+        final h10 = t * (1 - t) * (1 - t);
+        final h01 = t * t * (3 - 2 * t);
+        final h11 = t * t * (t - 1);
+        final m0 = (pts[i + 1].y - pts[i].y);
+        final m1 = m0;
+        final y = h00 * pts[i].y + h10 * dx * m0 + h01 * pts[i + 1].y + h11 * dx * m1;
+        return y.clamp(0.0, 1.0);
+      }
     }
-    final p0 = pts[idx];
-    final p1 = pts[idx + 1];
-    final dx = p1.x - p0.x;
-    final t = dx > 0 ? (normX - p0.x) / dx : 0.0;
-    final smoothT = t * t * (3.0 - 2.0 * t);
-    return p0.y + (p1.y - p0.y) * smoothT;
+    return x;
   }
 
   @override

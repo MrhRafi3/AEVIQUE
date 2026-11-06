@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/luma_theme.dart';
-import '../luma_slider.dart';
+import '../../theme/aevique_theme.dart';
+import '../aevique_ui_components.dart';
 
 class EffectsPanel extends StatelessWidget {
   final EffectsAdjustments effects;
@@ -21,10 +22,11 @@ class EffectsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // B&W Switch and Reset Header
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -32,101 +34,80 @@ class EffectsPanel extends StatelessWidget {
                 children: [
                   Switch(
                     value: effects.bwMode,
-                    activeThumbColor: LumaTheme.accent,
-                    onChanged: (val) =>
-                        onEffectsChanged(effects.copyWith(bwMode: val)),
+                    activeThumbColor: AeviqueTheme.accentAmber,
+                    inactiveThumbColor: Colors.white60,
+                    inactiveTrackColor: Colors.white12,
+                    onChanged: (val) {
+                      HapticFeedback.selectionClick();
+                      onEffectsChanged(effects.copyWith(bwMode: val));
+                    },
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'B&W Monochrome',
                     style: TextStyle(
+                      fontFamily: 'Inter',
                       fontSize: 13,
-                      fontWeight: effects.bwMode
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: effects.bwMode
-                          ? LumaTheme.textPrimary
-                          : LumaTheme.textSecondary,
+                      fontWeight: effects.bwMode ? FontWeight.w600 : FontWeight.w500,
+                      color: effects.bwMode ? Colors.white : AeviqueTheme.textSecondary,
                     ),
                   ),
                 ],
               ),
-              TextButton.icon(
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  size: 14,
-                  color: LumaTheme.textMuted,
-                ),
-                label: const Text(
-                  'Reset',
-                  style: TextStyle(color: LumaTheme.textMuted, fontSize: 12),
-                ),
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
                   onEffectsChanged(const EffectsAdjustments());
                   onVignetteChanged(const VignetteAdjustments());
                 },
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    color: AeviqueTheme.textMuted,
+                  ),
+                ),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: 220,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 16),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Column(
             children: [
-              LumaSlider(
-                title: 'Film Grain',
+              AeviquePrecisionSlider(
+                label: 'Vignette Amount',
+                value: vignette.amount,
+                min: 0.0,
+                max: 100.0,
+                onChanged: (v) => onVignetteChanged(vignette.copyWith(amount: v)),
+                onReset: () => onVignetteChanged(vignette.copyWith(amount: 0.0)),
+              ),
+              AeviquePrecisionSlider(
+                label: 'Film Grain',
                 value: effects.grain,
                 min: 0.0,
                 max: 100.0,
                 onChanged: (v) => onEffectsChanged(effects.copyWith(grain: v)),
+                onReset: () => onEffectsChanged(effects.copyWith(grain: 0.0)),
               ),
-              LumaSlider(
-                title: 'Highlight Bloom',
+              AeviquePrecisionSlider(
+                label: 'Highlight Bloom',
                 value: effects.bloom,
                 min: 0.0,
                 max: 100.0,
                 onChanged: (v) => onEffectsChanged(effects.copyWith(bloom: v)),
+                onReset: () => onEffectsChanged(effects.copyWith(bloom: 0.0)),
               ),
-              LumaSlider(
-                title: 'Drama',
-                value: effects.drama,
-                min: 0.0,
-                max: 100.0,
-                onChanged: (v) => onEffectsChanged(effects.copyWith(drama: v)),
-              ),
-              LumaSlider(
-                title: 'Vintage Fade',
-                value: effects.vintage,
-                min: 0.0,
-                max: 100.0,
-                onChanged: (v) =>
-                    onEffectsChanged(effects.copyWith(vintage: v)),
-              ),
-              LumaSlider(
-                title: 'Chromatic Aberration',
+              AeviquePrecisionSlider(
+                label: 'Chromatic Aberration',
                 value: effects.chromaticAberration,
                 min: 0.0,
                 max: 100.0,
-                onChanged: (v) =>
-                    onEffectsChanged(effects.copyWith(chromaticAberration: v)),
-              ),
-              const Divider(color: LumaTheme.border, indent: 16, endIndent: 16),
-              LumaSlider(
-                title: 'Vignette Outer',
-                value: vignette.amount,
-                min: -100.0,
-                max: 100.0,
-                onChanged: (v) =>
-                    onVignetteChanged(vignette.copyWith(amount: v)),
-              ),
-              LumaSlider(
-                title: 'Vignette Radius',
-                value: vignette.radius,
-                min: 10.0,
-                max: 100.0,
-                onChanged: (v) =>
-                    onVignetteChanged(vignette.copyWith(radius: v)),
+                onChanged: (v) => onEffectsChanged(effects.copyWith(chromaticAberration: v)),
+                onReset: () => onEffectsChanged(effects.copyWith(chromaticAberration: 0.0)),
               ),
             ],
           ),

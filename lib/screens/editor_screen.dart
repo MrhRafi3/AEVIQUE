@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
@@ -10,18 +10,19 @@ import '../core/native_engine/aevique_ffi.dart';
 import '../core/presets/filter_catalogue.dart';
 import '../theme/aevique_theme.dart';
 import '../widgets/aevique_glass.dart';
+import '../widgets/aevique_ui_components.dart';
 import '../widgets/before_after_viewer.dart';
 import '../widgets/crop_overlay_widget.dart';
 import '../widgets/tool_panels/crop_panel.dart';
 import '../widgets/tool_panels/curves_panel.dart';
-import '../widgets/tool_panels/details_panel.dart';
 import '../widgets/tool_panels/effects_panel.dart';
 import '../widgets/tool_panels/filters_panel.dart';
 import '../widgets/tool_panels/portrait_panel.dart';
+import '../widgets/tool_panels/presets_panel.dart';
 import '../widgets/tool_panels/tune_panel.dart';
 import 'export_screen.dart';
 
-enum ToolCategory { light, color, portrait, crop, filters }
+enum _BackDialogAction { keepEditing, discard, saveAndExport }
 
 class EditorScreen extends StatefulWidget {
   final Uint8List initialImageBytes;
@@ -45,7 +46,6 @@ class _EditorScreenState extends State<EditorScreen> {
   late HistoryManager _history;
   late EditState _workingState;
 
-  // Cached base images for zero-delay slider updates
   img.Image? _basePreviewImage;
   img.Image? _thumbnailImage;
   Uint8List? _originalPreviewBytes;
@@ -59,16 +59,13 @@ class _EditorScreenState extends State<EditorScreen> {
   Timer? _debounceTimer;
   int _latestRequestId = 0;
 
-  ToolCategory _activeCategory = ToolCategory.light;
-  String?
-  _activeTool; // 'light', 'color', 'portrait', 'tune', 'details', 'curves', 'crop', 'effects', 'filters'
+  String? _activeTool; // 'crop', 'adjust', 'filter', 'curves', 'effects', 'presets', 'portrait'
   bool _isBlemishModeActive = false;
   double _blemishRadius = 0.025;
 
   @override
   void initState() {
     super.initState();
-    // Neutral initial state: exposure 0, contrast 0, saturation 0, no filters applied
     _history = HistoryManager(initialState: EditState.identity());
     _workingState = _history.current;
 
@@ -77,22 +74,16 @@ class _EditorScreenState extends State<EditorScreen> {
       if (filter != null) {
         _workingState = filter.state.copyWith(filterId: filter.id);
         _history = HistoryManager(initialState: _workingState);
-        _activeCategory = ToolCategory.filters;
-        _activeTool = 'filters';
+        _activeTool = 'filter';
       }
     } else if (widget.initialTool != null) {
-      _activeTool = widget.initialTool;
-      if (widget.initialTool == 'crop') {
-        _activeCategory = ToolCategory.crop;
-      } else if (widget.initialTool == 'color') {
-        _activeCategory = ToolCategory.color;
-      } else if (widget.initialTool == 'portrait') {
-        _activeCategory = ToolCategory.portrait;
-      } else if (widget.initialTool == 'filters' ||
-          widget.initialTool == 'effects') {
-        _activeCategory = ToolCategory.filters;
+      final t = widget.initialTool!.toLowerCase();
+      if (t == 'tune' || t == 'light' || t == 'color') {
+        _activeTool = 'adjust';
+      } else if (t == 'filters') {
+        _activeTool = 'filter';
       } else {
-        _activeCategory = ToolCategory.light;
+        _activeTool = t;
       }
     }
 
@@ -121,7 +112,6 @@ class _EditorScreenState extends State<EditorScreen> {
         _thumbnailImage = bundle.thumbnailImage;
         _originalPreviewBytes = bundle.originalPreviewBytes;
         _rawPreviewRgba8 = bundle.rawPreviewRgba8;
-        // At identity, the preview is 100% identical to the original image!
         _previewBytes = bundle.originalPreviewBytes;
         _isLoadingBase = false;
       });
@@ -142,7 +132,6 @@ class _EditorScreenState extends State<EditorScreen> {
   void _requestRender(EditState state) {
     _workingState = state;
 
-    // If returning to neutral state, immediately set original bytes with zero latency
     if (state.isIdentity && _originalPreviewBytes != null) {
       _debounceTimer?.cancel();
       _latestRequestId++;
@@ -156,10 +145,7 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    // Adapt debounce: 16ms (60fps) for fast native RGBA path, 30ms for Dart isolate fallback
-    final debounceDuration =
-        (AeviqueNativeEngine.isAvailable &&
-            ImagePipeline.isNativeCompatible(state))
+    final debounceDuration = (AeviqueNativeEngine.isAvailable && ImagePipeline.isNativeCompatible(state))
         ? const Duration(milliseconds: 16)
         : const Duration(milliseconds: 30);
 
@@ -184,7 +170,6 @@ class _EditorScreenState extends State<EditorScreen> {
       );
 
       if (!mounted || requestId != _latestRequestId) {
-        // Discard stale frame to prevent memory leak
         frame.dispose();
         return;
       }
@@ -207,6 +192,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _applyToolChanges() {
+    HapticFeedback.lightImpact();
     _history.push(_workingState);
     setState(() {
       _activeTool = null;
@@ -216,6 +202,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _cancelToolChanges() {
+    HapticFeedback.lightImpact();
     _workingState = _history.current;
     setState(() {
       _activeTool = null;
@@ -225,6 +212,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _undo() {
+    HapticFeedback.lightImpact();
     final undone = _history.undo();
     if (undone != null) {
       _workingState = undone;
@@ -234,6 +222,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _redo() {
+    HapticFeedback.lightImpact();
     final redone = _history.redo();
     if (redone != null) {
       _workingState = redone;
@@ -243,20 +232,16 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _openTool(String toolId) {
+    HapticFeedback.selectionClick();
     setState(() {
       _activeTool = toolId;
       _workingState = _history.current;
     });
   }
 
-  // ----------------------------------------------------
-  // SAFE BACK NAVIGATION & UNSAVED EDITS PROTECTION
-  // ----------------------------------------------------
   Future<void> _handleBackAction() async {
-    // 1. If inside an active tool, resolve or close that tool first
     if (_activeTool != null) {
       if (_workingState != _history.current) {
-        // Discard uncommitted edits in current tool
         _cancelToolChanges();
       } else {
         setState(() => _activeTool = null);
@@ -264,147 +249,53 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    // 2. Check if entire session has unsaved edits
     final hasUnsavedEdits = !_history.current.isIdentity || _history.canUndo;
-
     if (!hasUnsavedEdits) {
       Navigator.of(context).pop();
       return;
     }
 
-    // 3. Show confirmation dialog with Keep Editing, Discard, and Save/Export
     final action = await showDialog<_BackDialogAction>(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AeviqueTheme.elevatedCharcoal,
+        backgroundColor: const Color(0xFF14141C),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: AeviqueTheme.border.withValues(alpha: 0.8),
-            width: 1,
-          ),
+          side: const BorderSide(color: AeviqueTheme.borderLight, width: 0.8),
         ),
-        title: const Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: AeviqueTheme.champagneGold,
-              size: 22,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Unsaved Edits',
-              style: TextStyle(
-                fontFamily: 'Playfair',
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AeviqueTheme.ivory,
-              ),
-            ),
-          ],
+        title: const Text(
+          'Unsaved Edits',
+          style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         content: const Text(
           'You have unexported photo adjustments in this editing session. Would you like to preserve or discard them?',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 13,
-            color: AeviqueTheme.textSecondary,
-            height: 1.4,
-          ),
+          style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: AeviqueTheme.textSecondary, height: 1.4),
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AeviqueTheme.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () =>
-                      Navigator.of(context).pop(_BackDialogAction.discard),
-                  child: const Text(
-                    'Discard',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      color: Color(0xFFEF4444),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: AeviqueTheme.deepBlack,
-                    side: BorderSide(
-                      color: AeviqueTheme.border.withValues(alpha: 0.8),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () =>
-                      Navigator.of(context).pop(_BackDialogAction.keepEditing),
-                  child: const Text(
-                    'Keep Editing',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      color: AeviqueTheme.ivory,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(_BackDialogAction.discard),
+            child: const Text('Discard', style: TextStyle(color: Color(0xFFEF4444))),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AeviqueTheme.champagneGold,
-                foregroundColor: AeviqueTheme.deepBlack,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              icon: const Icon(
-                Icons.ios_share_rounded,
-                size: 16,
-                color: AeviqueTheme.deepBlack,
-              ),
-              label: const Text(
-                'Save / Export',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AeviqueTheme.deepBlack,
-                ),
-              ),
-              onPressed: () =>
-                  Navigator.of(context).pop(_BackDialogAction.saveAndExport),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(_BackDialogAction.keepEditing),
+            child: const Text('Keep Editing', style: TextStyle(color: Colors.white)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AeviqueTheme.accentAmber,
+              foregroundColor: Colors.black,
             ),
+            onPressed: () => Navigator.of(context).pop(_BackDialogAction.saveAndExport),
+            child: const Text('Save / Export'),
           ),
         ],
       ),
     );
 
     if (!mounted || action == null) return;
-
     switch (action) {
       case _BackDialogAction.keepEditing:
-        // Remain in editor
         break;
       case _BackDialogAction.discard:
         Navigator.of(context).pop();
@@ -422,10 +313,35 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  void _handleBlemishTap(Offset localPos, Size boxSize) {
+    if (_basePreviewImage == null) return;
+    final aspect = _basePreviewImage!.width / _basePreviewImage!.height;
+    double renderW, renderH, offsetX = 0, offsetY = 0;
+    final boxAspect = boxSize.width / boxSize.height;
+
+    if (boxAspect > aspect) {
+      renderH = boxSize.height;
+      renderW = renderH * aspect;
+      offsetX = (boxSize.width - renderW) / 2;
+    } else {
+      renderW = boxSize.width;
+      renderH = renderW / aspect;
+      offsetY = (boxSize.height - renderH) / 2;
+    }
+
+    final imgX = (localPos.dx - offsetX) / renderW;
+    final imgY = (localPos.dy - offsetY) / renderH;
+
+    if (imgX < 0 || imgX > 1 || imgY < 0 || imgY > 1) return;
+
+    HapticFeedback.lightImpact();
+    final newSpot = BlemishSpot(x: imgX, y: imgY, radius: _blemishRadius);
+    final updated = List<BlemishSpot>.from(_workingState.portrait.blemishes)..add(newSpot);
+    _requestRender(_workingState.copyWith(portrait: _workingState.portrait.copyWith(blemishes: updated)));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isToolOpen = _activeTool != null;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -435,432 +351,673 @@ class _EditorScreenState extends State<EditorScreen> {
       child: Scaffold(
         backgroundColor: AeviqueTheme.deepBlack,
         body: SafeArea(
-          child: Column(
-            children: [
-              // Top Navigation & Action Bar
-              _buildTopBar(),
-
-              // Central Image Viewport with Before/After
-              Expanded(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (!_isLoadingBase &&
-                        (_previewUiImage != null || _previewBytes != null))
-                      InteractiveViewer(
-                        maxScale: 4.0,
-                        minScale: 0.8,
-                        child: Center(
-                          child: BeforeAfterViewer(
-                            originalChild: Image.memory(
-                              _originalPreviewBytes ?? widget.initialImageBytes,
-                              fit: BoxFit.contain,
-                            ),
-                            editedChild: _previewUiImage != null
-                                ? RawImage(
-                                    image: _previewUiImage!,
-                                    fit: BoxFit.contain,
-                                  )
-                                : Image.memory(
-                                    _previewBytes!,
-                                    fit: BoxFit.contain,
-                                  ),
-                          ),
-                        ),
-                      )
-                    else
-                      const Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(
-                              color: AeviqueTheme.champagneGold,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'Optimizing Image Canvas...',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
-                                color: AeviqueTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
+          child: Focus(
+            autofocus: true,
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent) {
+                final isMetaOrCtrl = HardwareKeyboard.instance.isMetaPressed || HardwareKeyboard.instance.isControlPressed;
+                if (isMetaOrCtrl && event.logicalKey == LogicalKeyboardKey.keyZ) {
+                  if (HardwareKeyboard.instance.isShiftPressed) {
+                    if (_history.canRedo) _redo();
+                  } else {
+                    if (_history.canUndo) _undo();
+                  }
+                  return KeyEventResult.handled;
+                }
+                if (isMetaOrCtrl && event.logicalKey == LogicalKeyboardKey.keyE) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ExportScreen(
+                        sourceBytes: widget.initialImageBytes,
+                        state: _history.current,
                       ),
-
-                    // Crop interactive overlay (active when crop tool is open)
-                    if (_activeTool == 'crop')
-                      Positioned.fill(
-                        child: CropOverlayWidget(
-                          cropLeft: _workingState.geometry.cropLeft,
-                          cropTop: _workingState.geometry.cropTop,
-                          cropRight: _workingState.geometry.cropRight,
-                          cropBottom: _workingState.geometry.cropBottom,
-                          onCropChanged: (l, t, r, b) {
-                            _requestRender(
-                              _workingState.copyWith(
-                                geometry: _workingState.geometry.copyWith(
-                                  cropLeft: l,
-                                  cropTop: t,
-                                  cropRight: r,
-                                  cropBottom: b,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                    // Blemish interactive overlay (active when blemish healing is active)
-                    if (_isBlemishModeActive && _basePreviewImage != null)
-                      Positioned.fill(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            return GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTapUp: (details) {
-                                _handleBlemishTap(
-                                  details.localPosition,
-                                  constraints.biggest,
-                                );
-                              },
-                              child: CustomPaint(
-                                painter: _BlemishOverlayPainter(
-                                  blemishes: _workingState.portrait.blemishes,
-                                  imageAspectRatio:
-                                      _basePreviewImage!.width /
-                                      _basePreviewImage!.height,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                    // Processing indicator pill
-                    if (_isProcessing)
-                      Positioned(
-                        top: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AeviqueTheme.champagneGold.withValues(
-                                alpha: 0.5,
-                              ),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 10,
-                                height: 10,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: AeviqueTheme.champagneGold,
-                                ),
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'PROCESSING',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.0,
-                                  color: AeviqueTheme.champagneGold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Bottom Area: Active Tool Drawer OR Floating Tool Dock
-              if (isToolOpen)
-                _buildActiveToolDrawer()
-              else
-                _buildFloatingBottomDock(),
-            ],
+                    ),
+                  );
+                  return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.escape) {
+                  _handleBackAction();
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth >= 768;
+                if (isDesktop) {
+                  return _buildDesktopLayout();
+                } else {
+                  return _buildMobileLayout();
+                }
+              },
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTopBar() {
-    final activeFilterName = _workingState.presetName;
-    final activeIntensity = _workingState.filterIntensity.round();
-    final isNeutral = _workingState.isIdentity;
+  Widget _buildMobileLayout() {
+    final isToolOpen = _activeTool != null;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final showPill = constraints.maxWidth >= 420;
-
-        return AeviqueGlass(
-          borderRadius: BorderRadius.zero,
-          opacity: 0.85,
-          blur: 16,
-          showGoldAccent: false,
-          borderWidth: 0.5,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          child: Row(
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 1. Center Image Canvas (Dominates Screen)
+        Positioned.fill(
+          child: Column(
             children: [
-              // Left: Back button & brand
-              IconButton(
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(28, 28),
-                ),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 16,
-                  color: AeviqueTheme.ivory,
-                ),
-                tooltip: 'Back to Gallery',
-                onPressed: _handleBackAction,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                'AEVIQUE',
-                style: AeviqueTheme.wordmarkStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2.0,
-                  color: AeviqueTheme.ivory,
-                ),
-              ),
+              _buildTopBar(),
+              Expanded(child: _buildCanvasStack()),
+              // Reserve bottom space for floating dock or tool sheet
+              SizedBox(height: isToolOpen ? (_activeTool == 'crop' ? 220 : 260) : 100),
+            ],
+          ),
+        ),
 
-              const SizedBox(width: 4),
+        // 2. Floating Bottom Controls: Either Mode Dock or Active Tool Sheet
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: isToolOpen ? _buildActiveToolSheet() : _buildNeutralModeDock(),
+        ),
+      ],
+    );
+  }
 
-              // Central State Pill (Shows on wide screens, or flexible spacer)
-              if (showPill)
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    decoration: BoxDecoration(
-                      color: isNeutral
-                          ? AeviqueTheme.charcoalSurface
-                          : AeviqueTheme.champagneGold.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isNeutral
-                            ? AeviqueTheme.border
-                            : AeviqueTheme.champagneGold.withValues(alpha: 0.5),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: isNeutral
-                                ? AeviqueTheme.slateGray
-                                : AeviqueTheme.champagneGold,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: Text(
-                            activeFilterName != null
-                                ? '$activeFilterName • $activeIntensity%'
-                                : (isNeutral
-                                      ? 'Original • No Filter'
-                                      : 'Custom Edits'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 10,
-                              fontWeight: isNeutral
-                                  ? FontWeight.normal
-                                  : FontWeight.w600,
-                              color: isNeutral
-                                  ? AeviqueTheme.textSecondary
-                                  : AeviqueTheme.champagneGold,
-                            ),
-                          ),
-                        ),
-                      ],
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        // Left: Large Canvas with Minimal Top Bar
+        Expanded(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              Expanded(child: _buildCanvasStack()),
+            ],
+          ),
+        ),
+        // Right: Desktop Glass Inspector Sidebar
+        Container(
+          width: 380,
+          decoration: const BoxDecoration(
+            color: Color(0x8C14141C),
+            border: Border(left: BorderSide(color: AeviqueTheme.border, width: 0.8)),
+          ),
+          child: _buildDesktopSidebar(_activeTool),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCanvasStack() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        if (!_isLoadingBase && (_previewUiImage != null || _previewBytes != null))
+          InteractiveViewer(
+            maxScale: 4.0,
+            minScale: 0.8,
+            child: Center(
+              child: BeforeAfterViewer(
+                originalChild: Image.memory(
+                  _originalPreviewBytes ?? widget.initialImageBytes,
+                  fit: BoxFit.contain,
+                ),
+                editedChild: _previewUiImage != null
+                    ? RawImage(image: _previewUiImage!, fit: BoxFit.contain)
+                    : Image.memory(_previewBytes!, fit: BoxFit.contain),
+              ),
+            ),
+          )
+        else
+          const Center(
+            child: CircularProgressIndicator(color: AeviqueTheme.accentAmber, strokeWidth: 2.0),
+          ),
+
+        // Crop interactive overlay (active when crop tool is open)
+        if (_activeTool == 'crop')
+          Positioned.fill(
+            child: CropOverlayWidget(
+              cropLeft: _workingState.geometry.cropLeft,
+              cropTop: _workingState.geometry.cropTop,
+              cropRight: _workingState.geometry.cropRight,
+              cropBottom: _workingState.geometry.cropBottom,
+              onCropChanged: (l, t, r, b) {
+                _requestRender(
+                  _workingState.copyWith(
+                    geometry: _workingState.geometry.copyWith(
+                      cropLeft: l,
+                      cropTop: t,
+                      cropRight: r,
+                      cropBottom: b,
                     ),
                   ),
-                )
-              else
-                const Spacer(),
+                );
+              },
+            ),
+          ),
 
-              // Undo / Redo / Export Controls
-              Row(
+        // Blemish interactive overlay
+        if (_isBlemishModeActive && _basePreviewImage != null)
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) {
+                    _handleBlemishTap(details.localPosition, constraints.biggest);
+                  },
+                  child: CustomPaint(
+                    painter: _BlemishOverlayPainter(
+                      blemishes: _workingState.portrait.blemishes,
+                      imageAspectRatio: _basePreviewImage!.width / _basePreviewImage!.height,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+        // Processing indicator
+        if (_isProcessing)
+          Positioned(
+            top: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AeviqueTheme.accentAmber.withValues(alpha: 0.4), width: 0.8),
+              ),
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(28, 28),
-                    ),
-                    icon: const Icon(Icons.undo_rounded, size: 18),
-                    tooltip: 'Undo',
-                    color: _history.canUndo
-                        ? AeviqueTheme.ivory
-                        : AeviqueTheme.textMuted,
-                    onPressed: _history.canUndo ? _undo : null,
+                  SizedBox(
+                    width: 10,
+                    height: 10,
+                    child: CircularProgressIndicator(strokeWidth: 1.5, color: AeviqueTheme.accentAmber),
                   ),
-                  const SizedBox(width: 2),
-                  IconButton(
-                    style: IconButton.styleFrom(
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(28, 28),
-                    ),
-                    icon: const Icon(Icons.redo_rounded, size: 18),
-                    tooltip: 'Redo',
-                    color: _history.canRedo
-                        ? AeviqueTheme.ivory
-                        : AeviqueTheme.textMuted,
-                    onPressed: _history.canRedo ? _redo : null,
-                  ),
-                  const SizedBox(width: 6),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AeviqueTheme.champagneGold,
-                      foregroundColor: AeviqueTheme.deepBlack,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      minimumSize: const Size(24, 26),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => ExportScreen(
-                            sourceBytes: widget.initialImageBytes,
-                            state: _history.current,
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.ios_share_rounded,
-                          size: 13,
-                          color: AeviqueTheme.deepBlack,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Export',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AeviqueTheme.deepBlack,
-                          ),
-                        ),
-                      ],
+                  SizedBox(width: 6),
+                  Text(
+                    'PROCESSING',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: AeviqueTheme.accentAmberLight,
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        );
-      },
+      ],
     );
   }
 
-  Widget _buildActiveToolDrawer() {
-    String toolTitle = '';
-    Widget panelContent = const SizedBox();
+  // Reference Minimal Top Navigation (Phone 3, 4, 5)
+  Widget _buildTopBar() {
+    final isNeutral = _workingState.isIdentity;
+    final stateText = _activeTool != null
+        ? _getToolTitle(_activeTool!)
+        : (isNeutral ? 'Original • No Filter' : 'Custom Edits');
 
-    switch (_activeTool) {
-      case 'light':
-        toolTitle = 'Light Adjustments';
-        panelContent = TunePanel(
-          tune: _workingState.tune,
-          mode: TuneMode.light,
-          onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
-        );
-        break;
-      case 'color':
-        toolTitle = 'Color Adjustments';
-        panelContent = TunePanel(
-          tune: _workingState.tune,
-          mode: TuneMode.color,
-          onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
-        );
-        break;
-      case 'tune':
-        toolTitle = 'Tune Image';
-        panelContent = TunePanel(
-          tune: _workingState.tune,
-          mode: TuneMode.all,
-          onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
-        );
-        break;
-      case 'detail':
-      case 'details':
-        toolTitle = 'Details';
-        panelContent = DetailsPanel(
-          details: _workingState.details,
-          onChanged: (d) => _requestRender(_workingState.copyWith(details: d)),
-        );
-        break;
-      case 'curves':
-        toolTitle = 'Curves';
-        panelContent = CurvesPanel(
-          curves: _workingState.curves,
-          onChanged: (c) => _requestRender(_workingState.copyWith(curves: c)),
-        );
-        break;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Close "✕" on Left (Phone 3, 5) + Brand
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Tooltip(
+                message: 'Back to Gallery',
+                child: GestureDetector(
+                  onTap: _handleBackAction,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(Icons.close_rounded, size: 20, color: Colors.white),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'AEVIQUE',
+                style: AeviqueTheme.wordmarkStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.5,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+
+          // Title / Mode / State in Center
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                stateText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
+                ),
+              ),
+            ),
+          ),
+
+          // Right Controls: Undo, Redo, Export
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Tooltip(
+                message: 'Undo',
+                child: GestureDetector(
+                  onTap: _history.canUndo ? _undo : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.undo_rounded,
+                      size: 18,
+                      color: _history.canUndo ? Colors.white : Colors.white24,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Tooltip(
+                message: 'Redo',
+                child: GestureDetector(
+                  onTap: _history.canRedo ? _redo : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.redo_rounded,
+                      size: 18,
+                      color: _history.canRedo ? Colors.white : Colors.white24,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              // "Export" Action Button (Phone 3)
+              Tooltip(
+                message: 'Export',
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ExportScreen(
+                          sourceBytes: widget.initialImageBytes,
+                          state: _history.current,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white12, width: 0.8),
+                    ),
+                    child: const Text(
+                      'Export',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Floating Contextual Mode Dock (Neutral State)
+  Widget _buildNeutralModeDock() {
+    return Center(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: AeviqueFloatingDock(
+          children: [
+            _buildDockModeItem('tune', 'Light Adjustments', Icons.tune_rounded),
+            _buildDockModeItem('crop', 'Crop', Icons.crop_rounded),
+            _buildDockModeItem('tune', 'Light', Icons.wb_sunny_outlined),
+            _buildDockModeItem('tune', 'Color', Icons.palette_outlined),
+            _buildDockModeItem('filter', 'Filters', Icons.filter_vintage_rounded),
+            _buildDockModeItem('curves', 'Curves', Icons.show_chart_rounded),
+            _buildDockModeItem('effects', 'Effects', Icons.blur_on_rounded),
+            _buildDockModeItem('portrait', 'Portrait', Icons.face_retouching_natural_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDockModeItem(String toolId, String label, IconData icon) {
+    return GestureDetector(
+      onTap: () => _openTool(toolId),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: Colors.white70),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Active Tool Panel / Sheet (Phone 3, 4, 5)
+  Widget _buildActiveToolSheet() {
+    final panelContent = _getPanelWidget(_activeTool!);
+
+    return AeviqueGlass(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      hasGrabHandle: _activeTool == 'filter',
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Sheet Cancel & Title Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20, color: Colors.white54),
+                tooltip: 'Cancel',
+                onPressed: _cancelToolChanges,
+              ),
+              Text(
+                _getToolTitle(_activeTool!),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.check_rounded, size: 20, color: AeviqueTheme.accentAmber),
+                tooltip: 'Apply',
+                onPressed: _applyToolChanges,
+              ),
+            ],
+          ),
+          panelContent,
+          const SizedBox(height: 12),
+
+          // Contextual Mode Dock & Prominent Golden Circular Checkmark FAB (Phone 3)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Contextual pill switcher: Crop | Adjust | Filter
+              AeviqueGlass(
+                borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildContextModeChip('crop', 'Crop', Icons.crop_rounded),
+                    _buildContextModeChip('adjust', 'Adjust', Icons.tune_rounded),
+                    _buildContextModeChip('filter', 'Filter', Icons.filter_vintage_rounded),
+                  ],
+                ),
+              ),
+
+              // Prominent Circular Golden Checkmark FAB with Warm Bloom (Phone 3)
+              AeviqueAmberFab(
+                icon: Icons.check_rounded,
+                size: 52,
+                iconSize: 28,
+                tooltip: 'Apply',
+                onPressed: _applyToolChanges,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContextModeChip(String id, String label, IconData icon) {
+    final isSelected = _activeTool == id;
+    return GestureDetector(
+      onTap: () => setState(() => _activeTool = id),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: AeviqueTheme.accentAmber.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AeviqueTheme.accentAmber, width: 1.0),
+              )
+            : null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isSelected ? AeviqueTheme.accentAmberLight : Colors.white60,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? Colors.white : Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopSidebar(String? activeTool) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Mode Selector Pills
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildDesktopTab('tune', 'Light Adjustments'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('crop', 'Crop'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('tune', 'Light'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('tune', 'Color'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('filter', 'Filters'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('curves', 'Curves'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('effects', 'Effects'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('portrait', 'Portrait'),
+              ],
+            ),
+          ),
+        ),
+
+        const Divider(color: AeviqueTheme.borderSubtle),
+
+        // Inspector Content
+        Expanded(
+          child: activeTool == null
+              ? const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.tune_rounded, size: 36, color: Colors.white24),
+                      SizedBox(height: 12),
+                      Text(
+                        'Select an editing tool above',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: Colors.white54,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20, color: Colors.white54),
+                            tooltip: 'Cancel',
+                            onPressed: _cancelToolChanges,
+                          ),
+                          Text(
+                            _getToolTitle(activeTool),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.check_rounded, size: 20, color: AeviqueTheme.accentAmber),
+                            tooltip: 'Apply',
+                            onPressed: _applyToolChanges,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: _getPanelWidget(activeTool),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+
+        // Apply / Cancel Bottom Bar (when tool is active)
+        if (activeTool != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AeviqueButton.secondary(
+                    label: 'Reset Tool',
+                    onPressed: _cancelToolChanges,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AeviqueButton(
+                    label: 'Apply Edits',
+                    onPressed: _applyToolChanges,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopTab(String id, String label) {
+    final isSelected = _activeTool == id;
+    return AeviquePillChip(
+      label: label,
+      isSelected: isSelected,
+      onTap: () => setState(() => _activeTool = id),
+    );
+  }
+
+  String _getToolTitle(String toolId) {
+    switch (toolId) {
       case 'crop':
-        toolTitle = 'Crop & Rotate';
-        panelContent = CropPanel(
+        return 'Crop & Rotate';
+      case 'adjust':
+      case 'light':
+      case 'color':
+      case 'tune':
+        return 'Adjust';
+      case 'filter':
+      case 'filters':
+        return 'Filter';
+      case 'curves':
+        return 'Curves';
+      case 'effects':
+        return 'Effects';
+      case 'presets':
+        return 'Presets';
+      case 'portrait':
+        return 'Portrait';
+      default:
+        return 'Edit';
+    }
+  }
+
+  Widget _getPanelWidget(String toolId) {
+    switch (toolId) {
+      case 'crop':
+        return CropPanel(
           geometry: _workingState.geometry,
           onChanged: (g) => _requestRender(_workingState.copyWith(geometry: g)),
         );
-        break;
-      case 'effects':
-        toolTitle = 'Effects & Vignette';
-        panelContent = EffectsPanel(
-          effects: _workingState.effects,
-          vignette: _workingState.vignette,
-          onEffectsChanged: (e) =>
-              _requestRender(_workingState.copyWith(effects: e)),
-          onVignetteChanged: (v) =>
-              _requestRender(_workingState.copyWith(vignette: v)),
+      case 'adjust':
+      case 'light':
+      case 'color':
+      case 'tune':
+        return TunePanel(
+          tune: _workingState.tune,
+          curves: _workingState.curves,
+          onCurvesChanged: (c) => _requestRender(_workingState.copyWith(curves: c)),
+          onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
         );
-        break;
-      case 'presets':
+      case 'filter':
       case 'filters':
-        toolTitle = 'Filters & Presets';
-        panelContent = FiltersPanel(
+        return FiltersPanel(
           activeFilterId: _workingState.filterId,
           filterIntensity: _workingState.filterIntensity,
           thumbnailBase: _thumbnailImage,
@@ -908,391 +1065,65 @@ class _EditorScreenState extends State<EditorScreen> {
             );
           },
         );
-        break;
-      case 'portrait':
-        toolTitle = 'Portrait Retouching';
-        panelContent = PortraitPanel(
-          portrait: _workingState.portrait,
-          onChanged: (newPortrait) {
-            _requestRender(_workingState.copyWith(portrait: newPortrait));
-          },
-          isBlemishModeActive: _isBlemishModeActive,
-          onBlemishModeChanged: (active) {
-            setState(() => _isBlemishModeActive = active);
-          },
-          blemishRadius: _blemishRadius,
-          onBlemishRadiusChanged: (radius) {
-            setState(() => _blemishRadius = radius);
-          },
-          onUndoLastBlemish: () {
-            if (_workingState.portrait.blemishes.isNotEmpty) {
-              final updated = List<BlemishSpot>.from(
-                _workingState.portrait.blemishes,
-              )..removeLast();
-              _requestRender(
-                _workingState.copyWith(
-                  portrait: _workingState.portrait.copyWith(blemishes: updated),
-                ),
-              );
-            }
-          },
-          onClearBlemishes: () {
+      case 'curves':
+        return CurvesPanel(
+          curves: _workingState.curves,
+          onChanged: (c) => _requestRender(_workingState.copyWith(curves: c)),
+        );
+      case 'effects':
+        return EffectsPanel(
+          effects: _workingState.effects,
+          vignette: _workingState.vignette,
+          onEffectsChanged: (e) => _requestRender(_workingState.copyWith(effects: e)),
+          onVignetteChanged: (v) => _requestRender(_workingState.copyWith(vignette: v)),
+        );
+      case 'presets':
+        return PresetsPanel(
+          activePresetName: _workingState.presetName,
+          onPresetSelected: (preset) {
             _requestRender(
               _workingState.copyWith(
-                portrait: _workingState.portrait.copyWith(blemishes: const []),
+                presetName: preset.name,
+                tune: preset.state.tune,
+                details: preset.state.details,
+                effects: preset.state.effects,
+                vignette: preset.state.vignette,
+              ),
+            );
+          },
+          onClearPreset: () {
+            _requestRender(
+              _workingState.copyWith(
+                clearPreset: true,
+                tune: const TuneAdjustments(),
+                details: const DetailsAdjustments(),
+                effects: const EffectsAdjustments(),
+                vignette: const VignetteAdjustments(),
               ),
             );
           },
         );
-        break;
+      case 'portrait':
+        return PortraitPanel(
+          portrait: _workingState.portrait,
+          onChanged: (p) => _requestRender(_workingState.copyWith(portrait: p)),
+          isBlemishModeActive: _isBlemishModeActive,
+          onBlemishModeChanged: (active) => setState(() => _isBlemishModeActive = active),
+          blemishRadius: _blemishRadius,
+          onBlemishRadiusChanged: (r) => setState(() => _blemishRadius = r),
+          onUndoLastBlemish: () {
+            if (_workingState.portrait.blemishes.isNotEmpty) {
+              final updated = List<BlemishSpot>.from(_workingState.portrait.blemishes)..removeLast();
+              _requestRender(_workingState.copyWith(portrait: _workingState.portrait.copyWith(blemishes: updated)));
+            }
+          },
+          onClearBlemishes: () {
+            _requestRender(_workingState.copyWith(portrait: _workingState.portrait.copyWith(blemishes: const [])));
+          },
+        );
+      default:
+        return const SizedBox();
     }
-
-    return AeviqueGlass(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      opacity: 0.92,
-      borderColor: AeviqueTheme.champagneGold.withValues(alpha: 0.25),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drawer Header with Cancel / Tool Name / Apply
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: AeviqueTheme.border.withValues(alpha: 0.5),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    color: AeviqueTheme.slateGray,
-                    size: 20,
-                  ),
-                  tooltip: 'Cancel',
-                  onPressed: _cancelToolChanges,
-                ),
-                Expanded(
-                  child: Text(
-                    toolTitle,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: 'Playfair',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: AeviqueTheme.ivory,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.check_rounded,
-                    color: AeviqueTheme.champagneGold,
-                    size: 22,
-                  ),
-                  tooltip: 'Apply',
-                  onPressed: _applyToolChanges,
-                ),
-              ],
-            ),
-          ),
-          panelContent,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingBottomDock() {
-    List<_ContextualToolItem> contextualTools = [];
-    switch (_activeCategory) {
-      case ToolCategory.light:
-        contextualTools = const [
-          _ContextualToolItem(
-            toolId: 'light',
-            label: 'Light Adjustments',
-            icon: Icons.tune_rounded,
-          ),
-          _ContextualToolItem(
-            toolId: 'curves',
-            label: 'Curves',
-            icon: Icons.show_chart_rounded,
-          ),
-          _ContextualToolItem(
-            toolId: 'details',
-            label: 'Details',
-            icon: Icons.auto_fix_normal_rounded,
-          ),
-        ];
-        break;
-      case ToolCategory.color:
-        contextualTools = const [
-          _ContextualToolItem(
-            toolId: 'color',
-            label: 'Color Balance',
-            icon: Icons.palette_outlined,
-          ),
-        ];
-        break;
-      case ToolCategory.portrait:
-        contextualTools = const [
-          _ContextualToolItem(
-            toolId: 'portrait',
-            label: 'Portrait Retouch',
-            icon: Icons.face_retouching_natural_rounded,
-          ),
-        ];
-        break;
-      case ToolCategory.crop:
-        contextualTools = const [
-          _ContextualToolItem(
-            toolId: 'crop',
-            label: 'Crop & Rotate',
-            icon: Icons.crop_rotate_rounded,
-          ),
-        ];
-        break;
-      case ToolCategory.filters:
-        contextualTools = const [
-          _ContextualToolItem(
-            toolId: 'filters',
-            label: 'Filters',
-            icon: Icons.filter_vintage_rounded,
-          ),
-          _ContextualToolItem(
-            toolId: 'effects',
-            label: 'Effects',
-            icon: Icons.blur_on_rounded,
-          ),
-        ];
-        break;
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Contextual Sub-tool Pills
-        SizedBox(
-          height: 38,
-          child: Center(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: contextualTools.map((tool) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: InkWell(
-                      onTap: () => _openTool(tool.toolId),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AeviqueTheme.elevatedCharcoal.withValues(
-                            alpha: 0.85,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AeviqueTheme.champagneGold.withValues(
-                              alpha: 0.35,
-                            ),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              tool.icon,
-                              size: 14,
-                              color: AeviqueTheme.champagneGold,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              tool.label,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.3,
-                                color: AeviqueTheme.ivory,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ),
-
-        // Floating Bottom Tool Dock
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-          child: AeviqueGlass(
-            borderRadius: BorderRadius.circular(22),
-            opacity: 0.88,
-            borderColor: AeviqueTheme.border.withValues(alpha: 0.5),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-            child: Row(
-              children: [
-                _buildDockCategoryItem(
-                  category: ToolCategory.light,
-                  label: 'Light',
-                  icon: Icons.lightbulb_outline_rounded,
-                  defaultTool: 'light',
-                ),
-                _buildDockCategoryItem(
-                  category: ToolCategory.color,
-                  label: 'Color',
-                  icon: Icons.palette_outlined,
-                  defaultTool: 'color',
-                ),
-                _buildDockCategoryItem(
-                  category: ToolCategory.portrait,
-                  label: 'Portrait',
-                  icon: Icons.face_retouching_natural_rounded,
-                  defaultTool: 'portrait',
-                ),
-                _buildDockCategoryItem(
-                  category: ToolCategory.crop,
-                  label: 'Crop',
-                  icon: Icons.crop_rotate_rounded,
-                  defaultTool: 'crop',
-                ),
-                _buildDockCategoryItem(
-                  category: ToolCategory.filters,
-                  label: 'Filters',
-                  icon: Icons.filter_vintage_rounded,
-                  defaultTool: 'filters',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDockCategoryItem({
-    required ToolCategory category,
-    required String label,
-    required IconData icon,
-    required String defaultTool,
-  }) {
-    final isSelected = _activeCategory == category;
-
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          if (_activeCategory == category) {
-            _openTool(defaultTool);
-          } else {
-            setState(() => _activeCategory = category);
-          }
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AeviqueTheme.champagneGold.withValues(alpha: 0.14)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected
-                  ? AeviqueTheme.champagneGold.withValues(alpha: 0.35)
-                  : Colors.transparent,
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 19,
-                color: isSelected
-                    ? AeviqueTheme.champagneGold
-                    : AeviqueTheme.slateGray,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  letterSpacing: 0.2,
-                  color: isSelected
-                      ? AeviqueTheme.champagneGold
-                      : AeviqueTheme.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _handleBlemishTap(Offset localPos, Size containerSize) {
-    if (_basePreviewImage == null) return;
-
-    final imageAspect = _basePreviewImage!.width / _basePreviewImage!.height;
-    final containerAspect = containerSize.width / containerSize.height;
-    double imgW, imgH, offsetX, offsetY;
-
-    if (imageAspect > containerAspect) {
-      imgW = containerSize.width;
-      imgH = imgW / imageAspect;
-      offsetX = 0;
-      offsetY = (containerSize.height - imgH) / 2;
-    } else {
-      imgH = containerSize.height;
-      imgW = imgH * imageAspect;
-      offsetX = (containerSize.width - imgW) / 2;
-      offsetY = 0;
-    }
-
-    if (localPos.dx < offsetX ||
-        localPos.dx > offsetX + imgW ||
-        localPos.dy < offsetY ||
-        localPos.dy > offsetY + imgH) {
-      return;
-    }
-
-    final normX = ((localPos.dx - offsetX) / imgW).clamp(0.0, 1.0);
-    final normY = ((localPos.dy - offsetY) / imgH).clamp(0.0, 1.0);
-
-    final newSpot = BlemishSpot(x: normX, y: normY, radius: _blemishRadius);
-
-    final updatedBlemishes = List<BlemishSpot>.from(
-      _workingState.portrait.blemishes,
-    )..add(newSpot);
-
-    final updatedState = _workingState.copyWith(
-      portrait: _workingState.portrait.copyWith(blemishes: updatedBlemishes),
-    );
-
-    _requestRender(updatedState);
   }
 }
 
@@ -1300,64 +1131,37 @@ class _BlemishOverlayPainter extends CustomPainter {
   final List<BlemishSpot> blemishes;
   final double imageAspectRatio;
 
-  _BlemishOverlayPainter({
-    required this.blemishes,
-    required this.imageAspectRatio,
-  });
+  _BlemishOverlayPainter({required this.blemishes, required this.imageAspectRatio});
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (blemishes.isEmpty) return;
+    double renderW, renderH, offsetX = 0, offsetY = 0;
+    final boxAspect = size.width / size.height;
 
-    final containerAspect = size.width / size.height;
-    double imgW, imgH, offsetX, offsetY;
-
-    if (imageAspectRatio > containerAspect) {
-      imgW = size.width;
-      imgH = imgW / imageAspectRatio;
-      offsetX = 0;
-      offsetY = (size.height - imgH) / 2;
+    if (boxAspect > imageAspectRatio) {
+      renderH = size.height;
+      renderW = renderH * imageAspectRatio;
+      offsetX = (size.width - renderW) / 2;
     } else {
-      imgH = size.height;
-      imgW = imgH * imageAspectRatio;
-      offsetX = (size.width - imgW) / 2;
-      offsetY = 0;
+      renderW = size.width;
+      renderH = renderW / imageAspectRatio;
+      offsetY = (size.height - renderH) / 2;
     }
 
-    final paintStroke = Paint()
-      ..color = const Color(0xFFD4AF7C).withValues(alpha: 0.85)
+    final circlePaint = Paint()
+      ..color = AeviqueTheme.accentAmber.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    final paintFill = Paint()
-      ..color = const Color(0xFFD4AF7C).withValues(alpha: 0.16)
-      ..style = PaintingStyle.fill;
-
     for (final spot in blemishes) {
-      final center = Offset(offsetX + spot.x * imgW, offsetY + spot.y * imgH);
-      final radius = spot.radius * imgW;
-      canvas.drawCircle(center, radius, paintFill);
-      canvas.drawCircle(center, radius, paintStroke);
+      final px = offsetX + spot.x * renderW;
+      final py = offsetY + spot.y * renderH;
+      final radius = spot.radius * renderW;
+      canvas.drawCircle(Offset(px, py), radius, circlePaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _BlemishOverlayPainter oldDelegate) {
-    return oldDelegate.blemishes != blemishes ||
-        oldDelegate.imageAspectRatio != imageAspectRatio;
-  }
-}
-
-enum _BackDialogAction { keepEditing, discard, saveAndExport }
-
-class _ContextualToolItem {
-  final String toolId;
-  final String label;
-  final IconData icon;
-
-  const _ContextualToolItem({
-    required this.toolId,
-    required this.label,
-    required this.icon,
-  });
+  bool shouldRepaint(covariant _BlemishOverlayPainter oldDelegate) =>
+      oldDelegate.blemishes != blemishes || oldDelegate.imageAspectRatio != imageAspectRatio;
 }

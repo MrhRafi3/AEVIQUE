@@ -1,10 +1,10 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import '../../core/image_engine/image_pipeline.dart';
 import '../../core/presets/filter_catalogue.dart';
-import '../../theme/luma_theme.dart';
-import '../luma_slider.dart';
+import '../../theme/aevique_theme.dart';
+import '../aevique_ui_components.dart';
 
 class FiltersPanel extends StatefulWidget {
   final String? activeFilterId;
@@ -29,7 +29,6 @@ class FiltersPanel extends StatefulWidget {
 }
 
 class _FiltersPanelState extends State<FiltersPanel> {
-  FilterCategory _selectedCategory = FilterCategory.all;
   final Map<String, Uint8List> _thumbCache = {};
 
   @override
@@ -51,21 +50,17 @@ class _FiltersPanelState extends State<FiltersPanel> {
     final base = widget.thumbnailBase;
     if (base == null) return;
 
-    // Asynchronously generate thumbnails so the UI remains fluid
     Future.microtask(() async {
       for (final filter in FilterCatalogue.allFilters) {
         if (!mounted) return;
         if (filter.id == 'original') continue;
         if (_thumbCache.containsKey(filter.id)) continue;
 
-        // Yield between filters to preserve 60/120fps frame rendering
         await Future<void>.value();
         if (!mounted) return;
 
         final processed = ImagePipeline.processRawImage(base, filter.state);
-        final encoded = Uint8List.fromList(
-          img.encodeJpg(processed, quality: 75),
-        );
+        final encoded = Uint8List.fromList(img.encodeJpg(processed, quality: 75));
         if (mounted) {
           setState(() {
             _thumbCache[filter.id] = encoded;
@@ -77,250 +72,129 @@ class _FiltersPanelState extends State<FiltersPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final allCategoryFilters = FilterCatalogue.getByCategory(_selectedCategory);
-    final filters = allCategoryFilters
-        .where((f) => f.id != 'original')
-        .toList();
+    final filters = FilterCatalogue.allFilters.where((f) => f.id != 'original').toList();
     final isFilterActive = widget.activeFilterId != null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Filter Intensity Slider (Visible when any filter is selected)
-        if (isFilterActive) ...[
+        // 1. Intensity Slider (Visible when a filter is active)
+        if (isFilterActive)
           Padding(
-            padding: const EdgeInsets.only(top: 4.0),
-            child: LumaSlider(
-              title: 'Filter Intensity',
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+            child: AeviquePrecisionSlider(
+              label: 'Intensity',
               value: widget.filterIntensity,
               min: 0.0,
               max: 100.0,
-              unit: '%',
+              valueFormatter: (v) => '${v.round()}%',
               onChanged: widget.onIntensityChanged,
+              onReset: () => widget.onIntensityChanged(100.0),
             ),
           ),
-          const Divider(color: LumaTheme.border, height: 1),
-        ],
 
-        // Category Navigation Chips
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildCategoryChip(FilterCategory.all, 'All'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.vivid, 'Vivid'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.dramatic, 'Dramatic'),
-                const SizedBox(width: 6),
-                _buildCategoryChip(FilterCategory.bw, 'B&W'),
-              ],
-            ),
-          ),
-        ),
-
-        // Horizontal Filter Cards Carousel
+        // 2. Horizontal Filter Preset Cards Carousel (Phone 4)
         SizedBox(
-          height: 125,
-          child: ListView.builder(
+          height: 110,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: filters.length + 1, // +1 for "Original" card
+            itemCount: filters.length + 1, // +1 for "Original / None"
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               if (index == 0) {
-                // Original / No Filter Card
-                final isOriginal = widget.activeFilterId == null;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 10.0),
-                  child: GestureDetector(
-                    onTap: widget.onClearFilter,
-                    child: Container(
-                      width: 90,
-                      decoration: BoxDecoration(
-                        color: isOriginal
-                            ? LumaTheme.surfaceHighlight
-                            : LumaTheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isOriginal
-                              ? LumaTheme.accent
-                              : LumaTheme.border,
-                          width: isOriginal ? 1.5 : 1.0,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: LumaTheme.surfaceElevated,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isOriginal
-                                    ? LumaTheme.accent
-                                    : LumaTheme.borderLight,
-                                width: 1,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.raw_on_rounded,
-                              size: 22,
-                              color: isOriginal
-                                  ? LumaTheme.accent
-                                  : LumaTheme.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Original',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isOriginal
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: isOriginal
-                                  ? LumaTheme.accent
-                                  : LumaTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'No Filter',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: LumaTheme.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                final isSelected = widget.activeFilterId == null;
+                return _buildFilterThumbnailCard(
+                  name: 'Original',
+                  imageBytes: null,
+                  isSelected: isSelected,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    widget.onClearFilter();
+                  },
                 );
               }
 
               final filter = filters[index - 1];
               final isSelected = widget.activeFilterId == filter.id;
-              final thumbBytes = _thumbCache[filter.id];
+              final cachedBytes = _thumbCache[filter.id];
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 10.0),
-                child: GestureDetector(
-                  onTap: () =>
-                      widget.onFilterSelected(filter, widget.filterIntensity),
-                  child: Container(
-                    width: 92,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? LumaTheme.accent.withValues(alpha: 0.15)
-                          : LumaTheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? LumaTheme.accent : LumaTheme.border,
-                        width: isSelected ? 2.0 : 1.0,
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Live Thumbnail image
-                        Expanded(
-                          child: thumbBytes != null
-                              ? Image.memory(thumbBytes, fit: BoxFit.cover)
-                              : Container(
-                                  color: LumaTheme.surfaceElevated,
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.photo_filter_rounded,
-                                      size: 22,
-                                      color: LumaTheme.textMuted,
-                                    ),
-                                  ),
-                                ),
-                        ),
-                        // Filter Name
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 6,
-                          ),
-                          color: isSelected
-                              ? LumaTheme.surfaceElevated
-                              : LumaTheme.surface,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                filter.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? LumaTheme.accent
-                                      : LumaTheme.textPrimary,
-                                ),
-                              ),
-                              if (isSelected)
-                                Text(
-                                  '${widget.filterIntensity.round()}%',
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    fontFamily: 'monospace',
-                                    fontWeight: FontWeight.bold,
-                                    color: LumaTheme.accent,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              return _buildFilterThumbnailCard(
+                name: filter.name,
+                imageBytes: cachedBytes,
+                isSelected: isSelected,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  widget.onFilterSelected(filter, widget.filterIntensity);
+                },
               );
             },
           ),
         ),
-        const SizedBox(height: 12),
       ],
     );
   }
 
-  Widget _buildCategoryChip(FilterCategory category, String label) {
-    final isSelected = _selectedCategory == category;
+  Widget _buildFilterThumbnailCard({
+    required String name,
+    required Uint8List? imageBytes,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () => setState(() => _selectedCategory = category),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? LumaTheme.accent.withValues(alpha: 0.2)
-              : LumaTheme.surfaceElevated,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? LumaTheme.accent : Colors.transparent,
-            width: 1,
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? AeviqueTheme.accentAmber : Colors.white.withValues(alpha: 0.12),
+                width: isSelected ? 1.8 : 0.8,
+              ),
+              boxShadow: [
+                if (isSelected)
+                  BoxShadow(
+                    color: AeviqueTheme.accentAmber.withValues(alpha: 0.35),
+                    blurRadius: 12,
+                  ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: imageBytes != null
+                ? Image.memory(imageBytes, fit: BoxFit.cover)
+                : Container(
+                    color: const Color(0xFF1E1E28),
+                    child: Center(
+                      child: Icon(
+                        Icons.filter_hdr_outlined,
+                        size: 24,
+                        color: isSelected ? AeviqueTheme.accentAmberLight : Colors.white38,
+                      ),
+                    ),
+                  ),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? LumaTheme.accent : LumaTheme.textSecondary,
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 72,
+            child: Text(
+              name,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? Colors.white : AeviqueTheme.textMuted,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

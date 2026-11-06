@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/image_repository.dart';
 import '../services/recent_edits_repository.dart';
 import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
-import '../widgets/aevique_logo.dart';
+import '../widgets/aevique_ui_components.dart';
 import 'editor_screen.dart';
+import 'gallery_screen.dart';
 import 'presets_screen.dart';
 import 'settings_screen.dart';
 
@@ -16,9 +17,9 @@ class HomeScreen extends StatefulWidget {
     super.key,
     ImageRepository? imageRepository,
     RecentEditsRepository? recentEditsRepository,
-  }) : imageRepository = imageRepository ?? DefaultImageRepository(),
-       recentEditsRepository =
-           recentEditsRepository ?? InMemoryRecentEditsRepository();
+  })  : imageRepository = imageRepository ?? DefaultImageRepository(),
+        recentEditsRepository =
+            recentEditsRepository ?? InMemoryRecentEditsRepository();
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -26,9 +27,50 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
-  int _currentNavIndex = 0; // 0: Home, 1: Presets
+  int _currentNavIndex = 0; // 0: Home, 1: Gallery, 2: Presets/Editor, 3: Settings
+  int _selectedCategoryIndex = 2; // Default "Vintage" selected like Phone 1 in reference
 
-  Future<void> _handleImageSelected(
+  final List<String> _categories = const [
+    'Reel',
+    'Post',
+    'Vintage',
+    'Classic',
+    'Travel',
+    'Portrait',
+  ];
+
+  final List<Map<String, String>> _templates = const [
+    {
+      'title': 'Year in\nReview',
+      'tag': '(06)',
+      'author': 'by Gijack.en',
+      'asset': 'assets/images/sample_portrait.jpg',
+      'presetId': 'vintage_70s',
+    },
+    {
+      'title': 'Golden\nHour',
+      'tag': '(04)',
+      'author': 'by Studio.aev',
+      'asset': 'assets/images/sample_nature.jpg',
+      'presetId': 'warm_glow',
+    },
+    {
+      'title': 'Year in\nReview',
+      'tag': '(06)',
+      'author': 'by Gijack.en',
+      'asset': 'assets/images/sample_portrait.jpg',
+      'presetId': 'vintage_70s',
+    },
+    {
+      'title': 'Modern\nCinema',
+      'tag': '(12)',
+      'author': 'by Alex.m',
+      'asset': 'assets/images/sample_architecture.jpg',
+      'presetId': 'cinematic_teal',
+    },
+  ];
+
+  Future<void> _openPhotograph(
     Future<dynamic> Function() fetchBytes,
     String name, {
     String? initialTool,
@@ -38,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final bytes = await fetchBytes();
       if (!mounted) return;
-      if (bytes != null) {
+      if (bytes != null && (bytes as Uint8List).isNotEmpty) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => EditorScreen(
@@ -55,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to load photograph: $e'),
-          backgroundColor: const Color(0xFFEF5350),
+          backgroundColor: AeviqueTheme.error,
         ),
       );
     } finally {
@@ -67,468 +109,386 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onBottomNavTapped(int index) {
     if (index == _currentNavIndex) return;
+    HapticFeedback.selectionClick();
+    if (index == 3) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      );
+      return;
+    }
     setState(() => _currentNavIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
     if (_currentNavIndex == 1) {
-      // Functional Presets Screen
+      return GalleryScreen(
+        imageRepository: widget.imageRepository,
+        recentEditsRepository: widget.recentEditsRepository,
+        onBackToHome: () => setState(() => _currentNavIndex = 0),
+      );
+    }
+
+    if (_currentNavIndex == 2) {
       return PresetsScreen(
         imageRepository: widget.imageRepository,
         onBackToHome: () => setState(() => _currentNavIndex = 0),
       );
     }
 
-    // Home Screen View
     return Scaffold(
       backgroundColor: AeviqueTheme.deepBlack,
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(
-                      color: AeviqueTheme.champagneGold,
-                      strokeWidth: 2.5,
-                    ),
-                    SizedBox(height: 18),
-                    Text(
-                      'Preparing Studio Canvas...',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: AeviqueTheme.textSecondary,
-                        fontSize: 13,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : CustomScrollView(
-                slivers: [
-                  // 1. Top Header with Brand Wordmark & Single Settings Icon
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 12, 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const AeviqueLogo(size: 28),
-                              const SizedBox(width: 12),
-                              Text(
-                                'AEVIQUE',
-                                style: AeviqueTheme.wordmarkStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 4.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.settings_outlined,
-                              color: AeviqueTheme.ivory,
-                              size: 22,
-                            ),
-                            tooltip: 'Settings & About',
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const SettingsScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+      body: Stack(
+        children: [
+          // Background subtle ambient lighting
+          Positioned(
+            top: -100,
+            left: -50,
+            right: -50,
+            height: 350,
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0.0, -0.4),
+                    radius: 1.0,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.04),
+                      Colors.white.withValues(alpha: 0.01),
+                      Colors.transparent,
+                    ],
                   ),
+                ),
+              ),
+            ),
+          ),
 
-                  // 2. Editorial Hero Presentation: Large Photographic Preview & Prominent Open Photo CTA
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      child: Container(
-                        height: 290,
-                        decoration: BoxDecoration(
-                          color: AeviqueTheme.charcoalSurface,
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                            color: AeviqueTheme.champagneGold.withValues(
-                              alpha: 0.3,
-                            ),
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AeviqueTheme.champagneGold.withValues(
-                                alpha: 0.08,
-                              ),
-                              blurRadius: 28,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            // Atmospheric photographic background
-                            Image.asset(
-                              'assets/images/sample.jpg',
-                              fit: BoxFit.cover,
-                              errorBuilder: (ctx, err, stack) => Container(
-                                color: AeviqueTheme.charcoalSurface,
-                              ),
-                            ),
-                            // Dark gradient scrim for editorial legibility
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withValues(alpha: 0.25),
-                                    Colors.black.withValues(alpha: 0.88),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // Content & Prominent Open Photo Button
-                            Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.end,
+          SafeArea(
+            bottom: false,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: AeviqueTheme.accentAmber,
+                      strokeWidth: 2.0,
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isDesktop = constraints.maxWidth >= 768;
+
+                      return CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          // 1. Top Bar: "Explore templates" centered (Phone 1)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                              child: Stack(
+                                alignment: Alignment.center,
                                 children: [
-                                  Text(
-                                    'See Beyond Ordinary.',
-                                    style: AeviqueTheme.wordmarkStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
-                                      color: AeviqueTheme.ivory,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
                                   const Text(
-                                    'Professional color science and portrait retouching.',
+                                    'Explore templates',
                                     style: TextStyle(
                                       fontFamily: 'Inter',
-                                      fontSize: 13,
-                                      color: AeviqueTheme.champagneGoldLight,
-                                      letterSpacing: 0.2,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                      letterSpacing: -0.2,
                                     ),
                                   ),
-                                  const SizedBox(height: 20),
-
-                                  // Prominent Primary Action: Open Photo
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 48,
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            AeviqueTheme.champagneGold,
-                                        foregroundColor: AeviqueTheme.deepBlack,
-                                        elevation: 0,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                        ),
-                                      ),
+                                  Positioned(
+                                    right: 0,
+                                    child: IconButton(
                                       icon: const Icon(
-                                        Icons.add_photo_alternate_rounded,
-                                        size: 20,
-                                        color: AeviqueTheme.deepBlack,
+                                        Icons.add_photo_alternate_outlined,
+                                        color: Colors.white70,
+                                        size: 22,
                                       ),
-                                      label: const Text(
-                                        'Open Photo',
-                                        style: TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.5,
-                                          color: AeviqueTheme.deepBlack,
-                                        ),
-                                      ),
-                                      onPressed: () => _handleImageSelected(
-                                        widget
-                                            .imageRepository
-                                            .pickImageFromGallery,
-                                        'Photo',
-                                      ),
+                                      tooltip: 'Open from Gallery',
+                                      onPressed: () {
+                                        _openPhotograph(
+                                          widget.imageRepository.pickImageFromGallery,
+                                          'Selected Photo',
+                                        );
+                                      },
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // 3. Quick Camera Capture Bar
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 4,
-                      ),
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: AeviqueTheme.charcoalSurface,
-                          side: const BorderSide(color: AeviqueTheme.border),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
                           ),
-                        ),
-                        icon: const Icon(
-                          Icons.camera_alt_outlined,
-                          size: 18,
-                          color: AeviqueTheme.champagneGold,
-                        ),
-                        label: const Text(
-                          'Open Camera',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: AeviqueTheme.ivory,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        onPressed: () => _handleImageSelected(
-                          widget.imageRepository.pickImageFromCamera,
-                          'Camera Capture',
-                        ),
-                      ),
-                    ),
-                  ),
 
-                  // 4. Recent Edits Section (Real Edits or Elegant Empty State)
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'RECENT EDITS',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1.2,
-                              color: AeviqueTheme.slateGray,
+                          // 2. Horizontally scrolling Category Pills (Phone 1)
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height: 38,
+                              child: ListView.separated(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isDesktop ? 48 : 20,
+                                ),
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _categories.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(width: 8),
+                                itemBuilder: (context, index) {
+                                  final cat = _categories[index];
+                                  final isSelected = index == _selectedCategoryIndex;
+                                  return AeviquePillChip(
+                                    label: cat,
+                                    isSelected: isSelected,
+                                    onTap: () {
+                                      setState(() => _selectedCategoryIndex = index);
+                                    },
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                          if (widget.recentEditsRepository
-                              .getRecentEdits()
-                              .isNotEmpty)
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  widget.recentEditsRepository.clear();
-                                });
-                              },
-                              child: const Text(
-                                'Clear',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 11,
-                                  color: AeviqueTheme.slateGray,
+
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                          // 3. Main Showcase Card (Phone 1: "Year in Review", (06), by Gijack.en, Amber FAB)
+                          SliverToBoxAdapter(
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: isDesktop ? 600 : double.infinity,
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isDesktop ? 32 : 20,
+                                  ),
+                                  child: _buildShowcaseCard(context, constraints),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildRecentEditsSection(),
-                    ),
-                  ),
-
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 18,
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Developed by Mrh Rafi',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11,
-                            letterSpacing: 0.5,
-                            color: AeviqueTheme.slateGray.withValues(
-                              alpha: 0.7,
-                            ),
                           ),
-                        ),
-                      ),
-                    ),
+
+                          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                        ],
+                      );
+                    },
                   ),
+          ),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 28)),
-                ],
-              ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AeviqueTheme.charcoalSurface,
-          border: Border(top: BorderSide(color: AeviqueTheme.border, width: 1)),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentNavIndex,
-          onTap: _onBottomNavTapped,
-          backgroundColor: AeviqueTheme.charcoalSurface,
-          selectedItemColor: AeviqueTheme.champagneGold,
-          unselectedItemColor: AeviqueTheme.slateGray,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_filled),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.filter_vintage_outlined),
-              label: 'Presets',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentEditsSection() {
-    final recentEdits = widget.recentEditsRepository.getRecentEdits();
-
-    if (recentEdits.isEmpty) {
-      // Elegant Obsidian Glass Empty State
-      return AeviqueGlass(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
-        showGoldAccent: true,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AeviqueTheme.champagneGold.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.auto_awesome_mosaic_outlined,
-                color: AeviqueTheme.champagneGold,
-                size: 22,
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Studio Canvas Ready',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AeviqueTheme.ivory,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Your exported photographs and recent edits will appear here.\nOpen a photo above to begin creating.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                color: AeviqueTheme.slateGray,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 140,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: recentEdits.length,
-        itemBuilder: (context, index) {
-          final item = recentEdits[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => EditorScreen(
-                      initialImageBytes: item.imageBytes,
-                      imageName: item.name,
-                    ),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: 120,
-                decoration: BoxDecoration(
-                  color: AeviqueTheme.charcoalSurface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AeviqueTheme.border),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // 4. Floating Frosted Glass Bottom Navigation Dock (Phone 1)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              top: false,
+              child: Center(
+                child: AeviqueFloatingDock(
+                  width: 280,
                   children: [
-                    Expanded(
-                      child: Image.memory(
-                        item.imageBytes,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      ),
+                    _buildDockIcon(
+                      icon: Icons.star_rounded,
+                      index: 0,
+                      label: 'Featured',
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Text(
-                        item.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AeviqueTheme.ivory,
-                        ),
-                      ),
+                    _buildDockIcon(
+                      icon: Icons.grid_view_rounded,
+                      index: 1,
+                      label: 'Gallery',
+                    ),
+                    _buildDockIcon(
+                      icon: Icons.tune_rounded,
+                      index: 2,
+                      label: 'Presets',
+                    ),
+                    _buildDockIcon(
+                      icon: Icons.person_outline_rounded,
+                      index: 3,
+                      label: 'Settings',
                     ),
                   ],
                 ),
               ),
             ),
-          );
-        },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShowcaseCard(BuildContext context, BoxConstraints constraints) {
+    final template = _templates[_selectedCategoryIndex % _templates.length];
+    final isDesktop = constraints.maxWidth >= 768;
+    final cardHeight = isDesktop ? 520.0 : 480.0;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        _openPhotograph(
+          () => widget.imageRepository.loadSampleAsset(template['asset']!),
+          template['title']!.replaceAll('\n', ' '),
+          initialPresetId: template['presetId'],
+        );
+      },
+      child: Container(
+        height: cardHeight,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 32,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Photo filling card
+              Image.asset(
+                template['asset']!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: const Color(0xFF161620),
+                  child: const Center(
+                    child: Icon(Icons.image, size: 48, color: Colors.white24),
+                  ),
+                ),
+              ),
+
+              // Smooth glass dark gradient overlays
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35),
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.75),
+                    ],
+                    stops: const [0.0, 0.25, 0.65, 1.0],
+                  ),
+                ),
+              ),
+
+              // Thin specular border inside card
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+
+              // Top details: "(06)" badge top right
+              Positioned(
+                top: 24,
+                right: 24,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      width: 0.6,
+                    ),
+                  ),
+                  child: Text(
+                    template['tag']!,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Top title: "Year in\nReview" (bold clean sans-serif)
+              Positioned(
+                top: 24,
+                left: 24,
+                child: Text(
+                  template['title']!,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 1.15,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+
+              // Bottom left: "by Gijack.en"
+              Positioned(
+                bottom: 28,
+                left: 24,
+                child: Text(
+                  template['author']!,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white70,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+
+              // Bottom right: Amber Floating Action Button "+" with warm bloom
+              Positioned(
+                bottom: 22,
+                right: 22,
+                child: AeviqueAmberFab(
+                  icon: Icons.add,
+                  size: 50,
+                  iconSize: 26,
+                  onPressed: () {
+                    _openPhotograph(
+                      () => widget.imageRepository.loadSampleAsset(template['asset']!),
+                      template['title']!.replaceAll('\n', ' '),
+                      initialPresetId: template['presetId'],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDockIcon({
+    required IconData icon,
+    required int index,
+    required String label,
+  }) {
+    final isSelected = _currentNavIndex == index;
+
+    return GestureDetector(
+      onTap: () => _onBottomNavTapped(index),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: AeviqueTheme.accentAmber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              )
+            : null,
+        child: Icon(
+          icon,
+          size: 22,
+          color: isSelected ? AeviqueTheme.accentAmberLight : AeviqueTheme.textSecondary,
+        ),
       ),
     );
   }

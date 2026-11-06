@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/luma_theme.dart';
+import 'package:flutter/services.dart';
 
 enum _Handle { none, inside, topLeft, topRight, bottomLeft, bottomRight }
 
@@ -8,8 +8,7 @@ class CropOverlayWidget extends StatefulWidget {
   final double cropTop;
   final double cropRight;
   final double cropBottom;
-  final Function(double left, double top, double right, double bottom)
-  onCropChanged;
+  final Function(double left, double top, double right, double bottom) onCropChanged;
 
   const CropOverlayWidget({
     super.key,
@@ -29,24 +28,16 @@ class _CropOverlayWidgetState extends State<CropOverlayWidget> {
   Offset? _lastPanPos;
 
   _Handle _hitTest(Offset local, Size size) {
-    const handleHitRadius = 30.0;
+    const handleHitRadius = 36.0;
     final l = widget.cropLeft * size.width;
     final t = widget.cropTop * size.height;
     final r = widget.cropRight * size.width;
     final b = widget.cropBottom * size.height;
 
-    if ((local - Offset(l, t)).distance < handleHitRadius) {
-      return _Handle.topLeft;
-    }
-    if ((local - Offset(r, t)).distance < handleHitRadius) {
-      return _Handle.topRight;
-    }
-    if ((local - Offset(l, b)).distance < handleHitRadius) {
-      return _Handle.bottomLeft;
-    }
-    if ((local - Offset(r, b)).distance < handleHitRadius) {
-      return _Handle.bottomRight;
-    }
+    if ((local - Offset(l, t)).distance < handleHitRadius) return _Handle.topLeft;
+    if ((local - Offset(r, t)).distance < handleHitRadius) return _Handle.topRight;
+    if ((local - Offset(l, b)).distance < handleHitRadius) return _Handle.bottomLeft;
+    if ((local - Offset(r, b)).distance < handleHitRadius) return _Handle.bottomRight;
 
     if (local.dx >= l && local.dx <= r && local.dy >= t && local.dy <= b) {
       return _Handle.inside;
@@ -58,6 +49,9 @@ class _CropOverlayWidgetState extends State<CropOverlayWidget> {
   void _onPanDown(DragDownDetails details, Size size) {
     _activeHandle = _hitTest(details.localPosition, size);
     _lastPanPos = details.localPosition;
+    if (_activeHandle != _Handle.none) {
+      HapticFeedback.selectionClick();
+    }
   }
 
   void _onPanUpdate(DragUpdateDetails details, Size size) {
@@ -72,7 +66,7 @@ class _CropOverlayWidgetState extends State<CropOverlayWidget> {
     var newR = widget.cropRight;
     var newB = widget.cropBottom;
 
-    const minSize = 0.1;
+    const minSize = 0.12;
 
     switch (_activeHandle) {
       case _Handle.inside:
@@ -157,9 +151,9 @@ class _CropPainter extends CustomPainter {
     final b = cropBottom * size.height;
     final cropRect = Rect.fromLTRB(l, t, r, b);
 
-    // 1. Darken outside the crop box
+    // 1. Dark translucent scrim outside the crop box
     final overlayPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.6)
+      ..color = Colors.black.withValues(alpha: 0.65)
       ..style = PaintingStyle.fill;
 
     canvas.drawRect(Rect.fromLTRB(0, 0, size.width, t), overlayPaint);
@@ -167,54 +161,57 @@ class _CropPainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTRB(0, t, l, b), overlayPaint);
     canvas.drawRect(Rect.fromLTRB(r, t, size.width, b), overlayPaint);
 
-    // 2. Crop border
+    // 2. Crop border (thin clean white)
     final borderPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.8)
+      ..color = Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
     canvas.drawRect(cropRect, borderPaint);
 
-    // 3. Rule-of-Thirds Grid
+    // 3. Rule-of-Thirds Grid (reference Phone 3)
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
+      ..color = Colors.white.withValues(alpha: 0.22)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
+      ..strokeWidth = 0.6;
 
     final w = r - l;
     final h = b - t;
     canvas.drawLine(Offset(l + w / 3, t), Offset(l + w / 3, b), gridPaint);
-    canvas.drawLine(
-      Offset(l + 2 * w / 3, t),
-      Offset(l + 2 * w / 3, b),
-      gridPaint,
-    );
+    canvas.drawLine(Offset(l + 2 * w / 3, t), Offset(l + 2 * w / 3, b), gridPaint);
     canvas.drawLine(Offset(l, t + h / 3), Offset(r, t + h / 3), gridPaint);
-    canvas.drawLine(
-      Offset(l, t + 2 * h / 3),
-      Offset(r, t + 2 * h / 3),
-      gridPaint,
-    );
+    canvas.drawLine(Offset(l, t + 2 * h / 3), Offset(r, t + 2 * h / 3), gridPaint);
 
-    // 4. Corner Handles
-    final handlePaint = Paint()
-      ..color = LumaTheme.accent
+    // 4. Corner Handles & Dot Nodes (reference Phone 3)
+    final cornerDotPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    const dotRadius = 3.2;
+    canvas.drawCircle(Offset(l, t), dotRadius, cornerDotPaint);
+    canvas.drawCircle(Offset(r, t), dotRadius, cornerDotPaint);
+    canvas.drawCircle(Offset(l, b), dotRadius, cornerDotPaint);
+    canvas.drawCircle(Offset(r, b), dotRadius, cornerDotPaint);
+
+    // Subtle corner brackets
+    final bracketPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.9)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
+      ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.square;
 
-    const arm = 18.0;
+    const arm = 14.0;
     // Top-Left
-    canvas.drawLine(Offset(l, t), Offset(l + arm, t), handlePaint);
-    canvas.drawLine(Offset(l, t), Offset(l, t + arm), handlePaint);
+    canvas.drawLine(Offset(l, t), Offset(l + arm, t), bracketPaint);
+    canvas.drawLine(Offset(l, t), Offset(l, t + arm), bracketPaint);
     // Top-Right
-    canvas.drawLine(Offset(r, t), Offset(r - arm, t), handlePaint);
-    canvas.drawLine(Offset(r, t), Offset(r, t + arm), handlePaint);
+    canvas.drawLine(Offset(r, t), Offset(r - arm, t), bracketPaint);
+    canvas.drawLine(Offset(r, t), Offset(r, t + arm), bracketPaint);
     // Bottom-Left
-    canvas.drawLine(Offset(l, b), Offset(l + arm, b), handlePaint);
-    canvas.drawLine(Offset(l, b), Offset(l, b - arm), handlePaint);
+    canvas.drawLine(Offset(l, b), Offset(l + arm, b), bracketPaint);
+    canvas.drawLine(Offset(l, b), Offset(l, b - arm), bracketPaint);
     // Bottom-Right
-    canvas.drawLine(Offset(r, b), Offset(r - arm, b), handlePaint);
-    canvas.drawLine(Offset(r, b), Offset(r, b - arm), handlePaint);
+    canvas.drawLine(Offset(r, b), Offset(r - arm, b), bracketPaint);
+    canvas.drawLine(Offset(r, b), Offset(r, b - arm), bracketPaint);
   }
 
   @override

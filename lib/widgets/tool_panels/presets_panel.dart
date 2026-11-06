@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/presets/preset_catalogue.dart';
-import '../../theme/luma_theme.dart';
+import '../../theme/aevique_theme.dart';
+import '../aevique_glass.dart';
 
 class PresetsPanel extends StatelessWidget {
   final String? activePresetName;
@@ -20,105 +22,86 @@ class PresetsPanel extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Original Cinematic Presets',
+              const Text(
+                'Cinematic Presets',
                 style: TextStyle(
+                  fontFamily: 'Inter',
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                  color: LumaTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                  color: AeviqueTheme.textSecondary,
                 ),
               ),
               if (activePresetName != null)
-                TextButton(
-                  onPressed: onClearPreset,
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    onClearPreset();
+                  },
                   child: const Text(
-                    'Clear Preset',
-                    style: TextStyle(color: LumaTheme.accent, fontSize: 12),
+                    'Clear',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AeviqueTheme.accentAmber,
+                    ),
                   ),
                 ),
             ],
           ),
         ),
         SizedBox(
-          height: 120,
-          child: ListView.builder(
+          height: 100,
+          child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             itemCount: presets.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               final preset = presets[index];
               final isSelected = activePresetName == preset.name;
 
-              return Padding(
-                padding: const EdgeInsets.only(right: 12.0),
-                child: GestureDetector(
-                  onTap: () => onPresetSelected(preset),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 110,
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onPresetSelected(preset);
+                },
+                child: SizedBox(
+                  width: 100,
+                  child: AeviqueGlass(
+                    borderRadius: BorderRadius.circular(16),
+                    showAmberAccent: isSelected,
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? LumaTheme.accent.withValues(alpha: 0.15)
-                          : LumaTheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? LumaTheme.accent : LumaTheme.border,
-                        width: isSelected ? 1.5 : 1.0,
-                      ),
-                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? LumaTheme.accent
-                                : LumaTheme.surfaceElevated,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Icon(
-                            Icons.filter_vintage_rounded,
-                            size: 16,
-                            color: isSelected
-                                ? LumaTheme.background
-                                : LumaTheme.textSecondary,
-                          ),
-                        ),
-                        const Spacer(),
                         Text(
                           preset.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
+                            fontFamily: 'Inter',
                             fontSize: 12,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                            color: isSelected
-                                ? LumaTheme.accent
-                                : LumaTheme.textPrimary,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 2),
                         Text(
                           preset.description,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 9,
-                            color: LumaTheme.textMuted,
+                            fontFamily: 'Inter',
+                            fontSize: 10,
+                            color: AeviqueTheme.textMuted,
                           ),
                         ),
                       ],
@@ -129,7 +112,6 @@ class PresetsPanel extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(height: 12),
       ],
     );
   }

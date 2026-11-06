@@ -6,6 +6,7 @@ import 'package:lumaforge/screens/home_screen.dart';
 import 'package:lumaforge/screens/presets_screen.dart';
 import 'package:lumaforge/services/image_repository.dart';
 import 'package:lumaforge/theme/aevique_theme.dart';
+import 'package:lumaforge/widgets/aevique_ui_components.dart';
 
 class MockImageRepository implements ImageRepository {
   @override
@@ -41,7 +42,7 @@ void main() {
   GoogleFonts.config.allowRuntimeFetching = false;
 
   testWidgets(
-    'HomeScreen displays AEVIQUE branding, Open Photo, and navigates to Presets',
+    'HomeScreen matches Phone 1 reference: Explore templates, categories, and floating dock',
     (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
@@ -60,32 +61,29 @@ void main() {
       );
       await tester.pump();
 
-      // Verify Brand Header & Tagline
-      expect(find.text('AEVIQUE'), findsOneWidget);
-      expect(find.text('See Beyond Ordinary.'), findsOneWidget);
+      // Verify Phone 1 Top Bar
+      expect(find.text('Explore templates'), findsOneWidget);
 
-      // Verify Prominent Open Photo primary CTA
-      expect(find.text('Open Photo'), findsOneWidget);
+      // Verify Phone 1 Category Pills
+      expect(find.text('Reel'), findsOneWidget);
+      expect(find.text('Post'), findsOneWidget);
+      expect(find.text('Vintage'), findsOneWidget);
+      expect(find.text('Classic'), findsOneWidget);
 
-      // Verify Open Camera action
-      expect(find.text('Open Camera'), findsOneWidget);
+      // Verify Main Showcase Card
+      expect(find.text('Year in\nReview'), findsOneWidget);
+      expect(find.text('(06)'), findsOneWidget);
+      expect(find.text('by Gijack.en'), findsOneWidget);
+      expect(find.byType(AeviqueAmberFab), findsOneWidget);
 
-      // Verify Recent Edits section and empty state
-      expect(find.text('RECENT EDITS'), findsOneWidget);
-      expect(find.text('Studio Canvas Ready'), findsOneWidget);
+      // Verify Floating Bottom Dock
+      expect(find.byType(AeviqueFloatingDock), findsOneWidget);
+      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
 
-      // Verify Developer Credit
-      expect(find.text('Developed by Mrh Rafi'), findsOneWidget);
-
-      // Verify Bottom Navigation items: Home and Presets
-      expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Presets'), findsOneWidget);
-
-      // Verify Header Settings icon
-      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
-
-      // Tap Presets bottom navigation item
-      await tester.tap(find.text('Presets'));
+      // Tap Presets dock item (index 2: tune_rounded)
+      await tester.tap(find.byIcon(Icons.tune_rounded));
       await tester.pump();
 
       // Verify PresetsScreen is displayed

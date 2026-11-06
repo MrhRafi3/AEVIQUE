@@ -1,201 +1,215 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
 import '../../theme/aevique_theme.dart';
-import '../luma_slider.dart';
+import '../aevique_ui_components.dart';
+import '../curve_editor_widget.dart';
 
 enum TuneMode { all, light, color, detail }
 
-class TunePanel extends StatelessWidget {
+class TunePanel extends StatefulWidget {
   final TuneAdjustments tune;
   final ValueChanged<TuneAdjustments> onChanged;
+  final ToneCurves? curves;
+  final ValueChanged<ToneCurves>? onCurvesChanged;
   final TuneMode mode;
 
   const TunePanel({
     super.key,
     required this.tune,
     required this.onChanged,
+    this.curves,
+    this.onCurvesChanged,
     this.mode = TuneMode.all,
   });
 
+  @override
+  State<TunePanel> createState() => _TunePanelState();
+}
+
+class _TunePanelState extends State<TunePanel> {
+  double _grainValue = 0.0;
+
   void _applyAutoTune() {
-    if (mode == TuneMode.color) {
-      onChanged(tune.copyWith(vibrance: 16.0, saturation: 6.0, warmth: 4.0));
-    } else {
-      onChanged(
-        tune.copyWith(
-          exposure: 5.0,
-          contrast: 12.0,
-          vibrance: 18.0,
-          highlights: -12.0,
-          shadows: 14.0,
-          warmth: 4.0,
-          clarity: 8.0,
-        ),
-      );
-    }
+    HapticFeedback.lightImpact();
+    widget.onChanged(
+      widget.tune.copyWith(
+        exposure: 6.0,
+        contrast: 14.0,
+        vibrance: 16.0,
+        highlights: -10.0,
+        shadows: 12.0,
+        warmth: 4.0,
+        clarity: 8.0,
+      ),
+    );
   }
 
   void _resetTune() {
-    if (mode == TuneMode.light) {
-      onChanged(
-        tune.copyWith(
-          exposure: 0.0,
-          brightness: 0.0,
-          contrast: 0.0,
-          highlights: 0.0,
-          shadows: 0.0,
-          whites: 0.0,
-          blacks: 0.0,
-        ),
-      );
-    } else if (mode == TuneMode.color) {
-      onChanged(
-        tune.copyWith(saturation: 0.0, vibrance: 0.0, warmth: 0.0, tint: 0.0),
-      );
-    } else {
-      onChanged(const TuneAdjustments());
-    }
+    HapticFeedback.lightImpact();
+    widget.onChanged(const TuneAdjustments());
+    setState(() => _grainValue = 0.0);
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> sliders = [];
-
-    if (mode == TuneMode.light || mode == TuneMode.all) {
-      sliders.addAll([
-        LumaSlider(
-          title: 'Exposure',
-          value: tune.exposure,
-          onChanged: (v) => onChanged(tune.copyWith(exposure: v)),
-        ),
-        LumaSlider(
-          title: 'Brightness',
-          value: tune.brightness,
-          onChanged: (v) => onChanged(tune.copyWith(brightness: v)),
-        ),
-        LumaSlider(
-          title: 'Contrast',
-          value: tune.contrast,
-          onChanged: (v) => onChanged(tune.copyWith(contrast: v)),
-        ),
-        LumaSlider(
-          title: 'Highlights',
-          value: tune.highlights,
-          onChanged: (v) => onChanged(tune.copyWith(highlights: v)),
-        ),
-        LumaSlider(
-          title: 'Shadows',
-          value: tune.shadows,
-          onChanged: (v) => onChanged(tune.copyWith(shadows: v)),
-        ),
-        LumaSlider(
-          title: 'Whites',
-          value: tune.whites,
-          onChanged: (v) => onChanged(tune.copyWith(whites: v)),
-        ),
-        LumaSlider(
-          title: 'Blacks',
-          value: tune.blacks,
-          onChanged: (v) => onChanged(tune.copyWith(blacks: v)),
-        ),
-      ]);
-    }
-
-    if (mode == TuneMode.color || mode == TuneMode.all) {
-      sliders.addAll([
-        LumaSlider(
-          title: 'Saturation',
-          value: tune.saturation,
-          onChanged: (v) => onChanged(tune.copyWith(saturation: v)),
-        ),
-        LumaSlider(
-          title: 'Vibrance',
-          value: tune.vibrance,
-          onChanged: (v) => onChanged(tune.copyWith(vibrance: v)),
-        ),
-        LumaSlider(
-          title: 'Temperature',
-          value: tune.warmth,
-          onChanged: (v) => onChanged(tune.copyWith(warmth: v)),
-        ),
-        LumaSlider(
-          title: 'Tint',
-          value: tune.tint,
-          onChanged: (v) => onChanged(tune.copyWith(tint: v)),
-        ),
-      ]);
-    }
-
-    if (mode == TuneMode.all) {
-      sliders.addAll([
-        LumaSlider(
-          title: 'Clarity',
-          value: tune.clarity,
-          onChanged: (v) => onChanged(tune.copyWith(clarity: v)),
-        ),
-        LumaSlider(
-          title: 'Ambiance',
-          value: tune.ambiance,
-          onChanged: (v) => onChanged(tune.copyWith(ambiance: v)),
-        ),
-      ]);
-    }
-
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 1. Top Row of Circular Rotary Dials with Perimeter Ticks (Phone 5)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: AeviqueTheme.elevatedCharcoal,
-                  side: const BorderSide(color: AeviqueTheme.border),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                icon: const Icon(
-                  Icons.auto_fix_high_rounded,
-                  size: 14,
-                  color: AeviqueTheme.champagneGold,
-                ),
-                label: const Text(
-                  'Auto',
-                  style: TextStyle(
-                    color: AeviqueTheme.ivory,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                onPressed: _applyAutoTune,
+              AeviqueCircularDial(
+                label: 'Exposure',
+                icon: Icons.wb_sunny_outlined,
+                value: widget.tune.exposure,
+                min: -100,
+                max: 100,
+                onChanged: (v) => widget.onChanged(widget.tune.copyWith(exposure: v)),
               ),
-              TextButton.icon(
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  size: 14,
-                  color: AeviqueTheme.slateGray,
-                ),
-                label: const Text(
-                  'Reset',
-                  style: TextStyle(color: AeviqueTheme.slateGray, fontSize: 12),
-                ),
-                onPressed: _resetTune,
+              AeviqueCircularDial(
+                label: 'Contrast',
+                icon: Icons.contrast_rounded,
+                value: widget.tune.contrast,
+                min: -100,
+                max: 100,
+                onChanged: (v) => widget.onChanged(widget.tune.copyWith(contrast: v)),
+              ),
+              AeviqueCircularDial(
+                label: 'Grain',
+                icon: Icons.grain_rounded,
+                value: _grainValue,
+                min: 0,
+                max: 100,
+                onChanged: (v) => setState(() => _grainValue = v),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: 230,
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 16),
-            children: sliders,
+
+        const SizedBox(height: 10),
+
+        // 2. Side-by-Side: Precision Sliders (Left) & Tone Curve Box (Right) (Phone 5)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Column: Sliders
+              Expanded(
+                flex: 5,
+                child: SizedBox(
+                  height: 180,
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      AeviquePrecisionSlider(
+                        label: 'Brightness',
+                        value: widget.tune.brightness,
+                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(brightness: v)),
+                        onReset: () => widget.onChanged(widget.tune.copyWith(brightness: 0.0)),
+                      ),
+                      AeviquePrecisionSlider(
+                        label: 'Contrast',
+                        value: widget.tune.contrast,
+                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(contrast: v)),
+                        onReset: () => widget.onChanged(widget.tune.copyWith(contrast: 0.0)),
+                      ),
+                      AeviquePrecisionSlider(
+                        label: 'Saturation',
+                        value: widget.tune.saturation,
+                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(saturation: v)),
+                        onReset: () => widget.onChanged(widget.tune.copyWith(saturation: 0.0)),
+                      ),
+                      AeviquePrecisionSlider(
+                        label: 'Warmth',
+                        value: widget.tune.warmth,
+                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(warmth: v)),
+                        onReset: () => widget.onChanged(widget.tune.copyWith(warmth: 0.0)),
+                      ),
+                      AeviquePrecisionSlider(
+                        label: 'Highlights',
+                        value: widget.tune.highlights,
+                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(highlights: v)),
+                        onReset: () => widget.onChanged(widget.tune.copyWith(highlights: 0.0)),
+                      ),
+                      AeviquePrecisionSlider(
+                        label: 'Shadows',
+                        value: widget.tune.shadows,
+                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(shadows: v)),
+                        onReset: () => widget.onChanged(widget.tune.copyWith(shadows: 0.0)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // Right Column: Tone Curve Box (Phone 5)
+              if (widget.curves != null && widget.onCurvesChanged != null)
+                SizedBox(
+                  width: 130,
+                  height: 130,
+                  child: CurveEditorWidget(
+                    curves: widget.curves!,
+                    onCurvesChanged: widget.onCurvesChanged!,
+                    compactMode: true,
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // Quick Auto & Reset bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: _applyAutoTune,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, size: 14, color: AeviqueTheme.accentAmber),
+                      SizedBox(width: 6),
+                      Text(
+                        'Auto',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: _resetTune,
+                child: const Text(
+                  'Reset',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AeviqueTheme.textMuted,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

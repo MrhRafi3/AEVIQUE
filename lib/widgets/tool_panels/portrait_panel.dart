@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
 import '../../theme/aevique_theme.dart';
-import '../luma_slider.dart';
+import '../aevique_glass.dart';
+import '../aevique_ui_components.dart';
 
 enum PortraitSubTool { smooth, brighten, blemish }
 
@@ -42,14 +44,13 @@ class _PortraitPanelState extends State<PortraitPanel> {
       children: [
         // Sub-tool switcher chips (Smooth, Tone, Blemish)
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Row(
             children: [
               _buildSubToolTab(
                 subTool: PortraitSubTool.smooth,
-                label: 'Skin Smooth',
+                label: 'Smooth',
                 icon: Icons.auto_fix_high_rounded,
-                valueText: '${widget.portrait.skinSmooth.round()}',
                 isActive: widget.portrait.skinSmooth > 0,
               ),
               const SizedBox(width: 8),
@@ -57,30 +58,22 @@ class _PortraitPanelState extends State<PortraitPanel> {
                 subTool: PortraitSubTool.brighten,
                 label: 'Skin Glow',
                 icon: Icons.wb_sunny_outlined,
-                valueText: '${widget.portrait.skinBrighten.round()}',
                 isActive: widget.portrait.skinBrighten.abs() > 0,
               ),
               const SizedBox(width: 8),
               _buildSubToolTab(
                 subTool: PortraitSubTool.blemish,
-                label: 'Blemish Heal',
+                label: 'Blemish',
                 icon: Icons.healing_rounded,
-                valueText: widget.portrait.blemishes.isNotEmpty
-                    ? '${widget.portrait.blemishes.length}'
-                    : null,
-                isActive:
-                    widget.portrait.blemishes.isNotEmpty ||
-                    widget.isBlemishModeActive,
+                isActive: widget.portrait.blemishes.isNotEmpty || widget.isBlemishModeActive,
               ),
             ],
           ),
         ),
 
-        const Divider(color: AeviqueTheme.border, height: 1),
-
         // Active tool controls
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
           child: _buildActiveControls(),
         ),
       ],
@@ -91,13 +84,13 @@ class _PortraitPanelState extends State<PortraitPanel> {
     required PortraitSubTool subTool,
     required String label,
     required IconData icon,
-    String? valueText,
     required bool isActive,
   }) {
     final isSelected = _activeSubTool == subTool;
     return Expanded(
       child: GestureDetector(
         onTap: () {
+          HapticFeedback.selectionClick();
           setState(() => _activeSubTool = subTool);
           if (subTool == PortraitSubTool.blemish) {
             widget.onBlemishModeChanged(true);
@@ -105,34 +98,17 @@ class _PortraitPanelState extends State<PortraitPanel> {
             widget.onBlemishModeChanged(false);
           }
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AeviqueTheme.champagneGold.withValues(alpha: 0.16)
-                : AeviqueTheme.charcoalSurface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? AeviqueTheme.champagneGold
-                  : (isActive
-                        ? AeviqueTheme.champagneGold.withValues(alpha: 0.4)
-                        : AeviqueTheme.border),
-              width: isSelected ? 1.5 : 1.0,
-            ),
-          ),
+        child: AeviqueGlass(
+          borderRadius: BorderRadius.circular(14),
+          showAmberAccent: isSelected,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 18,
-                color: isSelected
-                    ? AeviqueTheme.champagneGold
-                    : (isActive
-                          ? AeviqueTheme.champagneGoldLight
-                          : AeviqueTheme.slateGray),
+                size: 16,
+                color: isSelected ? AeviqueTheme.accentAmberLight : (isActive ? Colors.white : AeviqueTheme.textSecondary),
               ),
               const SizedBox(height: 4),
               Text(
@@ -140,26 +116,10 @@ class _PortraitPanelState extends State<PortraitPanel> {
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? AeviqueTheme.ivory
-                      : AeviqueTheme.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
                 ),
               ),
-              if (valueText != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  valueText,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected
-                        ? AeviqueTheme.champagneGold
-                        : AeviqueTheme.slateGray,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -172,29 +132,15 @@ class _PortraitPanelState extends State<PortraitPanel> {
       case PortraitSubTool.smooth:
         return Column(
           children: [
-            LumaSlider(
-              title: 'Skin Smoothing',
+            AeviquePrecisionSlider(
+              label: 'Skin Smoothing',
               value: widget.portrait.skinSmooth,
               min: 0.0,
               max: 100.0,
-              onReset: () =>
-                  widget.onChanged(widget.portrait.copyWith(skinSmooth: 0.0)),
-              unit: '',
               onChanged: (val) {
                 widget.onChanged(widget.portrait.copyWith(skinSmooth: val));
               },
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              child: Text(
-                'Preserves eyes, eyebrows, lips and hair with edge-guided bilateral filtering.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 10,
-                  color: AeviqueTheme.slateGray,
-                ),
-              ),
+              onReset: () => widget.onChanged(widget.portrait.copyWith(skinSmooth: 0.0)),
             ),
           ],
         );
@@ -202,157 +148,72 @@ class _PortraitPanelState extends State<PortraitPanel> {
       case PortraitSubTool.brighten:
         return Column(
           children: [
-            LumaSlider(
-              title: 'Radiant Skin Tone Glow',
+            AeviquePrecisionSlider(
+              label: 'Skin Tone Glow',
               value: widget.portrait.skinBrighten,
               min: -50.0,
               max: 50.0,
-              onReset: () =>
-                  widget.onChanged(widget.portrait.copyWith(skinBrighten: 0.0)),
-              unit: '',
               onChanged: (val) {
                 widget.onChanged(widget.portrait.copyWith(skinBrighten: val));
               },
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              child: Text(
-                'Selectively brightens facial midtones without clipping or washing out shadows.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 10,
-                  color: AeviqueTheme.slateGray,
-                ),
-              ),
+              onReset: () => widget.onChanged(widget.portrait.copyWith(skinBrighten: 0.0)),
             ),
           ],
         );
 
       case PortraitSubTool.blemish:
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+        return Column(
+          children: [
+            AeviquePrecisionSlider(
+              label: 'Heal Brush Radius',
+              value: widget.blemishRadius * 1000.0,
+              min: 10.0,
+              max: 60.0,
+              onChanged: (val) => widget.onBlemishRadiusChanged(val / 1000.0),
+              onReset: () => widget.onBlemishRadiusChanged(0.025),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: widget.onUndoLastBlemish,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.undo, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text('Undo Spot', style: TextStyle(fontSize: 11, color: Colors.white)),
+                      ],
+                    ),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: AeviqueTheme.champagneGold.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AeviqueTheme.champagneGold.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.touch_app_rounded,
-                      color: AeviqueTheme.champagneGold,
-                      size: 20,
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: widget.onClearBlemishes,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        widget.portrait.blemishes.isEmpty
-                            ? 'Tap on any blemish or pimple on the photo to heal it.'
-                            : '${widget.portrait.blemishes.length} blemish spot(s) healed. Tap photo to heal more.',
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
-                          color: AeviqueTheme.ivory,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Spot size slider
-              Row(
-                children: [
-                  const Text(
-                    'Heal Radius',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AeviqueTheme.textSecondary,
+                    child: const Row(
+                      children: [
+                        Icon(Icons.clear_all, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text('Clear All', style: TextStyle(fontSize: 11, color: Colors.white)),
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderThemeData(
-                        activeTrackColor: AeviqueTheme.champagneGold,
-                        inactiveTrackColor: AeviqueTheme.border,
-                        thumbColor: AeviqueTheme.champagneGold,
-                        trackHeight: 2.0,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 6,
-                        ),
-                      ),
-                      child: Slider(
-                        value: widget.blemishRadius,
-                        min: 0.015,
-                        max: 0.06,
-                        onChanged: widget.onBlemishRadiusChanged,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${(widget.blemishRadius * 1000).round()}',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11,
-                      color: AeviqueTheme.champagneGold,
-                    ),
-                  ),
-                ],
-              ),
-              if (widget.portrait.blemishes.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton.icon(
-                      onPressed: widget.onUndoLastBlemish,
-                      icon: const Icon(Icons.undo_rounded, size: 16),
-                      label: const Text(
-                        'Undo Last Spot',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 11),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AeviqueTheme.champagneGold,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: widget.onClearBlemishes,
-                      icon: const Icon(Icons.clear_all_rounded, size: 16),
-                      label: const Text(
-                        'Clear All',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 11),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFFEF5350),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
-            ],
-          ),
+            ),
+          ],
         );
     }
   }

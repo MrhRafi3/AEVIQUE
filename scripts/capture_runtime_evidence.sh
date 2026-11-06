@@ -1,0 +1,57 @@
+#!/bin/bash
+set -e
+
+mkdir -p review_screenshots
+
+SCREENS=(
+  "home:01_home_screen.png"
+  "gallery:02_gallery_screen.png"
+  "editor:03_editor_canvas.png"
+  "crop:04_crop_screen.png"
+  "adjust:05_adjust_panel.png"
+  "filter:06_filter_panel.png"
+  "curves:07_curves_panel.png"
+  "effects:08_effects_panel.png"
+  "presets:09_presets_screen.png"
+  "export:10_export_screen.png"
+  "settings:11_settings_screen.png"
+)
+
+# Function to get window id
+get_window_id() {
+  swift -e '
+import Cocoa
+let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
+for w in windowList {
+    if let owner = w[kCGWindowOwnerName as String] as? String, owner.lowercased().contains("lumaforge") {
+        print("\(w[kCGWindowNumber as String] ?? 0)")
+        break
+    }
+}
+'
+}
+
+for item in "${SCREENS[@]}"; do
+  SCREEN="${item%%:*}"
+  OUTFILE="review_screenshots/${item##*:}"
+  
+  echo "Capturing screen: $SCREEN -> $OUTFILE"
+  killall lumaforge 2>/dev/null || true
+  sleep 1
+  
+  open -n build/macos/Build/Products/Debug/lumaforge.app --args --screen="$SCREEN"
+  sleep 3
+  
+  WID=$(get_window_id)
+  if [ -n "$WID" ] && [ "$WID" -gt 0 ]; then
+    screencapture -l"$WID" "$OUTFILE"
+    echo "  Captured window $WID to $OUTFILE ($(ls -lh "$OUTFILE" | awk '{print $5}'))"
+  else
+    echo "  Failed to find window for $SCREEN"
+  fi
+  
+  killall lumaforge 2>/dev/null || true
+  sleep 1
+done
+
+echo "All screenshots captured successfully!"

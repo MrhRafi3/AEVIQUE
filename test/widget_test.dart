@@ -21,7 +21,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  testWidgets('AeviqueApp launches and displays AEVIQUE branding', (
+  testWidgets('AeviqueApp launches and displays reference Home Screen', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -36,9 +36,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('AEVIQUE'), findsOneWidget);
-    expect(find.text('Open Photo'), findsOneWidget);
-    expect(find.text('Open Camera'), findsOneWidget);
-    expect(find.text('Developed by Mrh Rafi'), findsOneWidget);
+    expect(find.text('Explore templates'), findsOneWidget);
+    expect(find.text('Vintage'), findsOneWidget);
+    expect(find.text('Year in\nReview'), findsOneWidget);
   });
 }

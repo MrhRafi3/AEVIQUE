@@ -44,3 +44,6 @@ native/**/build/
 *.dylib
 *.so
 *.dll
+
+# Review artifacts
+review_screenshots/

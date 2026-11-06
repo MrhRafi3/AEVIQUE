@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/luma_theme.dart';
-import '../luma_slider.dart';
+import '../../theme/aevique_theme.dart';
+import '../aevique_ui_components.dart';
 
 class DetailsPanel extends StatelessWidget {
   final DetailsAdjustments details;
@@ -15,45 +16,48 @@ class DetailsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton.icon(
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  size: 14,
-                  color: LumaTheme.textMuted,
-                ),
-                label: const Text(
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  onChanged(const DetailsAdjustments());
+                },
+                child: const Text(
                   'Reset Details',
-                  style: TextStyle(color: LumaTheme.textMuted, fontSize: 12),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    color: AeviqueTheme.textMuted,
+                  ),
                 ),
-                onPressed: () => onChanged(const DetailsAdjustments()),
               ),
             ],
           ),
-        ),
-        LumaSlider(
-          title: 'Sharpening',
-          value: details.sharpening,
-          min: 0.0,
-          max: 100.0,
-          onChanged: (v) => onChanged(details.copyWith(sharpening: v)),
-        ),
-        LumaSlider(
-          title: 'Structure',
-          value: details.structure,
-          min: 0.0,
-          max: 100.0,
-          onChanged: (v) => onChanged(details.copyWith(structure: v)),
-        ),
-        const SizedBox(height: 12),
-      ],
+          AeviquePrecisionSlider(
+            label: 'Sharpening',
+            value: details.sharpening,
+            min: 0.0,
+            max: 100.0,
+            onChanged: (v) => onChanged(details.copyWith(sharpening: v)),
+            onReset: () => onChanged(details.copyWith(sharpening: 0.0)),
+          ),
+          AeviquePrecisionSlider(
+            label: 'Structure',
+            value: details.structure,
+            min: 0.0,
+            max: 100.0,
+            onChanged: (v) => onChanged(details.copyWith(structure: v)),
+            onReset: () => onChanged(details.copyWith(structure: 0.0)),
+          ),
+        ],
+      ),
     );
   }
 }

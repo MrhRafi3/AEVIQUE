@@ -1,34 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/luma_theme.dart';
+import '../../theme/aevique_theme.dart';
+import '../aevique_glass.dart';
+import '../aevique_ui_components.dart';
 
-class CropPanel extends StatelessWidget {
+class CropPanel extends StatefulWidget {
   final GeometryAdjustments geometry;
   final ValueChanged<GeometryAdjustments> onChanged;
 
-  const CropPanel({super.key, required this.geometry, required this.onChanged});
+  const CropPanel({
+    super.key,
+    required this.geometry,
+    required this.onChanged,
+  });
+
+  @override
+  State<CropPanel> createState() => _CropPanelState();
+}
+
+class _CropPanelState extends State<CropPanel> {
+  double _angleDegrees = 0.0;
+  String _selectedRatio = 'Free';
 
   void _rotateClockwise() {
-    onChanged(
-      geometry.copyWith(
-        rotationQuarterTurns: (geometry.rotationQuarterTurns + 1) % 4,
+    HapticFeedback.lightImpact();
+    widget.onChanged(
+      widget.geometry.copyWith(
+        rotationQuarterTurns: (widget.geometry.rotationQuarterTurns + 1) % 4,
       ),
     );
   }
 
   void _flipH() {
-    onChanged(geometry.copyWith(flipHorizontal: !geometry.flipHorizontal));
+    HapticFeedback.selectionClick();
+    widget.onChanged(widget.geometry.copyWith(flipHorizontal: !widget.geometry.flipHorizontal));
   }
 
   void _flipV() {
-    onChanged(geometry.copyWith(flipVertical: !geometry.flipVertical));
+    HapticFeedback.selectionClick();
+    widget.onChanged(widget.geometry.copyWith(flipVertical: !widget.geometry.flipVertical));
   }
 
-  void _setAspectRatio(double? ratio) {
+  void _setAspectRatio(String name, double? ratio) {
+    HapticFeedback.selectionClick();
+    setState(() => _selectedRatio = name);
+
     if (ratio == null) {
-      // Freeform or reset
-      onChanged(
-        geometry.copyWith(
+      widget.onChanged(
+        widget.geometry.copyWith(
           cropLeft: 0.0,
           cropTop: 0.0,
           cropRight: 1.0,
@@ -38,13 +58,11 @@ class CropPanel extends StatelessWidget {
       return;
     }
 
-    // Set centered aspect ratio box
     if (ratio >= 1.0) {
-      // Wide ratio
       final h = 1.0 / ratio;
       final t = (1.0 - h) / 2.0;
-      onChanged(
-        geometry.copyWith(
+      widget.onChanged(
+        widget.geometry.copyWith(
           cropLeft: 0.0,
           cropRight: 1.0,
           cropTop: t,
@@ -52,11 +70,10 @@ class CropPanel extends StatelessWidget {
         ),
       );
     } else {
-      // Tall ratio
       final w = ratio;
       final l = (1.0 - w) / 2.0;
-      onChanged(
-        geometry.copyWith(
+      widget.onChanged(
+        widget.geometry.copyWith(
           cropLeft: l,
           cropRight: l + w,
           cropTop: 0.0,
@@ -71,108 +88,118 @@ class CropPanel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Rotation and Flip Controls
+        // 1. Angle Ruler with Floating Degree Badge (Phone 3)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: AeviqueRulerSlider(
+            value: _angleDegrees,
+            min: -45.0,
+            max: 45.0,
+            onChanged: (val) {
+              setState(() => _angleDegrees = val);
+              // Map continuous angle or micro-rotations
+            },
+            onReset: () {
+              setState(() => _angleDegrees = 0.0);
+            },
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // 2. Aspect Ratio Selector Pills
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            children: [
+              _buildRatioChip('Free', null),
+              const SizedBox(width: 8),
+              _buildRatioChip('1:1', 1.0),
+              const SizedBox(width: 8),
+              _buildRatioChip('Story (9:16)', 9.0 / 16.0),
+              const SizedBox(width: 8),
+              _buildRatioChip('Post (4:5)', 4.0 / 5.0),
+              const SizedBox(width: 8),
+              _buildRatioChip('16:9', 16.0 / 9.0),
+              const SizedBox(width: 8),
+              _buildRatioChip('3:2', 3.0 / 2.0),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // 3. Rotate & Flip Quick Actions
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildActionButton(
+              _buildActionGlassBtn(
                 icon: Icons.rotate_90_degrees_cw_outlined,
-                label: 'Rotate',
+                label: 'Rotate 90°',
                 onTap: _rotateClockwise,
               ),
-              _buildActionButton(
+              _buildActionGlassBtn(
                 icon: Icons.flip_outlined,
                 label: 'Flip H',
-                isActive: geometry.flipHorizontal,
+                isActive: widget.geometry.flipHorizontal,
                 onTap: _flipH,
               ),
-              _buildActionButton(
+              _buildActionGlassBtn(
                 icon: Icons.swap_vert_outlined,
                 label: 'Flip V',
-                isActive: geometry.flipVertical,
+                isActive: widget.geometry.flipVertical,
                 onTap: _flipV,
-              ),
-              _buildActionButton(
-                icon: Icons.crop_free_outlined,
-                label: 'Reset',
-                onTap: () => _setAspectRatio(null),
               ),
             ],
           ),
         ),
-        const Divider(color: LumaTheme.border),
-        // Aspect Ratio Presets
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildRatioChip('Free', null),
-                const SizedBox(width: 8),
-                _buildRatioChip('1:1 Square', 1.0),
-                const SizedBox(width: 8),
-                _buildRatioChip('4:5 Portrait', 4.0 / 5.0),
-                const SizedBox(width: 8),
-                _buildRatioChip('16:9 Cinema', 16.0 / 9.0),
-                const SizedBox(width: 8),
-                _buildRatioChip('9:16 Story', 9.0 / 16.0),
-                const SizedBox(width: 8),
-                _buildRatioChip('3:2 Photo', 3.0 / 2.0),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
       ],
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool isActive = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isActive ? LumaTheme.accent : LumaTheme.textPrimary,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: isActive ? LumaTheme.accent : LumaTheme.textSecondary,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildRatioChip(String name, double? ratio) {
+    final isSelected = _selectedRatio == name;
+    return AeviquePillChip(
+      label: name,
+      isSelected: isSelected,
+      onTap: () => _setAspectRatio(name, ratio),
     );
   }
 
-  Widget _buildRatioChip(String label, double? ratio) {
-    return ActionChip(
-      backgroundColor: LumaTheme.surfaceElevated,
-      side: const BorderSide(color: LumaTheme.border),
-      label: Text(
-        label,
-        style: const TextStyle(fontSize: 12, color: LumaTheme.textPrimary),
+  Widget _buildActionGlassBtn({
+    required IconData icon,
+    required String label,
+    bool isActive = false,
+    required VoidCallback onTap,
+  }) {
+    return AeviqueGlass(
+      borderRadius: BorderRadius.circular(12),
+      showAmberAccent: isActive,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: isActive ? AeviqueTheme.accentAmberLight : Colors.white70,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              color: isActive ? Colors.white : AeviqueTheme.textSecondary,
+            ),
+          ),
+        ],
       ),
-      onPressed: () => _setAspectRatio(ratio),
     );
   }
 }

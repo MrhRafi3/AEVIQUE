@@ -37,43 +37,38 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 1400),
     );
 
-    // Staged Choreography:
-    // Stage 1 (0.0 - 0.45): Geometric Logo fade & scale in
     _logoFade = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
     );
-    _logoScale = Tween<double>(begin: 0.88, end: 1.0).animate(
+    _logoScale = Tween<double>(begin: 0.90, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.45, curve: Curves.easeOutBack),
       ),
     );
 
-    // Stage 2 (0.35 - 0.75): AEVIQUE wordmark reveal with kerning expansion
     _wordmarkFade = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.35, 0.75, curve: Curves.easeOutCubic),
     );
-    _wordmarkSpacing = Tween<double>(begin: 2.0, end: 6.0).animate(
+    _wordmarkSpacing = Tween<double>(begin: 2.0, end: 5.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.35, 0.80, curve: Curves.easeOutCubic),
       ),
     );
 
-    // Stage 3 (0.65 - 1.0): Tagline and Developer Credit soft fade
     _taglineFade = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.65, 0.95, curve: Curves.easeOutCubic),
+      curve: const Interval(0.60, 0.90, curve: Curves.easeOutCubic),
     );
     _creditFade = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.75, 1.0, curve: Curves.easeOutCubic),
+      curve: const Interval(0.70, 1.0, curve: Curves.easeOutCubic),
     );
 
     _controller.forward();
-
     _navigationTimer = Timer(widget.displayDuration, _proceedToNextScreen);
   }
 
@@ -81,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 600),
+        transitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (context, animation, secondaryAnimation) =>
             widget.nextScreen ?? HomeScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -104,21 +99,21 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: AeviqueTheme.deepBlack,
       body: Stack(
         children: [
-          // Subtle restrained Champagne Gold ambient glow near lower area
+          // Dark cinematic specular light diffusion
           Positioned(
-            bottom: -80,
-            left: 0,
-            right: 0,
-            height: 280,
+            top: -120,
+            left: -80,
+            right: -80,
+            height: 380,
             child: IgnorePointer(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
-                    center: const Alignment(0.0, 1.0),
+                    center: const Alignment(0.0, -0.2),
                     radius: 1.2,
                     colors: [
-                      AeviqueTheme.champagneGold.withValues(alpha: 0.14),
-                      AeviqueTheme.champagneGoldDark.withValues(alpha: 0.05),
+                      Colors.white.withValues(alpha: 0.05),
+                      Colors.white.withValues(alpha: 0.01),
                       Colors.transparent,
                     ],
                   ),
@@ -127,22 +122,19 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // Main Center Content: Geometric Logo + Wordmark + Tagline
+          // Main Center Content
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Stage 1: Geometric Logo
                 FadeTransition(
                   opacity: _logoFade,
                   child: ScaleTransition(
                     scale: _logoScale,
-                    child: const AeviqueLogo(size: 88, showGlow: true),
+                    child: const AeviqueLogo(size: 80, showGlow: true),
                   ),
                 ),
-                const SizedBox(height: 28),
-
-                // Stage 2: Brand Wordmark with tracked spacing
+                const SizedBox(height: 24),
                 FadeTransition(
                   opacity: _wordmarkFade,
                   child: AnimatedBuilder(
@@ -151,28 +143,26 @@ class _SplashScreenState extends State<SplashScreen>
                       return Text(
                         'AEVIQUE',
                         style: AeviqueTheme.wordmarkStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: _wordmarkSpacing.value,
-                          color: AeviqueTheme.ivory,
+                          color: Colors.white,
                         ),
                       );
                     },
                   ),
                 ),
-                const SizedBox(height: 10),
-
-                // Stage 3: Tagline
+                const SizedBox(height: 8),
                 FadeTransition(
                   opacity: _taglineFade,
                   child: const Text(
                     'See Beyond Ordinary.',
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      letterSpacing: 2.2,
-                      color: AeviqueTheme.slateGray,
+                      letterSpacing: 2.0,
+                      color: AeviqueTheme.textMuted,
                     ),
                   ),
                 ),
@@ -180,9 +170,9 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // Subtle Bottom Developer Credit (Exact spelling: Developed by Mrh Rafi)
+          // Bottom Developer Credit
           Positioned(
-            bottom: 24,
+            bottom: 28,
             left: 0,
             right: 0,
             child: FadeTransition(
@@ -195,7 +185,7 @@ class _SplashScreenState extends State<SplashScreen>
                   fontSize: 11,
                   fontWeight: FontWeight.w400,
                   letterSpacing: 1.2,
-                  color: Color(0xFF4A4A58),
+                  color: Color(0xFF555562),
                 ),
               ),
             ),
