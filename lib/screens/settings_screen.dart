@@ -57,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text(
               'Understood',
               style: TextStyle(
-                color: AeviqueTheme.accentAmberLight,
+                color: AeviqueTheme.primaryBlueLight,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -81,7 +81,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Colors.white),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 const SizedBox(width: 8),
@@ -123,18 +127,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontFamily: 'Inter',
                       fontStyle: FontStyle.italic,
                       fontSize: 12,
-                      color: AeviqueTheme.accentAmberLight,
+                      color: AeviqueTheme.creativeOrangeLight,
                       letterSpacing: 1.0,
                     ),
                   ),
                   const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: AeviqueTheme.accentAmber.withValues(alpha: 0.15),
+                      color: AeviqueTheme.primaryBlueSurface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AeviqueTheme.accentAmber.withValues(alpha: 0.4),
+                        color: AeviqueTheme.primaryBlue.withValues(alpha: 0.4),
                         width: 0.8,
                       ),
                     ),
@@ -144,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AeviqueTheme.accentAmber,
+                        color: AeviqueTheme.primaryBlueLight,
                         letterSpacing: 0.6,
                       ),
                     ),
@@ -162,11 +169,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0x66181824),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AeviqueTheme.borderSubtle, width: 0.8),
+                      border: Border.all(
+                        color: AeviqueTheme.borderSubtle,
+                        width: 0.8,
+                      ),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -174,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Icon(
                           Icons.verified_user_rounded,
                           size: 14,
-                          color: AeviqueTheme.accentAmberLight,
+                          color: AeviqueTheme.primaryBlueLight,
                         ),
                         SizedBox(width: 6),
                         Flexible(
@@ -224,7 +237,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Text(
                           'Default Export Format',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white),
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -234,14 +251,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           AeviquePillChip(
                             label: 'JPEG',
                             isSelected: _defaultFormat == 'JPEG',
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            onTap: () => setState(() => _defaultFormat = 'JPEG'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            onTap: () =>
+                                setState(() => _defaultFormat = 'JPEG'),
                           ),
                           const SizedBox(width: 6),
                           AeviquePillChip(
                             label: 'PNG',
                             isSelected: _defaultFormat == 'PNG',
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             onTap: () => setState(() => _defaultFormat = 'PNG'),
                           ),
                         ],
@@ -264,10 +288,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     type: MaterialType.transparency,
                     child: SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AeviqueTheme.accentAmber,
+                      activeThumbColor: AeviqueTheme.primaryBlue,
                       title: const Text(
                         'High-Precision Preview Cache',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: Colors.white,
+                        ),
                       ),
                       value: _highResPreview,
                       onChanged: (val) => setState(() => _highResPreview = val),
@@ -278,10 +306,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     type: MaterialType.transparency,
                     child: SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AeviqueTheme.accentAmber,
+                      activeThumbColor: AeviqueTheme.primaryBlue,
                       title: const Text(
                         'Haptic Feedback',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: Colors.white,
+                        ),
                       ),
                       value: _hapticFeedback,
                       onChanged: (val) {
@@ -359,7 +391,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Text(
                       '100% On-Device Local Privacy',
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white),
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   SizedBox(width: 8),
@@ -397,7 +433,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Text(
             label,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white),
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              color: Colors.white,
+            ),
           ),
         ),
         const SizedBox(width: 8),

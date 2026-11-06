@@ -69,7 +69,8 @@ class _TunePanelState extends State<TunePanel> {
                 value: widget.tune.exposure,
                 min: -100,
                 max: 100,
-                onChanged: (v) => widget.onChanged(widget.tune.copyWith(exposure: v)),
+                onChanged: (v) =>
+                    widget.onChanged(widget.tune.copyWith(exposure: v)),
               ),
               AeviqueCircularDial(
                 label: 'Contrast',
@@ -77,7 +78,8 @@ class _TunePanelState extends State<TunePanel> {
                 value: widget.tune.contrast,
                 min: -100,
                 max: 100,
-                onChanged: (v) => widget.onChanged(widget.tune.copyWith(contrast: v)),
+                onChanged: (v) =>
+                    widget.onChanged(widget.tune.copyWith(contrast: v)),
               ),
               AeviqueCircularDial(
                 label: 'Grain',
@@ -110,38 +112,58 @@ class _TunePanelState extends State<TunePanel> {
                       AeviquePrecisionSlider(
                         label: 'Brightness',
                         value: widget.tune.brightness,
-                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(brightness: v)),
-                        onReset: () => widget.onChanged(widget.tune.copyWith(brightness: 0.0)),
+                        onChanged: (v) => widget.onChanged(
+                          widget.tune.copyWith(brightness: v),
+                        ),
+                        onReset: () => widget.onChanged(
+                          widget.tune.copyWith(brightness: 0.0),
+                        ),
                       ),
                       AeviquePrecisionSlider(
                         label: 'Contrast',
                         value: widget.tune.contrast,
-                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(contrast: v)),
-                        onReset: () => widget.onChanged(widget.tune.copyWith(contrast: 0.0)),
+                        onChanged: (v) =>
+                            widget.onChanged(widget.tune.copyWith(contrast: v)),
+                        onReset: () => widget.onChanged(
+                          widget.tune.copyWith(contrast: 0.0),
+                        ),
                       ),
                       AeviquePrecisionSlider(
                         label: 'Saturation',
                         value: widget.tune.saturation,
-                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(saturation: v)),
-                        onReset: () => widget.onChanged(widget.tune.copyWith(saturation: 0.0)),
+                        onChanged: (v) => widget.onChanged(
+                          widget.tune.copyWith(saturation: v),
+                        ),
+                        onReset: () => widget.onChanged(
+                          widget.tune.copyWith(saturation: 0.0),
+                        ),
                       ),
                       AeviquePrecisionSlider(
                         label: 'Warmth',
                         value: widget.tune.warmth,
-                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(warmth: v)),
-                        onReset: () => widget.onChanged(widget.tune.copyWith(warmth: 0.0)),
+                        onChanged: (v) =>
+                            widget.onChanged(widget.tune.copyWith(warmth: v)),
+                        onReset: () =>
+                            widget.onChanged(widget.tune.copyWith(warmth: 0.0)),
                       ),
                       AeviquePrecisionSlider(
                         label: 'Highlights',
                         value: widget.tune.highlights,
-                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(highlights: v)),
-                        onReset: () => widget.onChanged(widget.tune.copyWith(highlights: 0.0)),
+                        onChanged: (v) => widget.onChanged(
+                          widget.tune.copyWith(highlights: v),
+                        ),
+                        onReset: () => widget.onChanged(
+                          widget.tune.copyWith(highlights: 0.0),
+                        ),
                       ),
                       AeviquePrecisionSlider(
                         label: 'Shadows',
                         value: widget.tune.shadows,
-                        onChanged: (v) => widget.onChanged(widget.tune.copyWith(shadows: v)),
-                        onReset: () => widget.onChanged(widget.tune.copyWith(shadows: 0.0)),
+                        onChanged: (v) =>
+                            widget.onChanged(widget.tune.copyWith(shadows: v)),
+                        onReset: () => widget.onChanged(
+                          widget.tune.copyWith(shadows: 0.0),
+                        ),
                       ),
                     ],
                   ),
@@ -174,7 +196,10 @@ class _TunePanelState extends State<TunePanel> {
               GestureDetector(
                 onTap: _applyAutoTune,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -182,7 +207,11 @@ class _TunePanelState extends State<TunePanel> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome, size: 14, color: AeviqueTheme.accentAmber),
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: AeviqueTheme.primaryBlueLight,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         'Auto',

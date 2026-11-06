@@ -4,15 +4,14 @@ import 'package:flutter/services.dart';
 import '../theme/aevique_theme.dart';
 import 'aevique_glass.dart';
 
-/// Prominent Reference Floating Action Button (Warm Golden Sun Bloom)
-///
-/// Derived directly from Phone 3 checkmark FAB and Phone 1 "+" FAB.
+/// Floating Action Button with luminous Liquid Glass gradient.
 class AeviqueAmberFab extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
   final double size;
   final double iconSize;
   final String? tooltip;
+  final bool isSecondary;
 
   const AeviqueAmberFab({
     super.key,
@@ -21,35 +20,45 @@ class AeviqueAmberFab extends StatelessWidget {
     this.size = 56.0,
     this.iconSize = 28.0,
     this.tooltip,
+    this.isSecondary = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final startColor = isSecondary
+        ? const Color(0xFFFFA663)
+        : const Color(0xFF5E98FC);
+    final midColor = isSecondary
+        ? AeviqueTheme.creativeOrange
+        : AeviqueTheme.primaryBlue;
+    final endColor = isSecondary
+        ? const Color(0xFFDF6B15)
+        : const Color(0xFF1E5AD6);
+    final glowColor = isSecondary
+        ? AeviqueTheme.creativeOrangeGlow
+        : AeviqueTheme.primaryBlueGlow;
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFDF7A),
-            Color(0xFFE5A125),
-            Color(0xFFB87810),
-          ],
+          colors: [startColor, midColor, endColor],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE5A125).withValues(alpha: 0.55),
+            color: glowColor,
             blurRadius: 28,
-            spreadRadius: 3,
+            spreadRadius: 2,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -63,11 +72,7 @@ class AeviqueAmberFab extends StatelessWidget {
             onPressed?.call();
           },
           child: Center(
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: const Color(0xFF09090C),
-            ),
+            child: Icon(icon, size: iconSize, color: Colors.white),
           ),
         ),
       ),
@@ -75,15 +80,14 @@ class AeviqueAmberFab extends StatelessWidget {
   }
 }
 
-/// Reference Glass Capsule Pill (Categories, Modes, Tags)
-///
-/// Used in Phone 1 ("Vintage", "Reel") and Phone 3 (`[Crop]`, `[Adjust]`, `[Filter]`).
+/// Liquid Glass Capsule Pill (Categories, Modes, Tags)
 class AeviquePillChip extends StatelessWidget {
   final String label;
   final IconData? icon;
   final bool isSelected;
   final VoidCallback onTap;
   final EdgeInsetsGeometry? padding;
+  final bool useOrangeAccent;
 
   const AeviquePillChip({
     super.key,
@@ -92,16 +96,22 @@ class AeviquePillChip extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.padding,
+    this.useOrangeAccent = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final effectivePadding = padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
+    final effectivePadding =
+        padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
 
-    return AeviqueGlass(
+    return LiquidGlassPanel(
+      variant: isSelected
+          ? (useOrangeAccent
+                ? LiquidGlassVariant.accentOrange
+                : LiquidGlassVariant.accentBlue)
+          : LiquidGlassVariant.ultraClear,
       borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
-      showAmberAccent: isSelected,
-      padding: EdgeInsets.zero,
+      blur: 20.0,
       onTap: () {
         HapticFeedback.selectionClick();
         onTap();
@@ -115,7 +125,11 @@ class AeviquePillChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 15,
-                color: isSelected ? AeviqueTheme.accentAmberLight : AeviqueTheme.textSecondary,
+                color: isSelected
+                    ? (useOrangeAccent
+                          ? AeviqueTheme.creativeOrangeLight
+                          : AeviqueTheme.primaryBlueLight)
+                    : AeviqueTheme.textSecondary,
               ),
               const SizedBox(width: 6),
             ],
@@ -136,9 +150,7 @@ class AeviquePillChip extends StatelessWidget {
   }
 }
 
-/// Floating Island / Dock Navigation Capsule
-///
-/// Derived from Phone 1 bottom dock and Phone 3 contextual dock.
+/// Floating Island / Dock Navigation Capsule in Liquid Glass
 class AeviqueFloatingDock extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry? padding;
@@ -156,9 +168,12 @@ class AeviqueFloatingDock extends StatelessWidget {
     return Container(
       width: width,
       margin: const EdgeInsets.only(bottom: 24),
-      child: AeviqueGlass(
+      child: LiquidGlassPanel(
+        variant: LiquidGlassVariant.elevated,
         borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        blur: 28.0,
+        padding:
+            padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -169,7 +184,7 @@ class AeviqueFloatingDock extends StatelessWidget {
   }
 }
 
-/// Reference Angle Rotation Ruler with Floating Badge (Phone 3)
+/// Liquid Glass Angle Rotation Ruler with Floating Badge
 class AeviqueRulerSlider extends StatefulWidget {
   final double value; // in degrees, e.g. -45 to +45
   final double min;
@@ -198,6 +213,7 @@ class _AeviqueRulerSliderState extends State<AeviqueRulerSlider> {
   Widget build(BuildContext context) {
     final displayDegrees = widget.value.round();
     final badgeText = '${displayDegrees > 0 ? '+' : ''}$displayDegrees°';
+    final isModified = widget.value != 0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -212,23 +228,19 @@ class _AeviqueRulerSliderState extends State<AeviqueRulerSlider> {
               widget.onChanged(0.0);
             }
           },
-          child: Container(
+          child: LiquidGlassPanel(
+            variant: isModified
+                ? LiquidGlassVariant.accentOrange
+                : LiquidGlassVariant.ultraClear,
+            borderRadius: BorderRadius.circular(12),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0x66181822),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: widget.value != 0 ? AeviqueTheme.accentAmber : AeviqueTheme.border,
-                width: widget.value != 0 ? 1.0 : 0.6,
-              ),
-            ),
             child: Text(
               badgeText,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: widget.value != 0 ? AeviqueTheme.accentAmberLight : AeviqueTheme.textSecondary,
+                color: isModified ? Colors.white : AeviqueTheme.textSecondary,
               ),
             ),
           ),
@@ -244,7 +256,10 @@ class _AeviqueRulerSliderState extends State<AeviqueRulerSlider> {
           },
           onHorizontalDragUpdate: (details) {
             final delta = details.localPosition.dx - _dragStartX;
-            final newValue = (_dragStartValue - delta * 0.4).clamp(widget.min, widget.max);
+            final newValue = (_dragStartValue - delta * 0.4).clamp(
+              widget.min,
+              widget.max,
+            );
             widget.onChanged(newValue);
           },
           child: SizedBox(
@@ -283,7 +298,7 @@ class _RulerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final centerPaint = Paint()
-      ..color = AeviqueTheme.accentAmber
+      ..color = AeviqueTheme.creativeOrange
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
@@ -314,7 +329,7 @@ class _RulerPainter extends CustomPainter {
       oldDelegate.value != value;
 }
 
-/// Reference Rotary Dial Knob with Perimeter Ticks (Phone 5)
+/// Rotary Dial Knob with Perimeter Ticks and Liquid Glass Aesthetics
 class AeviqueCircularDial extends StatefulWidget {
   final String label;
   final IconData icon;
@@ -363,7 +378,10 @@ class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
 
   double _angleToValue(double angle) {
     final norm = (angle / (1.5 * math.pi)) + 0.5;
-    return (widget.min + norm * (widget.max - widget.min)).clamp(widget.min, widget.max);
+    return (widget.min + norm * (widget.max - widget.min)).clamp(
+      widget.min,
+      widget.max,
+    );
   }
 
   @override
@@ -377,7 +395,10 @@ class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
           onPanUpdate: (details) {
             final center = Offset(widget.size / 2, widget.size / 2);
             final touchPoint = details.localPosition;
-            final angle = math.atan2(touchPoint.dy - center.dy, touchPoint.dx - center.dx);
+            final angle = math.atan2(
+              touchPoint.dy - center.dy,
+              touchPoint.dx - center.dx,
+            );
             final clamped = angle.clamp(-0.75 * math.pi, 0.75 * math.pi);
             setState(() => _currentAngle = clamped);
             widget.onChanged(_angleToValue(clamped));
@@ -386,24 +407,14 @@ class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
             HapticFeedback.lightImpact();
             widget.onChanged(0.0);
           },
-          child: Container(
+          child: LiquidGlassPanel(
+            variant: isModified
+                ? LiquidGlassVariant.accentBlue
+                : LiquidGlassVariant.standard,
+            borderRadius: BorderRadius.circular(widget.size / 2),
             width: widget.size,
             height: widget.size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0x66181822),
-              border: Border.all(
-                color: isModified ? AeviqueTheme.accentAmber : AeviqueTheme.border,
-                width: isModified ? 1.2 : 0.8,
-              ),
-              boxShadow: [
-                if (isModified)
-                  BoxShadow(
-                    color: AeviqueTheme.accentAmber.withValues(alpha: 0.2),
-                    blurRadius: 12,
-                  ),
-              ],
-            ),
+            padding: EdgeInsets.zero,
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -417,7 +428,7 @@ class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
                 Icon(
                   widget.icon,
                   size: widget.size * 0.38,
-                  color: isModified ? AeviqueTheme.accentAmberLight : AeviqueTheme.textSecondary,
+                  color: isModified ? Colors.white : AeviqueTheme.textSecondary,
                 ),
               ],
             ),
@@ -468,7 +479,7 @@ class _DialTicksPainter extends CustomPainter {
     }
 
     final thumbIndicator = Paint()
-      ..color = AeviqueTheme.accentAmber
+      ..color = AeviqueTheme.primaryBlueLight
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
 
@@ -488,84 +499,7 @@ class _DialTicksPainter extends CustomPainter {
       oldDelegate.angle != angle || oldDelegate.isModified != isModified;
 }
 
-/// Reference Glass Action Row (Phone 2)
-class AeviqueGlassActionRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-  final Widget? trailing;
-
-  const AeviqueGlassActionRow({
-    super.key,
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    required this.onTap,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AeviqueGlass(
-      borderRadius: BorderRadius.circular(16),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 18, color: Colors.white),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11,
-                      color: AeviqueTheme.textMuted,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          trailing ??
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AeviqueTheme.textMuted,
-              ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Reference Precision Slider with Amber Glowing Thumb & Numeric Value
+/// Precision Slider with Blue/Orange Glowing Thumb & Numeric Value
 class AeviquePrecisionSlider extends StatelessWidget {
   final String label;
   final double value;
@@ -574,6 +508,7 @@ class AeviquePrecisionSlider extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final VoidCallback? onReset;
   final String Function(double)? valueFormatter;
+  final Color? activeColor;
 
   const AeviquePrecisionSlider({
     super.key,
@@ -584,10 +519,12 @@ class AeviquePrecisionSlider extends StatelessWidget {
     required this.onChanged,
     this.onReset,
     this.valueFormatter,
+    this.activeColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = activeColor ?? AeviqueTheme.primaryBlue;
     final isModified = value.abs() > 0.5;
     final formattedValue = valueFormatter != null
         ? valueFormatter!(value)
@@ -609,7 +546,9 @@ class AeviquePrecisionSlider extends StatelessWidget {
                     fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: isModified ? FontWeight.w600 : FontWeight.w500,
-                    color: isModified ? Colors.white : AeviqueTheme.textSecondary,
+                    color: isModified
+                        ? Colors.white
+                        : AeviqueTheme.textSecondary,
                   ),
                 ),
               ),
@@ -629,7 +568,9 @@ class AeviquePrecisionSlider extends StatelessWidget {
                     fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isModified ? AeviqueTheme.accentAmberLight : AeviqueTheme.textMuted,
+                    color: isModified
+                        ? AeviqueTheme.primaryBlueLight
+                        : AeviqueTheme.textMuted,
                   ),
                 ),
               ),
@@ -637,12 +578,12 @@ class AeviquePrecisionSlider extends StatelessWidget {
           ),
           SliderTheme(
             data: SliderThemeData(
-              activeTrackColor: AeviqueTheme.accentAmber,
+              activeTrackColor: effectiveColor,
               inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
-              thumbColor: AeviqueTheme.accentAmberLight,
-              overlayColor: AeviqueTheme.accentAmber.withValues(alpha: 0.25),
-              trackHeight: 2.5,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              thumbColor: Colors.white,
+              overlayColor: effectiveColor.withValues(alpha: 0.25),
+              trackHeight: 3.0,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.5),
             ),
             child: Slider(
               value: value.clamp(min, max),
@@ -700,7 +641,7 @@ class AeviqueSlider extends StatelessWidget {
   }
 }
 
-/// Reference Glass Action Button
+/// Liquid Glass Action Button
 class AeviqueButton extends StatelessWidget {
   final String label;
   final IconData? icon;
@@ -739,67 +680,130 @@ class AeviqueButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
-    Color fg;
-    Color border;
+    final variant = isDestructive
+        ? LiquidGlassVariant.accentRed
+        : (isPrimary
+              ? LiquidGlassVariant.accentBlue
+              : LiquidGlassVariant.standard);
 
-    if (isDestructive) {
-      bg = const Color(0xFFEF4444).withValues(alpha: 0.15);
-      fg = const Color(0xFFEF4444);
-      border = const Color(0xFFEF4444).withValues(alpha: 0.4);
-    } else if (isPrimary) {
-      bg = AeviqueTheme.accentAmber;
-      fg = const Color(0xFF09090C);
-      border = Colors.transparent;
-    } else {
-      bg = const Color(0x66181824);
-      fg = Colors.white;
-      border = AeviqueTheme.border;
-    }
-
-    return SizedBox(
+    return LiquidGlassPanel(
+      variant: variant,
+      borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
       width: width,
       height: height,
-      child: AeviqueGlass(
-        borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
-        backgroundColor: bg,
-        borderColor: border,
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20),
-        onTap: isLoading ? null : onPressed,
-        child: Center(
-          child: isLoading
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(fg),
-                  ),
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (icon != null) ...[
-                      Icon(icon, size: 16, color: fg),
-                      const SizedBox(width: 8),
-                    ],
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: fg,
-                          letterSpacing: 0.2,
-                        ),
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 20),
+      onTap: isLoading ? null : onPressed,
+      child: Center(
+        child: isLoading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: 16, color: Colors.white),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// Liquid Glass Action Row
+class AeviqueGlassActionRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final VoidCallback onTap;
+  final Widget? trailing;
+
+  const AeviqueGlassActionRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.onTap,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LiquidGlassPanel(
+      variant: LiquidGlassVariant.standard,
+      borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: Colors.white),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
                 ),
-        ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: AeviqueTheme.textMuted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          trailing ??
+              const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AeviqueTheme.textMuted,
+              ),
+        ],
       ),
     );
   }

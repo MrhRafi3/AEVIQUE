@@ -34,7 +34,8 @@ class EffectsPanel extends StatelessWidget {
                 children: [
                   Switch(
                     value: effects.bwMode,
-                    activeThumbColor: AeviqueTheme.accentAmber,
+                    activeThumbColor: AeviqueTheme.primaryBlueLight,
+                    activeTrackColor: AeviqueTheme.primaryBlueSurface,
                     inactiveThumbColor: Colors.white60,
                     inactiveTrackColor: Colors.white12,
                     onChanged: (val) {
@@ -48,8 +49,12 @@ class EffectsPanel extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
-                      fontWeight: effects.bwMode ? FontWeight.w600 : FontWeight.w500,
-                      color: effects.bwMode ? Colors.white : AeviqueTheme.textSecondary,
+                      fontWeight: effects.bwMode
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: effects.bwMode
+                          ? Colors.white
+                          : AeviqueTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -82,8 +87,10 @@ class EffectsPanel extends StatelessWidget {
                 value: vignette.amount,
                 min: 0.0,
                 max: 100.0,
-                onChanged: (v) => onVignetteChanged(vignette.copyWith(amount: v)),
-                onReset: () => onVignetteChanged(vignette.copyWith(amount: 0.0)),
+                onChanged: (v) =>
+                    onVignetteChanged(vignette.copyWith(amount: v)),
+                onReset: () =>
+                    onVignetteChanged(vignette.copyWith(amount: 0.0)),
               ),
               AeviquePrecisionSlider(
                 label: 'Film Grain',
@@ -106,8 +113,11 @@ class EffectsPanel extends StatelessWidget {
                 value: effects.chromaticAberration,
                 min: 0.0,
                 max: 100.0,
-                onChanged: (v) => onEffectsChanged(effects.copyWith(chromaticAberration: v)),
-                onReset: () => onEffectsChanged(effects.copyWith(chromaticAberration: 0.0)),
+                onChanged: (v) =>
+                    onEffectsChanged(effects.copyWith(chromaticAberration: v)),
+                onReset: () => onEffectsChanged(
+                  effects.copyWith(chromaticAberration: 0.0),
+                ),
               ),
             ],
           ),

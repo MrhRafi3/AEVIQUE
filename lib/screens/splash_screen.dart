@@ -96,15 +96,15 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepBlack,
+      backgroundColor: AeviqueTheme.deepCanvas,
       body: Stack(
         children: [
-          // Dark cinematic specular light diffusion
+          // Ambient 3-color atmospheric light diffusion
           Positioned(
             top: -120,
             left: -80,
             right: -80,
-            height: 380,
+            height: 420,
             child: IgnorePointer(
               child: Container(
                 decoration: BoxDecoration(
@@ -112,8 +112,8 @@ class _SplashScreenState extends State<SplashScreen>
                     center: const Alignment(0.0, -0.2),
                     radius: 1.2,
                     colors: [
-                      Colors.white.withValues(alpha: 0.05),
-                      Colors.white.withValues(alpha: 0.01),
+                      AeviqueTheme.primaryBlue.withValues(alpha: 0.15),
+                      AeviqueTheme.creativeOrange.withValues(alpha: 0.08),
                       Colors.transparent,
                     ],
                   ),

@@ -65,7 +65,9 @@ class _PortraitPanelState extends State<PortraitPanel> {
                 subTool: PortraitSubTool.blemish,
                 label: 'Blemish',
                 icon: Icons.healing_rounded,
-                isActive: widget.portrait.blemishes.isNotEmpty || widget.isBlemishModeActive,
+                isActive:
+                    widget.portrait.blemishes.isNotEmpty ||
+                    widget.isBlemishModeActive,
               ),
             ],
           ),
@@ -108,7 +110,9 @@ class _PortraitPanelState extends State<PortraitPanel> {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? AeviqueTheme.accentAmberLight : (isActive ? Colors.white : AeviqueTheme.textSecondary),
+                color: isSelected
+                    ? AeviqueTheme.primaryBlueLight
+                    : (isActive ? Colors.white : AeviqueTheme.textSecondary),
               ),
               const SizedBox(height: 4),
               Text(
@@ -140,7 +144,8 @@ class _PortraitPanelState extends State<PortraitPanel> {
               onChanged: (val) {
                 widget.onChanged(widget.portrait.copyWith(skinSmooth: val));
               },
-              onReset: () => widget.onChanged(widget.portrait.copyWith(skinSmooth: 0.0)),
+              onReset: () =>
+                  widget.onChanged(widget.portrait.copyWith(skinSmooth: 0.0)),
             ),
           ],
         );
@@ -156,7 +161,8 @@ class _PortraitPanelState extends State<PortraitPanel> {
               onChanged: (val) {
                 widget.onChanged(widget.portrait.copyWith(skinBrighten: val));
               },
-              onReset: () => widget.onChanged(widget.portrait.copyWith(skinBrighten: 0.0)),
+              onReset: () =>
+                  widget.onChanged(widget.portrait.copyWith(skinBrighten: 0.0)),
             ),
           ],
         );
@@ -179,7 +185,10 @@ class _PortraitPanelState extends State<PortraitPanel> {
                 GestureDetector(
                   onTap: widget.onUndoLastBlemish,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
@@ -188,7 +197,10 @@ class _PortraitPanelState extends State<PortraitPanel> {
                       children: [
                         Icon(Icons.undo, size: 14, color: Colors.white),
                         SizedBox(width: 4),
-                        Text('Undo Spot', style: TextStyle(fontSize: 11, color: Colors.white)),
+                        Text(
+                          'Undo Spot',
+                          style: TextStyle(fontSize: 11, color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
@@ -197,7 +209,10 @@ class _PortraitPanelState extends State<PortraitPanel> {
                 GestureDetector(
                   onTap: widget.onClearBlemishes,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
@@ -206,7 +221,10 @@ class _PortraitPanelState extends State<PortraitPanel> {
                       children: [
                         Icon(Icons.clear_all, size: 14, color: Colors.white),
                         SizedBox(width: 4),
-                        Text('Clear All', style: TextStyle(fontSize: 11, color: Colors.white)),
+                        Text(
+                          'Clear All',
+                          style: TextStyle(fontSize: 11, color: Colors.white),
+                        ),
                       ],
                     ),
                   ),

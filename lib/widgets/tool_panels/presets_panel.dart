@@ -50,7 +50,7 @@ class PresetsPanel extends StatelessWidget {
                       fontFamily: 'Inter',
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AeviqueTheme.accentAmber,
+                      color: AeviqueTheme.creativeOrange,
                     ),
                   ),
                 ),
@@ -90,8 +90,12 @@ class PresetsPanel extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white
+                                : AeviqueTheme.textSecondary,
                           ),
                         ),
                         Text(

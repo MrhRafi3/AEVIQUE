@@ -9,11 +9,7 @@ class CropPanel extends StatefulWidget {
   final GeometryAdjustments geometry;
   final ValueChanged<GeometryAdjustments> onChanged;
 
-  const CropPanel({
-    super.key,
-    required this.geometry,
-    required this.onChanged,
-  });
+  const CropPanel({super.key, required this.geometry, required this.onChanged});
 
   @override
   State<CropPanel> createState() => _CropPanelState();
@@ -34,12 +30,16 @@ class _CropPanelState extends State<CropPanel> {
 
   void _flipH() {
     HapticFeedback.selectionClick();
-    widget.onChanged(widget.geometry.copyWith(flipHorizontal: !widget.geometry.flipHorizontal));
+    widget.onChanged(
+      widget.geometry.copyWith(flipHorizontal: !widget.geometry.flipHorizontal),
+    );
   }
 
   void _flipV() {
     HapticFeedback.selectionClick();
-    widget.onChanged(widget.geometry.copyWith(flipVertical: !widget.geometry.flipVertical));
+    widget.onChanged(
+      widget.geometry.copyWith(flipVertical: !widget.geometry.flipVertical),
+    );
   }
 
   void _setAspectRatio(String name, double? ratio) {
@@ -186,7 +186,7 @@ class _CropPanelState extends State<CropPanel> {
           Icon(
             icon,
             size: 16,
-            color: isActive ? AeviqueTheme.accentAmberLight : Colors.white70,
+            color: isActive ? AeviqueTheme.primaryBlueLight : Colors.white70,
           ),
           const SizedBox(width: 6),
           Text(

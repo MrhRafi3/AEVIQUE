@@ -7,6 +7,8 @@ import 'screens/export_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/presets_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/camera_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/image_repository.dart';
@@ -60,10 +62,7 @@ Future<Widget> _buildTargetScreen(String screenName) async {
     case 'home':
       return HomeScreen(imageRepository: imageRepo);
     case 'gallery':
-      return GalleryScreen(
-        imageRepository: imageRepo,
-        onBackToHome: () {},
-      );
+      return GalleryScreen(imageRepository: imageRepo, onBackToHome: () {});
     case 'editor':
       return EditorScreen(
         initialImageBytes: sampleBytes,
@@ -101,10 +100,7 @@ Future<Widget> _buildTargetScreen(String screenName) async {
         initialTool: 'effects',
       );
     case 'presets':
-      return PresetsScreen(
-        imageRepository: imageRepo,
-        onBackToHome: () {},
-      );
+      return PresetsScreen(imageRepository: imageRepo, onBackToHome: () {});
     case 'export':
       return ExportScreen(
         sourceBytes: sampleBytes,
@@ -112,6 +108,10 @@ Future<Widget> _buildTargetScreen(String screenName) async {
       );
     case 'settings':
       return const SettingsScreen();
+    case 'camera':
+      return const CameraScreen();
+    case 'profile':
+      return const ProfileScreen();
     case 'splash':
     default:
       return const SplashScreen();

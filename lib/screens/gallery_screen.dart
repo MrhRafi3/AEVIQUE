@@ -17,9 +17,9 @@ class GalleryScreen extends StatefulWidget {
     ImageRepository? imageRepository,
     RecentEditsRepository? recentEditsRepository,
     this.onBackToHome,
-  })  : imageRepository = imageRepository ?? DefaultImageRepository(),
-        recentEditsRepository =
-            recentEditsRepository ?? InMemoryRecentEditsRepository();
+  }) : imageRepository = imageRepository ?? DefaultImageRepository(),
+       recentEditsRepository =
+           recentEditsRepository ?? InMemoryRecentEditsRepository();
 
   @override
   State<GalleryScreen> createState() => _GalleryScreenState();
@@ -39,7 +39,11 @@ class _GalleryScreenState extends State<GalleryScreen> {
     'Recent',
   ];
 
-  Future<void> _openPhotoFromBytes(Uint8List bytes, String name, {String? presetId}) async {
+  Future<void> _openPhotoFromBytes(
+    Uint8List bytes,
+    String name, {
+    String? presetId,
+  }) async {
     HapticFeedback.lightImpact();
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -114,18 +118,38 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildAspectCard('Reel', Icons.video_library_outlined, selectedFormat == 'Reel', () {
-                      setSheetState(() => selectedFormat = 'Reel');
-                    }),
-                    _buildAspectCard('Story', Icons.crop_portrait_outlined, selectedFormat == 'Story', () {
-                      setSheetState(() => selectedFormat = 'Story');
-                    }),
-                    _buildAspectCard('Post', Icons.crop_square_outlined, selectedFormat == 'Post', () {
-                      setSheetState(() => selectedFormat = 'Post');
-                    }),
-                    _buildAspectCard('Carousel', Icons.view_carousel_outlined, selectedFormat == 'Carousel', () {
-                      setSheetState(() => selectedFormat = 'Carousel');
-                    }),
+                    _buildAspectCard(
+                      'Reel',
+                      Icons.video_library_outlined,
+                      selectedFormat == 'Reel',
+                      () {
+                        setSheetState(() => selectedFormat = 'Reel');
+                      },
+                    ),
+                    _buildAspectCard(
+                      'Story',
+                      Icons.crop_portrait_outlined,
+                      selectedFormat == 'Story',
+                      () {
+                        setSheetState(() => selectedFormat = 'Story');
+                      },
+                    ),
+                    _buildAspectCard(
+                      'Post',
+                      Icons.crop_square_outlined,
+                      selectedFormat == 'Post',
+                      () {
+                        setSheetState(() => selectedFormat = 'Post');
+                      },
+                    ),
+                    _buildAspectCard(
+                      'Carousel',
+                      Icons.view_carousel_outlined,
+                      selectedFormat == 'Carousel',
+                      () {
+                        setSheetState(() => selectedFormat = 'Carousel');
+                      },
+                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -137,7 +161,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   subtitle: item.title,
                   onTap: () async {
                     Navigator.pop(context);
-                    final bytes = await widget.imageRepository.loadSampleAsset(item.assetPath);
+                    final bytes = await widget.imageRepository.loadSampleAsset(
+                      item.assetPath,
+                    );
                     if (bytes != null && mounted) {
                       _openPhotoFromBytes(bytes, item.title);
                     }
@@ -150,7 +176,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   subtitle: 'Neural portrait cutout',
                   onTap: () async {
                     Navigator.pop(context);
-                    final bytes = await widget.imageRepository.loadSampleAsset(item.assetPath);
+                    final bytes = await widget.imageRepository.loadSampleAsset(
+                      item.assetPath,
+                    );
                     if (bytes != null && mounted) {
                       _openPhotoFromBytes(bytes, '${item.title} (Cutout)');
                     }
@@ -164,7 +192,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   onTap: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Showcase link copied to clipboard')),
+                      const SnackBar(
+                        content: Text('Showcase link copied to clipboard'),
+                      ),
                     );
                   },
                 ),
@@ -175,7 +205,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   subtitle: 'Cinematic crop presets',
                   onTap: () async {
                     Navigator.pop(context);
-                    final bytes = await widget.imageRepository.loadSampleAsset(item.assetPath);
+                    final bytes = await widget.imageRepository.loadSampleAsset(
+                      item.assetPath,
+                    );
                     if (bytes != null && mounted) {
                       _openPhotoFromBytes(bytes, item.title);
                     }
@@ -189,7 +221,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
     );
   }
 
-  Widget _buildAspectCard(String label, IconData icon, bool isSelected, VoidCallback onTap) {
+  Widget _buildAspectCard(
+    String label,
+    IconData icon,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -205,7 +242,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
             Icon(
               icon,
               size: 20,
-              color: isSelected ? AeviqueTheme.accentAmberLight : Colors.white70,
+              color: isSelected
+                  ? AeviqueTheme.primaryBlueLight
+                  : Colors.white70,
             ),
             const SizedBox(height: 6),
             Text(
@@ -226,15 +265,23 @@ class _GalleryScreenState extends State<GalleryScreen> {
   List<SampleImageItem> _filterSamples(List<SampleImageItem> all) {
     if (_selectedCategory == 'All') return all;
     if (_selectedCategory == 'Portraits') {
-      return all.where((s) => s.title.toLowerCase().contains('portrait')).toList();
+      return all
+          .where((s) => s.title.toLowerCase().contains('portrait'))
+          .toList();
     }
     if (_selectedCategory == 'Landscapes') {
       return all
-          .where((s) => s.title.toLowerCase().contains('landscape') || s.title.toLowerCase().contains('nature'))
+          .where(
+            (s) =>
+                s.title.toLowerCase().contains('landscape') ||
+                s.title.toLowerCase().contains('nature'),
+          )
           .toList();
     }
     if (_selectedCategory == 'Architecture') {
-      return all.where((s) => s.title.toLowerCase().contains('architecture')).toList();
+      return all
+          .where((s) => s.title.toLowerCase().contains('architecture'))
+          .toList();
     }
     if (_selectedCategory == 'Food') {
       return all.where((s) => s.title.toLowerCase().contains('food')).toList();
@@ -255,7 +302,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(
-                  color: AeviqueTheme.accentAmber,
+                  color: AeviqueTheme.primaryBlue,
                   strokeWidth: 2.0,
                 ),
               )
@@ -273,7 +320,11 @@ class _GalleryScreenState extends State<GalleryScreen> {
                             children: [
                               if (widget.onBackToHome != null) ...[
                                 IconButton(
-                                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
                                   onPressed: widget.onBackToHome,
                                 ),
                                 const SizedBox(width: 8),
@@ -291,7 +342,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
                             ],
                           ),
                           IconButton(
-                            icon: const Icon(Icons.add_photo_alternate_outlined, color: Colors.white),
+                            icon: const Icon(
+                              Icons.add_photo_alternate_outlined,
+                              color: Colors.white,
+                            ),
                             tooltip: 'Import from Library',
                             onPressed: () => _handleImagePicker(
                               widget.imageRepository.pickImageFromGallery,
@@ -311,14 +365,16 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         scrollDirection: Axis.horizontal,
                         itemCount: _categories.length,
-                        separatorBuilder: (context, index) => const SizedBox(width: 8),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(width: 8),
                         itemBuilder: (context, index) {
                           final cat = _categories[index];
                           final isSelected = _selectedCategory == cat;
                           return AeviquePillChip(
                             label: cat,
                             isSelected: isSelected,
-                            onTap: () => setState(() => _selectedCategory = cat),
+                            onTap: () =>
+                                setState(() => _selectedCategory = cat),
                           );
                         },
                       ),
@@ -402,7 +458,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
               errorBuilder: (ctx, err, stack) => Container(
                 color: const Color(0xFF14141A),
                 child: const Center(
-                  child: Icon(Icons.broken_image_outlined, color: Colors.white24),
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white24,
+                  ),
                 ),
               ),
             ),
@@ -426,14 +485,17 @@ class _GalleryScreenState extends State<GalleryScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AeviqueTheme.accentAmber : Colors.white.withValues(alpha: 0.1),
+            color: isSelected
+                ? AeviqueTheme.primaryBlue
+                : Colors.white.withValues(alpha: 0.1),
             width: isSelected ? 1.8 : 0.8,
           ),
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: AeviqueTheme.accentAmber.withValues(alpha: 0.3),
-                blurRadius: 14,
+                color: AeviqueTheme.primaryBlueGlow,
+                blurRadius: 16,
+                spreadRadius: 1,
               ),
           ],
         ),

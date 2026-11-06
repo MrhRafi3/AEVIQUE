@@ -60,9 +60,15 @@ class _PresetsScreenState extends State<PresetsScreen> {
   Future<void> _loadInitialDemoPhoto() async {
     setState(() => _isLoadingImage = true);
     try {
-      final bytes = await widget.imageRepository.loadSampleAsset(_defaultDemoAsset);
+      final bytes = await widget.imageRepository.loadSampleAsset(
+        _defaultDemoAsset,
+      );
       if (bytes != null && bytes.isNotEmpty) {
-        await _setupImageBundle(bytes: bytes, title: 'Studio Portrait', isUserPhoto: false);
+        await _setupImageBundle(
+          bytes: bytes,
+          title: 'Studio Portrait',
+          isUserPhoto: false,
+        );
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingImage = false);
@@ -117,8 +123,13 @@ class _PresetsScreenState extends State<PresetsScreen> {
         await Future<void>.value();
         if (!mounted) return;
 
-        final processed = ImagePipeline.processRawImage(baseThumb, filter.state);
-        final encoded = Uint8List.fromList(img.encodeJpg(processed, quality: 75));
+        final processed = ImagePipeline.processRawImage(
+          baseThumb,
+          filter.state,
+        );
+        final encoded = Uint8List.fromList(
+          img.encodeJpg(processed, quality: 75),
+        );
         if (mounted) {
           setState(() {
             _thumbCache[filter.id] = encoded;
@@ -211,7 +222,9 @@ class _PresetsScreenState extends State<PresetsScreen> {
         builder: (context) => EditorScreen(
           initialImageBytes: imageBytes,
           imageName: _imageTitle,
-          initialPresetId: _selectedPresetId != 'original' ? _selectedPresetId : null,
+          initialPresetId: _selectedPresetId != 'original'
+              ? _selectedPresetId
+              : null,
           initialTool: _selectedPresetId != 'original' ? 'filters' : null,
         ),
       ),
@@ -240,7 +253,11 @@ class _PresetsScreenState extends State<PresetsScreen> {
                       children: [
                         if (widget.onBackToHome != null) ...[
                           IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Colors.white),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
                             onPressed: widget.onBackToHome,
                           ),
                           const SizedBox(width: 4),
@@ -263,12 +280,17 @@ class _PresetsScreenState extends State<PresetsScreen> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0x66181824),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _isUserPhoto ? AeviqueTheme.accentAmber : AeviqueTheme.border,
+                        color: _isUserPhoto
+                            ? AeviqueTheme.primaryBlue
+                            : AeviqueTheme.border,
                         width: 0.8,
                       ),
                     ),
@@ -278,7 +300,9 @@ class _PresetsScreenState extends State<PresetsScreen> {
                         fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: _isUserPhoto ? AeviqueTheme.accentAmberLight : AeviqueTheme.textSecondary,
+                        color: _isUserPhoto
+                            ? AeviqueTheme.primaryBlueLight
+                            : AeviqueTheme.textSecondary,
                       ),
                     ),
                   ),
@@ -289,7 +313,10 @@ class _PresetsScreenState extends State<PresetsScreen> {
             // 2. Large Photographic Canvas
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: _buildMainPreview(),
               ),
             ),
@@ -297,7 +324,10 @@ class _PresetsScreenState extends State<PresetsScreen> {
             // 3. Preset Intensity Slider
             if (isPresetActive)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 4,
+                ),
                 child: AeviquePrecisionSlider(
                   label: 'Intensity',
                   value: _presetIntensity,
@@ -314,7 +344,10 @@ class _PresetsScreenState extends State<PresetsScreen> {
               height: 106,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 itemCount: filters.length,
                 separatorBuilder: (context, index) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
@@ -323,8 +356,10 @@ class _PresetsScreenState extends State<PresetsScreen> {
                   final isOriginal = filter.id == 'original';
                   final thumbBytes = isOriginal
                       ? (_thumbnailImage != null
-                          ? Uint8List.fromList(img.encodeJpg(_thumbnailImage!, quality: 75))
-                          : null)
+                            ? Uint8List.fromList(
+                                img.encodeJpg(_thumbnailImage!, quality: 75),
+                              )
+                            : null)
                       : _thumbCache[filter.id];
 
                   return GestureDetector(
@@ -338,14 +373,16 @@ class _PresetsScreenState extends State<PresetsScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isSelected ? AeviqueTheme.accentAmber : Colors.white.withValues(alpha: 0.12),
+                              color: isSelected
+                                  ? AeviqueTheme.primaryBlue
+                                  : Colors.white.withValues(alpha: 0.12),
                               width: isSelected ? 1.8 : 0.8,
                             ),
                             boxShadow: [
                               if (isSelected)
                                 BoxShadow(
-                                  color: AeviqueTheme.accentAmber.withValues(alpha: 0.35),
-                                  blurRadius: 10,
+                                  color: AeviqueTheme.primaryBlueGlow,
+                                  blurRadius: 12,
                                 ),
                             ],
                           ),
@@ -355,7 +392,11 @@ class _PresetsScreenState extends State<PresetsScreen> {
                               : Container(
                                   color: const Color(0xFF181822),
                                   child: const Center(
-                                    child: Icon(Icons.image, size: 20, color: Colors.white24),
+                                    child: Icon(
+                                      Icons.image,
+                                      size: 20,
+                                      color: Colors.white24,
+                                    ),
                                   ),
                                 ),
                         ),
@@ -370,8 +411,12 @@ class _PresetsScreenState extends State<PresetsScreen> {
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 10,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                              color: isSelected ? Colors.white : AeviqueTheme.textMuted,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AeviqueTheme.textMuted,
                             ),
                           ),
                         ),
@@ -415,7 +460,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
     if (_isLoadingImage) {
       return const Center(
         child: CircularProgressIndicator(
-          color: AeviqueTheme.accentAmber,
+          color: AeviqueTheme.primaryBlue,
           strokeWidth: 2.0,
         ),
       );
@@ -427,7 +472,11 @@ class _PresetsScreenState extends State<PresetsScreen> {
 
     if (bytesToDisplay == null || bytesToDisplay.isEmpty) {
       return const Center(
-        child: Icon(Icons.broken_image_outlined, size: 48, color: Colors.white24),
+        child: Icon(
+          Icons.broken_image_outlined,
+          size: 48,
+          color: Colors.white24,
+        ),
       );
     }
 
@@ -457,7 +506,10 @@ class _PresetsScreenState extends State<PresetsScreen> {
                 top: 14,
                 right: 14,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(12),
@@ -467,10 +519,16 @@ class _PresetsScreenState extends State<PresetsScreen> {
                       SizedBox(
                         width: 10,
                         height: 10,
-                        child: CircularProgressIndicator(strokeWidth: 1.5, color: AeviqueTheme.accentAmber),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: AeviqueTheme.primaryBlueLight,
+                        ),
                       ),
                       SizedBox(width: 6),
-                      Text('RENDERING', style: TextStyle(fontSize: 9, color: Colors.white70)),
+                      Text(
+                        'RENDERING',
+                        style: TextStyle(fontSize: 9, color: Colors.white70),
+                      ),
                     ],
                   ),
                 ),
@@ -480,13 +538,19 @@ class _PresetsScreenState extends State<PresetsScreen> {
                 top: 14,
                 left: 14,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white24, width: 0.8),
                   ),
-                  child: const Text('ORIGINAL', style: TextStyle(fontSize: 10, color: Colors.white)),
+                  child: const Text(
+                    'ORIGINAL',
+                    style: TextStyle(fontSize: 10, color: Colors.white),
+                  ),
                 ),
               ),
           ],

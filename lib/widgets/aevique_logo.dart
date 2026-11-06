@@ -121,5 +121,6 @@ class _AeviqueAperturePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _AeviqueAperturePainter oldDelegate) =>
-      oldDelegate.primaryColor != primaryColor || oldDelegate.accentColor != accentColor;
+      oldDelegate.primaryColor != primaryColor ||
+      oldDelegate.accentColor != accentColor;
 }

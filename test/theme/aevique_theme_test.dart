@@ -8,25 +8,27 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  group('AeviqueTheme Reference Glass Tokens', () {
-    test('Primary dark glass color tokens match reference specification', () {
-      expect(AeviqueTheme.deepBlack, const Color(0xFF09090C));
+  group('AeviqueTheme Blue / Orange / Red Liquid Glass Tokens', () {
+    test('Primary Liquid Glass and 3-color tokens match specification', () {
+      expect(AeviqueTheme.deepCanvas, const Color(0xFF080A10));
+      expect(AeviqueTheme.primaryBlue, const Color(0xFF3478F6));
+      expect(AeviqueTheme.creativeOrange, const Color(0xFFFF8A32));
+      expect(AeviqueTheme.coralRed, const Color(0xFFF04452));
       expect(AeviqueTheme.textPrimary, const Color(0xFFFFFFFF));
-      expect(AeviqueTheme.accentAmber, const Color(0xFFE5A125));
-      expect(AeviqueTheme.textMuted, const Color(0xFF707080));
     });
 
     test('LumaTheme bridges correctly to AeviqueTheme', () {
-      expect(LumaTheme.background, AeviqueTheme.deepBlack);
-      expect(LumaTheme.accent, AeviqueTheme.accentAmber);
+      expect(LumaTheme.background, AeviqueTheme.deepCanvas);
+      expect(LumaTheme.accent, AeviqueTheme.primaryBlue);
+      expect(LumaTheme.accentSecondary, AeviqueTheme.creativeOrange);
+      expect(LumaTheme.accentCoral, AeviqueTheme.coralRed);
       expect(LumaTheme.textPrimary, AeviqueTheme.textPrimary);
-      expect(LumaTheme.textMuted, AeviqueTheme.textMuted);
     });
 
     test('darkTheme configures correct colors', () {
       final theme = AeviqueTheme.darkTheme;
-      expect(theme.scaffoldBackgroundColor, const Color(0xFF09090C));
-      expect(theme.primaryColor, const Color(0xFFE5A125));
+      expect(theme.scaffoldBackgroundColor, const Color(0xFF080A10));
+      expect(theme.primaryColor, const Color(0xFF3478F6));
       expect(theme.colorScheme.onSurface, const Color(0xFFFFFFFF));
     });
 

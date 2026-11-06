@@ -2,11 +2,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lumaforge/screens/camera_screen.dart';
 import 'package:lumaforge/screens/home_screen.dart';
-import 'package:lumaforge/screens/presets_screen.dart';
+import 'package:lumaforge/screens/profile_screen.dart';
+import 'package:lumaforge/screens/settings_screen.dart';
 import 'package:lumaforge/services/image_repository.dart';
 import 'package:lumaforge/theme/aevique_theme.dart';
-import 'package:lumaforge/widgets/aevique_ui_components.dart';
+import 'package:lumaforge/widgets/motion/abstract_3d_graphics.dart';
 
 class MockImageRepository implements ImageRepository {
   @override
@@ -42,7 +44,7 @@ void main() {
   GoogleFonts.config.allowRuntimeFetching = false;
 
   testWidgets(
-    'HomeScreen matches Phone 1 reference: Explore templates, categories, and floating dock',
+    'HomeScreen has exactly the 4 required elements and Abstract 3D Motion Graphics',
     (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
@@ -59,35 +61,55 @@ void main() {
           home: HomeScreen(imageRepository: mockRepo),
         ),
       );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 1. Verify 3D Motion Graphics background is present
+      expect(find.byType(Abstract3DMotionGraphics), findsOneWidget);
+
+      // 2. Verify Minimal AEVIQUE Branding
+      expect(find.text('AEVIQUE'), findsOneWidget);
+      expect(find.text('CREATIVE PHOTO ENGINE'), findsOneWidget);
+
+      // 3. Verify The 4 Main Elements:
+      // Element A: Start Editing
+      expect(find.text('Start Editing'), findsOneWidget);
+
+      // Element B: Open Camera
+      expect(find.text('Open Camera'), findsOneWidget);
+
+      // Element C: Profile
+      expect(find.text('Profile'), findsOneWidget);
+
+      // Element D: Settings
+      expect(find.text('Settings'), findsOneWidget);
+
+      // 4. Verify Tapping Profile navigates to ProfileScreen
+      await tester.tap(find.text('Profile'));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byType(ProfileScreen), findsOneWidget);
 
-      // Verify Phone 1 Top Bar
-      expect(find.text('Explore templates'), findsOneWidget);
-
-      // Verify Phone 1 Category Pills
-      expect(find.text('Reel'), findsOneWidget);
-      expect(find.text('Post'), findsOneWidget);
-      expect(find.text('Vintage'), findsOneWidget);
-      expect(find.text('Classic'), findsOneWidget);
-
-      // Verify Main Showcase Card
-      expect(find.text('Year in\nReview'), findsOneWidget);
-      expect(find.text('(06)'), findsOneWidget);
-      expect(find.text('by Gijack.en'), findsOneWidget);
-      expect(find.byType(AeviqueAmberFab), findsOneWidget);
-
-      // Verify Floating Bottom Dock
-      expect(find.byType(AeviqueFloatingDock), findsOneWidget);
-      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.grid_view_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.tune_rounded), findsOneWidget);
-
-      // Tap Presets dock item (index 2: tune_rounded)
-      await tester.tap(find.byIcon(Icons.tune_rounded));
+      // Pop back
+      Navigator.of(tester.element(find.byType(ProfileScreen))).pop();
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
 
-      // Verify PresetsScreen is displayed
-      expect(find.byType(PresetsScreen), findsOneWidget);
+      // 5. Verify Tapping Settings navigates to SettingsScreen
+      await tester.tap(find.text('Settings'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byType(SettingsScreen), findsOneWidget);
+
+      // Pop back
+      Navigator.of(tester.element(find.byType(SettingsScreen))).pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // 6. Verify Tapping Open Camera navigates to CameraScreen
+      await tester.tap(find.text('Open Camera'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byType(CameraScreen), findsOneWidget);
     },
   );
 }

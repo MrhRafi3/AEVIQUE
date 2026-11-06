@@ -13,6 +13,7 @@ import '../widgets/aevique_glass.dart';
 import '../widgets/aevique_ui_components.dart';
 import '../widgets/before_after_viewer.dart';
 import '../widgets/crop_overlay_widget.dart';
+import '../widgets/photo_adaptive_background.dart';
 import '../widgets/tool_panels/crop_panel.dart';
 import '../widgets/tool_panels/curves_panel.dart';
 import '../widgets/tool_panels/effects_panel.dart';
@@ -59,7 +60,8 @@ class _EditorScreenState extends State<EditorScreen> {
   Timer? _debounceTimer;
   int _latestRequestId = 0;
 
-  String? _activeTool; // 'crop', 'adjust', 'filter', 'curves', 'effects', 'presets', 'portrait'
+  String?
+  _activeTool; // 'crop', 'adjust', 'filter', 'curves', 'effects', 'presets', 'portrait'
   bool _isBlemishModeActive = false;
   double _blemishRadius = 0.025;
 
@@ -145,7 +147,9 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    final debounceDuration = (AeviqueNativeEngine.isAvailable && ImagePipeline.isNativeCompatible(state))
+    final debounceDuration =
+        (AeviqueNativeEngine.isAvailable &&
+            ImagePipeline.isNativeCompatible(state))
         ? const Duration(milliseconds: 16)
         : const Duration(milliseconds: 30);
 
@@ -266,27 +270,46 @@ class _EditorScreenState extends State<EditorScreen> {
         ),
         title: const Text(
           'Unsaved Edits',
-          style: TextStyle(fontFamily: 'Inter', fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
         content: const Text(
           'You have unexported photo adjustments in this editing session. Would you like to preserve or discard them?',
-          style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: AeviqueTheme.textSecondary, height: 1.4),
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            color: AeviqueTheme.textSecondary,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(_BackDialogAction.discard),
-            child: const Text('Discard', style: TextStyle(color: Color(0xFFEF4444))),
+            onPressed: () =>
+                Navigator.of(context).pop(_BackDialogAction.discard),
+            child: const Text(
+              'Discard',
+              style: TextStyle(color: Color(0xFFEF4444)),
+            ),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(_BackDialogAction.keepEditing),
-            child: const Text('Keep Editing', style: TextStyle(color: Colors.white)),
+            onPressed: () =>
+                Navigator.of(context).pop(_BackDialogAction.keepEditing),
+            child: const Text(
+              'Keep Editing',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AeviqueTheme.accentAmber,
-              foregroundColor: Colors.black,
+              backgroundColor: AeviqueTheme.primaryBlue,
+              foregroundColor: Colors.white,
             ),
-            onPressed: () => Navigator.of(context).pop(_BackDialogAction.saveAndExport),
+            onPressed: () =>
+                Navigator.of(context).pop(_BackDialogAction.saveAndExport),
             child: const Text('Save / Export'),
           ),
         ],
@@ -336,8 +359,13 @@ class _EditorScreenState extends State<EditorScreen> {
 
     HapticFeedback.lightImpact();
     final newSpot = BlemishSpot(x: imgX, y: imgY, radius: _blemishRadius);
-    final updated = List<BlemishSpot>.from(_workingState.portrait.blemishes)..add(newSpot);
-    _requestRender(_workingState.copyWith(portrait: _workingState.portrait.copyWith(blemishes: updated)));
+    final updated = List<BlemishSpot>.from(_workingState.portrait.blemishes)
+      ..add(newSpot);
+    _requestRender(
+      _workingState.copyWith(
+        portrait: _workingState.portrait.copyWith(blemishes: updated),
+      ),
+    );
   }
 
   @override
@@ -349,48 +377,55 @@ class _EditorScreenState extends State<EditorScreen> {
         _handleBackAction();
       },
       child: Scaffold(
-        backgroundColor: AeviqueTheme.deepBlack,
-        body: SafeArea(
-          child: Focus(
-            autofocus: true,
-            onKeyEvent: (node, event) {
-              if (event is KeyDownEvent) {
-                final isMetaOrCtrl = HardwareKeyboard.instance.isMetaPressed || HardwareKeyboard.instance.isControlPressed;
-                if (isMetaOrCtrl && event.logicalKey == LogicalKeyboardKey.keyZ) {
-                  if (HardwareKeyboard.instance.isShiftPressed) {
-                    if (_history.canRedo) _redo();
-                  } else {
-                    if (_history.canUndo) _undo();
+        backgroundColor: AeviqueTheme.deepCanvas,
+        body: PhotoAdaptiveBackground(
+          imageBytes: widget.initialImageBytes,
+          child: SafeArea(
+            child: Focus(
+              autofocus: true,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent) {
+                  final isMetaOrCtrl =
+                      HardwareKeyboard.instance.isMetaPressed ||
+                      HardwareKeyboard.instance.isControlPressed;
+                  if (isMetaOrCtrl &&
+                      event.logicalKey == LogicalKeyboardKey.keyZ) {
+                    if (HardwareKeyboard.instance.isShiftPressed) {
+                      if (_history.canRedo) _redo();
+                    } else {
+                      if (_history.canUndo) _undo();
+                    }
+                    return KeyEventResult.handled;
                   }
-                  return KeyEventResult.handled;
-                }
-                if (isMetaOrCtrl && event.logicalKey == LogicalKeyboardKey.keyE) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ExportScreen(
-                        sourceBytes: widget.initialImageBytes,
-                        state: _history.current,
+                  if (isMetaOrCtrl &&
+                      event.logicalKey == LogicalKeyboardKey.keyE) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => ExportScreen(
+                          sourceBytes: widget.initialImageBytes,
+                          state: _history.current,
+                        ),
                       ),
-                    ),
-                  );
-                  return KeyEventResult.handled;
+                    );
+                    return KeyEventResult.handled;
+                  }
+                  if (event.logicalKey == LogicalKeyboardKey.escape) {
+                    _handleBackAction();
+                    return KeyEventResult.handled;
+                  }
                 }
-                if (event.logicalKey == LogicalKeyboardKey.escape) {
-                  _handleBackAction();
-                  return KeyEventResult.handled;
-                }
-              }
-              return KeyEventResult.ignored;
-            },
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isDesktop = constraints.maxWidth >= 768;
-                if (isDesktop) {
-                  return _buildDesktopLayout();
-                } else {
-                  return _buildMobileLayout();
-                }
+                return KeyEventResult.ignored;
               },
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isDesktop = constraints.maxWidth >= 768;
+                  if (isDesktop) {
+                    return _buildDesktopLayout();
+                  } else {
+                    return _buildMobileLayout();
+                  }
+                },
+              ),
             ),
           ),
         ),
@@ -411,7 +446,9 @@ class _EditorScreenState extends State<EditorScreen> {
               _buildTopBar(),
               Expanded(child: _buildCanvasStack()),
               // Reserve bottom space for floating dock or tool sheet
-              SizedBox(height: isToolOpen ? (_activeTool == 'crop' ? 220 : 260) : 100),
+              SizedBox(
+                height: isToolOpen ? (_activeTool == 'crop' ? 220 : 260) : 100,
+              ),
             ],
           ),
         ),
@@ -444,7 +481,9 @@ class _EditorScreenState extends State<EditorScreen> {
           width: 380,
           decoration: const BoxDecoration(
             color: Color(0x8C14141C),
-            border: Border(left: BorderSide(color: AeviqueTheme.border, width: 0.8)),
+            border: Border(
+              left: BorderSide(color: AeviqueTheme.border, width: 0.8),
+            ),
           ),
           child: _buildDesktopSidebar(_activeTool),
         ),
@@ -456,7 +495,8 @@ class _EditorScreenState extends State<EditorScreen> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        if (!_isLoadingBase && (_previewUiImage != null || _previewBytes != null))
+        if (!_isLoadingBase &&
+            (_previewUiImage != null || _previewBytes != null))
           InteractiveViewer(
             maxScale: 4.0,
             minScale: 0.8,
@@ -474,7 +514,10 @@ class _EditorScreenState extends State<EditorScreen> {
           )
         else
           const Center(
-            child: CircularProgressIndicator(color: AeviqueTheme.accentAmber, strokeWidth: 2.0),
+            child: CircularProgressIndicator(
+              color: AeviqueTheme.primaryBlue,
+              strokeWidth: 2.0,
+            ),
           ),
 
         // Crop interactive overlay (active when crop tool is open)
@@ -508,12 +551,16 @@ class _EditorScreenState extends State<EditorScreen> {
                 return GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (details) {
-                    _handleBlemishTap(details.localPosition, constraints.biggest);
+                    _handleBlemishTap(
+                      details.localPosition,
+                      constraints.biggest,
+                    );
                   },
                   child: CustomPaint(
                     painter: _BlemishOverlayPainter(
                       blemishes: _workingState.portrait.blemishes,
-                      imageAspectRatio: _basePreviewImage!.width / _basePreviewImage!.height,
+                      imageAspectRatio:
+                          _basePreviewImage!.width / _basePreviewImage!.height,
                     ),
                   ),
                 );
@@ -530,7 +577,10 @@ class _EditorScreenState extends State<EditorScreen> {
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AeviqueTheme.accentAmber.withValues(alpha: 0.4), width: 0.8),
+                border: Border.all(
+                  color: AeviqueTheme.primaryBlue.withValues(alpha: 0.5),
+                  width: 0.8,
+                ),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -538,7 +588,10 @@ class _EditorScreenState extends State<EditorScreen> {
                   SizedBox(
                     width: 10,
                     height: 10,
-                    child: CircularProgressIndicator(strokeWidth: 1.5, color: AeviqueTheme.accentAmber),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: AeviqueTheme.primaryBlueLight,
+                    ),
                   ),
                   SizedBox(width: 6),
                   Text(
@@ -547,7 +600,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       fontFamily: 'Inter',
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
-                      color: AeviqueTheme.accentAmberLight,
+                      color: AeviqueTheme.primaryBlueLight,
                     ),
                   ),
                 ],
@@ -580,7 +633,11 @@ class _EditorScreenState extends State<EditorScreen> {
                   onTap: _handleBackAction,
                   child: const Padding(
                     padding: EdgeInsets.all(4),
-                    child: Icon(Icons.close_rounded, size: 20, color: Colors.white),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 20,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -666,7 +723,10 @@ class _EditorScreenState extends State<EditorScreen> {
                     );
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
@@ -702,10 +762,18 @@ class _EditorScreenState extends State<EditorScreen> {
             _buildDockModeItem('crop', 'Crop', Icons.crop_rounded),
             _buildDockModeItem('tune', 'Light', Icons.wb_sunny_outlined),
             _buildDockModeItem('tune', 'Color', Icons.palette_outlined),
-            _buildDockModeItem('filter', 'Filters', Icons.filter_vintage_rounded),
+            _buildDockModeItem(
+              'filter',
+              'Filters',
+              Icons.filter_vintage_rounded,
+            ),
             _buildDockModeItem('curves', 'Curves', Icons.show_chart_rounded),
             _buildDockModeItem('effects', 'Effects', Icons.blur_on_rounded),
-            _buildDockModeItem('portrait', 'Portrait', Icons.face_retouching_natural_rounded),
+            _buildDockModeItem(
+              'portrait',
+              'Portrait',
+              Icons.face_retouching_natural_rounded,
+            ),
           ],
         ),
       ),
@@ -753,7 +821,11 @@ class _EditorScreenState extends State<EditorScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20, color: Colors.white54),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: AeviqueTheme.coralRedLight,
+                ),
                 tooltip: 'Cancel',
                 onPressed: _cancelToolChanges,
               ),
@@ -763,11 +835,15 @@ class _EditorScreenState extends State<EditorScreen> {
                   fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white70,
+                  color: Colors.white,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.check_rounded, size: 20, color: AeviqueTheme.accentAmber),
+                icon: const Icon(
+                  Icons.check_rounded,
+                  size: 20,
+                  color: AeviqueTheme.primaryBlueLight,
+                ),
                 tooltip: 'Apply',
                 onPressed: _applyToolChanges,
               ),
@@ -776,25 +852,34 @@ class _EditorScreenState extends State<EditorScreen> {
           panelContent,
           const SizedBox(height: 12),
 
-          // Contextual Mode Dock & Prominent Golden Circular Checkmark FAB (Phone 3)
+          // Contextual Mode Dock & Prominent Circular Checkmark FAB
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // Contextual pill switcher: Crop | Adjust | Filter
-              AeviqueGlass(
+              LiquidGlassPanel(
+                variant: LiquidGlassVariant.ultraClear,
                 borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _buildContextModeChip('crop', 'Crop', Icons.crop_rounded),
-                    _buildContextModeChip('adjust', 'Adjust', Icons.tune_rounded),
-                    _buildContextModeChip('filter', 'Filter', Icons.filter_vintage_rounded),
+                    _buildContextModeChip(
+                      'adjust',
+                      'Adjust',
+                      Icons.tune_rounded,
+                    ),
+                    _buildContextModeChip(
+                      'filter',
+                      'Filter',
+                      Icons.filter_vintage_rounded,
+                    ),
                   ],
                 ),
               ),
 
-              // Prominent Circular Golden Checkmark FAB with Warm Bloom (Phone 3)
+              // Prominent Circular Checkmark FAB with Liquid Blue Glow
               AeviqueAmberFab(
                 icon: Icons.check_rounded,
                 size: 52,
@@ -817,9 +902,12 @@ class _EditorScreenState extends State<EditorScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: isSelected
             ? BoxDecoration(
-                color: AeviqueTheme.accentAmber.withValues(alpha: 0.2),
+                color: AeviqueTheme.primaryBlue.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AeviqueTheme.accentAmber, width: 1.0),
+                border: Border.all(
+                  color: AeviqueTheme.primaryBlueLight,
+                  width: 1.0,
+                ),
               )
             : null,
         child: Row(
@@ -828,7 +916,9 @@ class _EditorScreenState extends State<EditorScreen> {
             Icon(
               icon,
               size: 14,
-              color: isSelected ? AeviqueTheme.accentAmberLight : Colors.white60,
+              color: isSelected
+                  ? AeviqueTheme.primaryBlueLight
+                  : Colors.white60,
             ),
             const SizedBox(width: 4),
             Text(
@@ -902,12 +992,19 @@ class _EditorScreenState extends State<EditorScreen> {
               : Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20, color: Colors.white54),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 20,
+                              color: Colors.white54,
+                            ),
                             tooltip: 'Cancel',
                             onPressed: _cancelToolChanges,
                           ),
@@ -921,7 +1018,11 @@ class _EditorScreenState extends State<EditorScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.check_rounded, size: 20, color: AeviqueTheme.accentAmber),
+                            icon: const Icon(
+                              Icons.check_rounded,
+                              size: 20,
+                              color: AeviqueTheme.primaryBlueLight,
+                            ),
                             tooltip: 'Apply',
                             onPressed: _applyToolChanges,
                           ),
@@ -1012,7 +1113,8 @@ class _EditorScreenState extends State<EditorScreen> {
         return TunePanel(
           tune: _workingState.tune,
           curves: _workingState.curves,
-          onCurvesChanged: (c) => _requestRender(_workingState.copyWith(curves: c)),
+          onCurvesChanged: (c) =>
+              _requestRender(_workingState.copyWith(curves: c)),
           onChanged: (t) => _requestRender(_workingState.copyWith(tune: t)),
         );
       case 'filter':
@@ -1074,8 +1176,10 @@ class _EditorScreenState extends State<EditorScreen> {
         return EffectsPanel(
           effects: _workingState.effects,
           vignette: _workingState.vignette,
-          onEffectsChanged: (e) => _requestRender(_workingState.copyWith(effects: e)),
-          onVignetteChanged: (v) => _requestRender(_workingState.copyWith(vignette: v)),
+          onEffectsChanged: (e) =>
+              _requestRender(_workingState.copyWith(effects: e)),
+          onVignetteChanged: (v) =>
+              _requestRender(_workingState.copyWith(vignette: v)),
         );
       case 'presets':
         return PresetsPanel(
@@ -1108,17 +1212,28 @@ class _EditorScreenState extends State<EditorScreen> {
           portrait: _workingState.portrait,
           onChanged: (p) => _requestRender(_workingState.copyWith(portrait: p)),
           isBlemishModeActive: _isBlemishModeActive,
-          onBlemishModeChanged: (active) => setState(() => _isBlemishModeActive = active),
+          onBlemishModeChanged: (active) =>
+              setState(() => _isBlemishModeActive = active),
           blemishRadius: _blemishRadius,
           onBlemishRadiusChanged: (r) => setState(() => _blemishRadius = r),
           onUndoLastBlemish: () {
             if (_workingState.portrait.blemishes.isNotEmpty) {
-              final updated = List<BlemishSpot>.from(_workingState.portrait.blemishes)..removeLast();
-              _requestRender(_workingState.copyWith(portrait: _workingState.portrait.copyWith(blemishes: updated)));
+              final updated = List<BlemishSpot>.from(
+                _workingState.portrait.blemishes,
+              )..removeLast();
+              _requestRender(
+                _workingState.copyWith(
+                  portrait: _workingState.portrait.copyWith(blemishes: updated),
+                ),
+              );
             }
           },
           onClearBlemishes: () {
-            _requestRender(_workingState.copyWith(portrait: _workingState.portrait.copyWith(blemishes: const [])));
+            _requestRender(
+              _workingState.copyWith(
+                portrait: _workingState.portrait.copyWith(blemishes: const []),
+              ),
+            );
           },
         );
       default:
@@ -1131,7 +1246,10 @@ class _BlemishOverlayPainter extends CustomPainter {
   final List<BlemishSpot> blemishes;
   final double imageAspectRatio;
 
-  _BlemishOverlayPainter({required this.blemishes, required this.imageAspectRatio});
+  _BlemishOverlayPainter({
+    required this.blemishes,
+    required this.imageAspectRatio,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1149,7 +1267,7 @@ class _BlemishOverlayPainter extends CustomPainter {
     }
 
     final circlePaint = Paint()
-      ..color = AeviqueTheme.accentAmber.withValues(alpha: 0.8)
+      ..color = AeviqueTheme.primaryBlueLight.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -1163,5 +1281,6 @@ class _BlemishOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BlemishOverlayPainter oldDelegate) =>
-      oldDelegate.blemishes != blemishes || oldDelegate.imageAspectRatio != imageAspectRatio;
+      oldDelegate.blemishes != blemishes ||
+      oldDelegate.imageAspectRatio != imageAspectRatio;
 }

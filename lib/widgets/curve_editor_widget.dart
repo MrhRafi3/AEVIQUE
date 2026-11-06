@@ -42,13 +42,13 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
   Color get _activeColor {
     switch (_selectedChannel) {
       case CurveChannel.rgb:
-        return AeviqueTheme.accentAmber;
+        return AeviqueTheme.primaryBlueLight;
       case CurveChannel.red:
-        return const Color(0xFFEF4444);
+        return AeviqueTheme.coralRed;
       case CurveChannel.green:
         return const Color(0xFF10B981);
       case CurveChannel.blue:
-        return const Color(0xFF3B82F6);
+        return AeviqueTheme.primaryBlue;
     }
   }
 
@@ -176,17 +176,37 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
             children: [
               Row(
                 children: [
-                  _buildChannelTab(CurveChannel.rgb, 'RGB', AeviqueTheme.accentAmber),
+                  _buildChannelTab(
+                    CurveChannel.rgb,
+                    'RGB',
+                    AeviqueTheme.primaryBlueLight,
+                  ),
                   const SizedBox(width: 8),
-                  _buildChannelTab(CurveChannel.red, 'Red', const Color(0xFFEF4444)),
+                  _buildChannelTab(
+                    CurveChannel.red,
+                    'Red',
+                    const Color(0xFFEF4444),
+                  ),
                   const SizedBox(width: 8),
-                  _buildChannelTab(CurveChannel.green, 'Green', const Color(0xFF10B981)),
+                  _buildChannelTab(
+                    CurveChannel.green,
+                    'Green',
+                    const Color(0xFF10B981),
+                  ),
                   const SizedBox(width: 8),
-                  _buildChannelTab(CurveChannel.blue, 'Blue', const Color(0xFF3B82F6)),
+                  _buildChannelTab(
+                    CurveChannel.blue,
+                    'Blue',
+                    const Color(0xFF3B82F6),
+                  ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 18, color: Colors.white70),
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  size: 18,
+                  color: Colors.white70,
+                ),
                 tooltip: 'Reset Channel',
                 onPressed: _resetCurrentChannel,
               ),
@@ -204,7 +224,10 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
               padding: const EdgeInsets.all(12),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final size = Size(constraints.maxWidth, constraints.maxHeight);
+                  final size = Size(
+                    constraints.maxWidth,
+                    constraints.maxHeight,
+                  );
                   return GestureDetector(
                     onPanDown: (d) => _handlePanDown(d.localPosition, size),
                     onPanUpdate: (d) => _handlePanUpdate(d.localPosition, size),
@@ -238,7 +261,9 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0x401E1E26),
+          color: isSelected
+              ? color.withValues(alpha: 0.2)
+              : const Color(0x401E1E26),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? color : AeviqueTheme.border,
@@ -367,7 +392,8 @@ class _CurvePainter extends CustomPainter {
         final h11 = t * t * (t - 1);
         final m0 = (pts[i + 1].y - pts[i].y);
         final m1 = m0;
-        final y = h00 * pts[i].y + h10 * dx * m0 + h01 * pts[i + 1].y + h11 * dx * m1;
+        final y =
+            h00 * pts[i].y + h10 * dx * m0 + h01 * pts[i + 1].y + h11 * dx * m1;
         return y.clamp(0.0, 1.0);
       }
     }

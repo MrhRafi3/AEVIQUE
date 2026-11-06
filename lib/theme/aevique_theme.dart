@@ -1,66 +1,113 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// AEVIQUE iOS 26 Reference-Driven Glass UI Theme
+/// AEVIQUE — Transparent Liquid Glass · Abstract 3D Motion · Blue / Orange / Red Theme
 ///
-/// Designed strictly according to the reference image:
-/// - Dark cinematic atmosphere (deep neutral black canvas).
-/// - Translucent smoked-glass layers with specular borders.
-/// - Warm Amber / Sun Yellow accent for active states & glowing checkmark FAB.
-/// - Clean, modern sans-serif typography (no serif or Playfair Display).
+/// Designed as a premium, Apple-inspired creative photo application:
+/// - Transparent liquid glass / water glassmorphism surfaces.
+/// - Cobalt Blue (#3478F6) primary interactive accent.
+/// - Vibrant Creative Orange (#FF8A32) secondary / creative emphasis.
+/// - Modern Coral Red (#F04452) destructive / selected visual accents.
+/// - Optical glass borders with specular refraction highlights.
+/// - High-clarity modern typography.
 class AeviqueTheme {
-  // --- Dark Cinematic Base Palette ---
-  static const Color deepBlack = Color(0xFF09090C);
-  static const Color darkCanvas = Color(0xFF0C0C10);
-  static const Color charcoalSurface = Color(0xFF14141A);
-  static const Color elevatedCharcoal = Color(0xFF1C1C24);
-  static const Color surfaceCard = Color(0xFF16161E);
+  // --- Core Balanced 3-Color System ---
 
-  // --- Translucent Glass Materials ---
-  static const Color glassSmoked = Color(0x731C1C26); // 45% translucent smoked glass
-  static const Color glassElevated = Color(0x8C22222E); // 55% translucent elevated glass
-  static const Color glassPill = Color(0x59282836); // 35% translucent pill glass
-  static const Color glassOverlay = Color(0x80000000); // 50% dark overlay
+  // Primary Blue: Cobalt Blue / Electric Blue
+  static const Color primaryBlue = Color(0xFF3478F6);
+  static const Color primaryBlueLight = Color(0xFF5E98FC);
+  static const Color primaryBlueDark = Color(0xFF1E5AD6);
+  static const Color primaryBlueGlow = Color(0x593478F6);
+  static const Color primaryBlueSurface = Color(0x283478F6);
 
-  // --- Translucent Subtle Glass Borders ---
-  static const Color border = Color(0x1FFFFFFF); // 12% translucent white
-  static const Color borderSubtle = Color(0x12FFFFFF); // 7% translucent white
-  static const Color borderLight = Color(0x28FFFFFF); // 16% translucent white
-  static const Color borderSpecular = Color(0x38FFFFFF); // 22% specular top highlight
+  // Secondary Orange: Vibrant Creative Orange
+  static const Color creativeOrange = Color(0xFFFF8A32);
+  static const Color creativeOrangeLight = Color(0xFFFFA663);
+  static const Color creativeOrangeDark = Color(0xFFDF6B15);
+  static const Color creativeOrangeGlow = Color(0x59FF8A32);
+  static const Color creativeOrangeSurface = Color(0x28FF8A32);
+
+  // Accent Red: Modern Coral Red
+  static const Color coralRed = Color(0xFFF04452);
+  static const Color coralRedLight = Color(0xFFF67580);
+  static const Color coralRedDark = Color(0xFFD32635);
+  static const Color coralRedGlow = Color(0x59F04452);
+  static const Color coralRedSurface = Color(0x28F04452);
+
+  // --- Deep Canvas & Ambient Base Palette ---
+  static const Color deepCanvas = Color(0xFF080A10); // Ultra-deep studio space
+  static const Color studioSurface = Color(0xFF0E131E);
+  static const Color studioSurfaceElevated = Color(0xFF151C2C);
+  static const Color studioSurfaceCard = Color(0xFF1A2337);
+
+  // --- Transparent Liquid Glass Materials ---
+  static const Color glassLiquidUltraClear = Color(
+    0x0DFFFFFF,
+  ); // 5% pure water glass
+  static const Color glassLiquidClear = Color(0x17FFFFFF); // 9% liquid glass
+  static const Color glassLiquidMedium = Color(0x26FFFFFF); // 15% optical glass
+  static const Color glassLiquidDeep = Color(
+    0x4D0E131F,
+  ); // 30% tinted deep glass
+  static const Color glassOverlay = Color(0x8004060A); // 50% dark overlay
+
+  // --- Liquid Glass Specular Borders ---
+  static const Color glassBorder = Color(0x33FFFFFF); // 20% translucent white
+  static const Color glassBorderSubtle = Color(
+    0x18FFFFFF,
+  ); // 10% translucent white
+  static const Color glassBorderLight = Color(
+    0x47FFFFFF,
+  ); // 28% translucent white
+  static const Color glassBorderSpecular = Color(
+    0x73FFFFFF,
+  ); // 45% top specular highlight
 
   // --- Clean Modern Typography Colors ---
   static const Color textPrimary = Color(0xFFFFFFFF); // Pure crisp white
-  static const Color textSecondary = Color(0xFFA2A2B2); // Muted silver
-  static const Color textMuted = Color(0xFF707080); // Dim gray
+  static const Color textSecondary = Color(
+    0xFFA5B2D1,
+  ); // Soft atmospheric silver-blue
+  static const Color textMuted = Color(0xFF6B7A99); // Dim gray-blue
 
-  // --- Reference Warm Amber / Golden Sun Accent ---
-  // Derived strictly from Phone 3 FAB, Phone 1 Vintage chip, Phone 3 -10° badge, Phone 5 curve
-  static const Color accentAmber = Color(0xFFE5A125);
-  static const Color accentAmberLight = Color(0xFFFFD562);
-  static const Color accentAmberDark = Color(0xFFB87810);
-  static const Color accentAmberGlow = Color(0x59E5A125);
-  static const Color accentAmberBg = Color(0x2EE5A125);
+  // --- Semantic Aliases ---
+  static const Color background = deepCanvas;
+  static const Color surface = studioSurface;
+  static const Color surfaceElevated = studioSurfaceElevated;
+  static const Color surfaceHighlight = Color(0xFF222C42);
+  static const Color accent = primaryBlue;
+  static const Color accentSecondary = creativeOrange;
+  static const Color accentDestructive = coralRed;
 
-  // Semantic Aliases
-  static const Color background = deepBlack;
-  static const Color surface = charcoalSurface;
-  static const Color surfaceElevated = elevatedCharcoal;
-  static const Color surfaceHighlight = Color(0xFF262634);
-  static const Color accent = accentAmber;
-  static const Color accentSecondary = accentAmberLight;
-
-  // Backwards compatibility aliases (to prevent compile breakage during refactoring)
-  static const Color champagneGold = accentAmber;
-  static const Color champagneGoldLight = accentAmberLight;
-  static const Color champagneGoldDark = accentAmberDark;
+  // --- Backward-Compatible Aliases ---
+  static const Color deepBlack = deepCanvas;
+  static const Color darkCanvas = deepCanvas;
+  static const Color charcoalSurface = studioSurface;
+  static const Color elevatedCharcoal = studioSurfaceElevated;
+  static const Color surfaceCard = studioSurfaceCard;
+  static const Color glassSmoked = glassLiquidDeep;
+  static const Color glassElevated = glassLiquidDeep;
+  static const Color glassPill = glassLiquidMedium;
+  static const Color border = glassBorder;
+  static const Color borderSubtle = glassBorderSubtle;
+  static const Color borderLight = glassBorderLight;
+  static const Color borderSpecular = glassBorderSpecular;
+  static const Color accentAmber = creativeOrange;
+  static const Color accentAmberLight = creativeOrangeLight;
+  static const Color accentAmberDark = creativeOrangeDark;
+  static const Color accentAmberGlow = creativeOrangeGlow;
+  static const Color accentAmberBg = creativeOrangeSurface;
+  static const Color champagneGold = creativeOrange;
+  static const Color champagneGoldLight = creativeOrangeLight;
+  static const Color champagneGoldDark = creativeOrangeDark;
   static const Color ivory = textPrimary;
   static const Color slateGray = textMuted;
 
-  // Semantic Status Colors
+  // --- Semantic Status Colors ---
   static const Color success = Color(0xFF34D399);
-  static const Color error = Color(0xFFEF4444);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color info = Color(0xFF60A5FA);
+  static const Color error = coralRed;
+  static const Color warning = creativeOrange;
+  static const Color info = primaryBlue;
 
   // Geometry & Radii Tokens
   static const double radiusXs = 6.0;
@@ -79,33 +126,53 @@ class AeviqueTheme {
 
   // Glass Drop Shadows
   static List<BoxShadow> get cardShadow => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.4),
-          blurRadius: 20,
-          spreadRadius: 0,
-          offset: const Offset(0, 6),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.4),
+      blurRadius: 24,
+      spreadRadius: 0,
+      offset: const Offset(0, 8),
+    ),
+  ];
 
   static List<BoxShadow> get elevatedShadow => [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.6),
-          blurRadius: 30,
-          spreadRadius: 2,
-          offset: const Offset(0, 10),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.55),
+      blurRadius: 36,
+      spreadRadius: 2,
+      offset: const Offset(0, 12),
+    ),
+  ];
 
-  static List<BoxShadow> get amberGlow => [
-        BoxShadow(
-          color: accentAmber.withValues(alpha: 0.4),
-          blurRadius: 24,
-          spreadRadius: 2,
-          offset: const Offset(0, 2),
-        ),
-      ];
+  static List<BoxShadow> get blueGlow => [
+    BoxShadow(
+      color: primaryBlue.withValues(alpha: 0.45),
+      blurRadius: 24,
+      spreadRadius: 1,
+      offset: const Offset(0, 4),
+    ),
+  ];
 
-  static List<BoxShadow> get goldGlow => amberGlow;
+  static List<BoxShadow> get orangeGlow => [
+    BoxShadow(
+      color: creativeOrange.withValues(alpha: 0.45),
+      blurRadius: 24,
+      spreadRadius: 1,
+      offset: const Offset(0, 4),
+    ),
+  ];
+
+  static List<BoxShadow> get redGlow => [
+    BoxShadow(
+      color: coralRed.withValues(alpha: 0.45),
+      blurRadius: 24,
+      spreadRadius: 1,
+      offset: const Offset(0, 4),
+    ),
+  ];
+
+  // Compatibility getter
+  static List<BoxShadow> get amberGlow => orangeGlow;
+  static List<BoxShadow> get goldGlow => orangeGlow;
 
   // Modern Clean Sans-Serif Typography
   static TextStyle wordmarkStyle({
@@ -156,15 +223,17 @@ class AeviqueTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: deepBlack,
-      primaryColor: accentAmber,
+      scaffoldBackgroundColor: deepCanvas,
+      primaryColor: primaryBlue,
       colorScheme: const ColorScheme.dark(
-        primary: accentAmber,
-        secondary: accentAmberLight,
-        surface: charcoalSurface,
-        error: error,
-        onPrimary: deepBlack,
-        onSecondary: deepBlack,
+        primary: primaryBlue,
+        secondary: creativeOrange,
+        tertiary: coralRed,
+        surface: studioSurface,
+        error: coralRed,
+        onPrimary: Colors.white,
+        onSecondary: Colors.white,
+        onTertiary: Colors.white,
         onSurface: textPrimary,
       ),
       appBarTheme: AppBarTheme(
@@ -173,38 +242,42 @@ class AeviqueTheme {
         elevation: 0,
         centerTitle: true,
         scrolledUnderElevation: 0,
-        titleTextStyle: wordmarkStyle(fontSize: 17, letterSpacing: 1.0, fontWeight: FontWeight.w500),
+        titleTextStyle: wordmarkStyle(
+          fontSize: 17,
+          letterSpacing: 1.0,
+          fontWeight: FontWeight.w500,
+        ),
       ),
       sliderTheme: SliderThemeData(
-        activeTrackColor: accentAmber,
-        inactiveTrackColor: elevatedCharcoal,
-        thumbColor: accentAmber,
-        overlayColor: accentAmber.withValues(alpha: 0.2),
-        trackHeight: 2.5,
+        activeTrackColor: primaryBlue,
+        inactiveTrackColor: glassBorderSubtle,
+        thumbColor: primaryBlue,
+        overlayColor: primaryBlue.withValues(alpha: 0.2),
+        trackHeight: 3.0,
         thumbShape: const RoundSliderThumbShape(
-          enabledThumbRadius: 6.0,
-          elevation: 2,
+          enabledThumbRadius: 7.0,
+          elevation: 3,
         ),
       ),
       dividerTheme: const DividerThemeData(
-        color: borderSubtle,
+        color: glassBorderSubtle,
         thickness: 0.8,
         space: 1,
       ),
       cardTheme: CardThemeData(
-        color: surfaceCard,
+        color: studioSurfaceCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
-          side: const BorderSide(color: border, width: 0.8),
+          side: const BorderSide(color: glassBorder, width: 0.8),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: charcoalSurface,
-        elevation: 16,
+        backgroundColor: studioSurface,
+        elevation: 20,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusLg),
-          side: const BorderSide(color: borderLight, width: 1),
+          side: const BorderSide(color: glassBorderLight, width: 1),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
@@ -216,12 +289,12 @@ class AeviqueTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: elevatedCharcoal,
-        selectedColor: accentAmber.withValues(alpha: 0.2),
+        backgroundColor: glassLiquidClear,
+        selectedColor: primaryBlue.withValues(alpha: 0.25),
         disabledColor: surfaceHighlight,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusFull),
-          side: const BorderSide(color: border, width: 0.8),
+          side: const BorderSide(color: glassBorder, width: 0.8),
         ),
         labelStyle: GoogleFonts.inter(
           fontSize: 13,

@@ -60,7 +60,9 @@ class _FiltersPanelState extends State<FiltersPanel> {
         if (!mounted) return;
 
         final processed = ImagePipeline.processRawImage(base, filter.state);
-        final encoded = Uint8List.fromList(img.encodeJpg(processed, quality: 75));
+        final encoded = Uint8List.fromList(
+          img.encodeJpg(processed, quality: 75),
+        );
         if (mounted) {
           setState(() {
             _thumbCache[filter.id] = encoded;
@@ -72,7 +74,9 @@ class _FiltersPanelState extends State<FiltersPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final filters = FilterCatalogue.allFilters.where((f) => f.id != 'original').toList();
+    final filters = FilterCatalogue.allFilters
+        .where((f) => f.id != 'original')
+        .toList();
     final isFilterActive = widget.activeFilterId != null;
 
     return Column(
@@ -82,7 +86,10 @@ class _FiltersPanelState extends State<FiltersPanel> {
         // 1. Intensity Slider (Visible when a filter is active)
         if (isFilterActive)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 4.0,
+            ),
             child: AeviquePrecisionSlider(
               label: 'Intensity',
               value: widget.filterIntensity,
@@ -98,7 +105,10 @@ class _FiltersPanelState extends State<FiltersPanel> {
         SizedBox(
           height: 110,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 6.0,
+            ),
             scrollDirection: Axis.horizontal,
             itemCount: filters.length + 1, // +1 for "Original / None"
             separatorBuilder: (context, index) => const SizedBox(width: 12),
@@ -153,14 +163,17 @@ class _FiltersPanelState extends State<FiltersPanel> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? AeviqueTheme.accentAmber : Colors.white.withValues(alpha: 0.12),
+                color: isSelected
+                    ? AeviqueTheme.primaryBlue
+                    : Colors.white.withValues(alpha: 0.12),
                 width: isSelected ? 1.8 : 0.8,
               ),
               boxShadow: [
                 if (isSelected)
                   BoxShadow(
-                    color: AeviqueTheme.accentAmber.withValues(alpha: 0.35),
-                    blurRadius: 12,
+                    color: AeviqueTheme.primaryBlueGlow,
+                    blurRadius: 14,
+                    spreadRadius: 1,
                   ),
               ],
             ),
@@ -173,7 +186,9 @@ class _FiltersPanelState extends State<FiltersPanel> {
                       child: Icon(
                         Icons.filter_hdr_outlined,
                         size: 24,
-                        color: isSelected ? AeviqueTheme.accentAmberLight : Colors.white38,
+                        color: isSelected
+                            ? AeviqueTheme.primaryBlueLight
+                            : Colors.white38,
                       ),
                     ),
                   ),

@@ -6,15 +6,17 @@ mkdir -p review_screenshots
 SCREENS=(
   "home:01_home_screen.png"
   "gallery:02_gallery_screen.png"
-  "editor:03_editor_canvas.png"
-  "crop:04_crop_screen.png"
-  "adjust:05_adjust_panel.png"
-  "filter:06_filter_panel.png"
-  "curves:07_curves_panel.png"
-  "effects:08_effects_panel.png"
-  "presets:09_presets_screen.png"
-  "export:10_export_screen.png"
-  "settings:11_settings_screen.png"
+  "camera:03_camera_screen.png"
+  "editor:04_editor_canvas.png"
+  "crop:05_crop_screen.png"
+  "adjust:06_adjust_panel.png"
+  "filter:07_filter_panel.png"
+  "curves:08_curves_panel.png"
+  "effects:09_effects_panel.png"
+  "presets:10_presets_screen.png"
+  "export:11_export_screen.png"
+  "settings:12_settings_screen.png"
+  "profile:13_profile_screen.png"
 )
 
 # Function to get window id
