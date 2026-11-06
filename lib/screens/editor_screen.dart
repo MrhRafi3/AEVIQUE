@@ -157,7 +157,8 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     // Adapt debounce: 16ms (60fps) for fast native RGBA path, 30ms for Dart isolate fallback
-    final debounceDuration = (AeviqueNativeEngine.isAvailable &&
+    final debounceDuration =
+        (AeviqueNativeEngine.isAvailable &&
             ImagePipeline.isNativeCompatible(state))
         ? const Duration(milliseconds: 16)
         : const Duration(milliseconds: 30);

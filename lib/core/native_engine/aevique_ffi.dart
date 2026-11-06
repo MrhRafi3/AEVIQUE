@@ -125,6 +125,57 @@ final class AeviqueAdvancedToneParameters extends ffi.Struct {
   external double ambiance;
 }
 
+/// Vignette parameters struct matching AeviqueVignetteParameters
+final class AeviqueVignetteParameters extends ffi.Struct {
+  @ffi.Float()
+  external double amount;
+
+  @ffi.Float()
+  external double radius;
+
+  @ffi.Float()
+  external double feather;
+
+  @ffi.Float()
+  external double centerX;
+
+  @ffi.Float()
+  external double centerY;
+}
+
+/// Effects parameters struct matching AeviqueEffectsParameters
+final class AeviqueEffectsParameters extends ffi.Struct {
+  @ffi.Int32()
+  external int bwMode;
+
+  @ffi.Float()
+  external double grain;
+
+  @ffi.Float()
+  external double vintage;
+
+  @ffi.Float()
+  external double drama;
+}
+
+/// Unified pipeline parameters struct matching AeviquePipelineParameters
+final class AeviquePipelineParameters extends ffi.Struct {
+  external AeviqueAdvancedToneParameters tone;
+
+  @ffi.Float()
+  external double vibrance;
+
+  @ffi.Float()
+  external double clarity;
+
+  external AeviqueEffectsParameters effects;
+
+  external AeviqueVignetteParameters vignette;
+
+  @ffi.Float()
+  external double structure;
+}
+
 // C function signatures
 typedef _GetVersionC = ffi.Uint32 Function();
 typedef _GetVersionDart = int Function();
@@ -158,6 +209,75 @@ typedef _ProcessAdvancedToneDart =
       ffi.Pointer<AeviqueImageBuffer> dst,
       ffi.Pointer<AeviqueAdvancedToneParameters> params,
       ffi.Pointer<AeviqueToneCurves> curves,
+    );
+
+typedef _ProcessPipelineC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviquePipelineParameters> params,
+      ffi.Pointer<AeviqueToneCurves> curves,
+    );
+typedef _ProcessPipelineDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviquePipelineParameters> params,
+      ffi.Pointer<AeviqueToneCurves> curves,
+    );
+
+typedef _ProcessVibranceC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Float vibrance,
+    );
+typedef _ProcessVibranceDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      double vibrance,
+    );
+
+typedef _ProcessClarityC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Float clarity,
+    );
+typedef _ProcessClarityDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      double clarity,
+    );
+
+typedef _ProcessMonochromeC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Float saturation,
+      ffi.Int32 bwMode,
+    );
+typedef _ProcessMonochromeDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      double saturation,
+      int bwMode,
+    );
+
+typedef _ProcessVignetteC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueVignetteParameters> params,
+    );
+typedef _ProcessVignetteDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueVignetteParameters> params,
     );
 
 /// Safe, high-level Dart FFI wrapper for AEVIQUE native C++ engine.
@@ -217,6 +337,11 @@ class AeviqueNativeEngine {
   late final _StatusToStringDart _statusToString;
   late final _ProcessToneDart _processTone;
   late final _ProcessAdvancedToneDart _processAdvancedTone;
+  late final _ProcessPipelineDart _processPipeline;
+  late final _ProcessVibranceDart _processVibrance;
+  late final _ProcessClarityDart _processClarity;
+  late final _ProcessMonochromeDart _processMonochrome;
+  late final _ProcessVignetteDart _processVignette;
 
   AeviqueNativeEngine._(this._dylib) {
     _getVersion = _dylib.lookupFunction<_GetVersionC, _GetVersionDart>(
@@ -232,6 +357,26 @@ class AeviqueNativeEngine {
     _processAdvancedTone = _dylib
         .lookupFunction<_ProcessAdvancedToneC, _ProcessAdvancedToneDart>(
           'aevique_process_advanced_tone_rgba8',
+        );
+    _processPipeline = _dylib
+        .lookupFunction<_ProcessPipelineC, _ProcessPipelineDart>(
+          'aevique_process_pipeline_rgba8',
+        );
+    _processVibrance = _dylib
+        .lookupFunction<_ProcessVibranceC, _ProcessVibranceDart>(
+          'aevique_process_vibrance_rgba8',
+        );
+    _processClarity = _dylib
+        .lookupFunction<_ProcessClarityC, _ProcessClarityDart>(
+          'aevique_process_clarity_rgba8',
+        );
+    _processMonochrome = _dylib
+        .lookupFunction<_ProcessMonochromeC, _ProcessMonochromeDart>(
+          'aevique_process_monochrome_rgba8',
+        );
+    _processVignette = _dylib
+        .lookupFunction<_ProcessVignetteC, _ProcessVignetteDart>(
+          'aevique_process_vignette_rgba8',
         );
   }
 
@@ -308,6 +453,58 @@ class AeviqueNativeEngine {
       params,
       curves ?? ffi.Pointer.fromAddress(0),
     );
+  }
+
+  /// Calls the low-level C ABI function `aevique_process_pipeline_rgba8`.
+  int processPipelineRaw({
+    required ffi.Pointer<AeviqueImageBuffer> src,
+    required ffi.Pointer<AeviqueImageBuffer> dst,
+    required ffi.Pointer<AeviquePipelineParameters> params,
+    ffi.Pointer<AeviqueToneCurves>? curves,
+  }) {
+    return _processPipeline(
+      src,
+      dst,
+      params,
+      curves ?? ffi.Pointer.fromAddress(0),
+    );
+  }
+
+  /// Calls the low-level C ABI function `aevique_process_vibrance_rgba8`.
+  int processVibranceRaw({
+    required ffi.Pointer<AeviqueImageBuffer> src,
+    required ffi.Pointer<AeviqueImageBuffer> dst,
+    required double vibrance,
+  }) {
+    return _processVibrance(src, dst, vibrance);
+  }
+
+  /// Calls the low-level C ABI function `aevique_process_clarity_rgba8`.
+  int processClarityRaw({
+    required ffi.Pointer<AeviqueImageBuffer> src,
+    required ffi.Pointer<AeviqueImageBuffer> dst,
+    required double clarity,
+  }) {
+    return _processClarity(src, dst, clarity);
+  }
+
+  /// Calls the low-level C ABI function `aevique_process_monochrome_rgba8`.
+  int processMonochromeRaw({
+    required ffi.Pointer<AeviqueImageBuffer> src,
+    required ffi.Pointer<AeviqueImageBuffer> dst,
+    required double saturation,
+    required int bwMode,
+  }) {
+    return _processMonochrome(src, dst, saturation, bwMode);
+  }
+
+  /// Calls the low-level C ABI function `aevique_process_vignette_rgba8`.
+  int processVignetteRaw({
+    required ffi.Pointer<AeviqueImageBuffer> src,
+    required ffi.Pointer<AeviqueImageBuffer> dst,
+    required ffi.Pointer<AeviqueVignetteParameters> params,
+  }) {
+    return _processVignette(src, dst, params);
   }
 
   static ffi.Pointer<AeviqueCurvePoint> _allocateCurvePoints(
@@ -461,6 +658,169 @@ class AeviqueNativeEngine {
       if (curvesPtr.address != 0) calloc.free(curvesPtr);
 
       calloc.free(advParams);
+      if (!inPlace) {
+        calloc.free(dstBuf);
+        calloc.free(dstDataPtr);
+      }
+      calloc.free(srcBuf);
+      calloc.free(srcDataPtr);
+    }
+  }
+
+  /// High-level utility: executes the unified native image processing pipeline on raw image bytes.
+  /// Seamlessly passes Tone, Curves, Vibrance, Clarity, B&W, Vintage, Drama, Grain, Vignette,
+  /// and Structure directly to the C++ core in a single call.
+  /// Supports in-place processing for zero extra heap memory allocations.
+  Uint8List processPipelineRgba8({
+    required Uint8List rgbaBytes,
+    required int width,
+    required int height,
+    required EditState state,
+    bool inPlace = false,
+    int numChannels = 4,
+  }) {
+    if (width <= 0 || height <= 0 || width > 65536 || height > 65536) {
+      throw ArgumentError(
+        'Invalid image dimensions for native pipeline: ${width}x$height',
+      );
+    }
+    if (numChannels != 3 && numChannels != 4) {
+      throw ArgumentError(
+        'Only 3-channel (RGB) or 4-channel (RGBA) buffers are supported: $numChannels',
+      );
+    }
+
+    final totalBytes = width * height * numChannels;
+    if (rgbaBytes.lengthInBytes < totalBytes) {
+      throw ArgumentError(
+        'Input byte array length (${rgbaBytes.lengthInBytes}) is smaller than required ($totalBytes) for ${width}x$height x $numChannels channels',
+      );
+    }
+
+    final srcDataPtr = calloc<ffi.Uint8>(totalBytes);
+    final dstDataPtr = inPlace ? srcDataPtr : calloc<ffi.Uint8>(totalBytes);
+    if (srcDataPtr.address == 0 || dstDataPtr.address == 0) {
+      if (srcDataPtr.address != 0) calloc.free(srcDataPtr);
+      if (!inPlace && dstDataPtr.address != 0) calloc.free(dstDataPtr);
+      throw OutOfMemoryError();
+    }
+
+    final nativeView = srcDataPtr.asTypedList(totalBytes);
+    nativeView.setRange(0, totalBytes, rgbaBytes);
+
+    final srcBuf = calloc<AeviqueImageBuffer>();
+    final dstBuf = inPlace ? srcBuf : calloc<AeviqueImageBuffer>();
+    final pipelineParams = calloc<AeviquePipelineParameters>();
+
+    ffi.Pointer<AeviqueToneCurves> curvesPtr = ffi.Pointer.fromAddress(0);
+    ffi.Pointer<AeviqueCurvePoint> rgbPts = ffi.Pointer.fromAddress(0);
+    ffi.Pointer<AeviqueCurvePoint> redPts = ffi.Pointer.fromAddress(0);
+    ffi.Pointer<AeviqueCurvePoint> greenPts = ffi.Pointer.fromAddress(0);
+    ffi.Pointer<AeviqueCurvePoint> bluePts = ffi.Pointer.fromAddress(0);
+
+    final format = (numChannels == 3)
+        ? AeviquePixelFormat.rgb888
+        : AeviquePixelFormat.rgba8888;
+    final stride = width * numChannels;
+
+    try {
+      srcBuf.ref.data = srcDataPtr;
+      srcBuf.ref.width = width;
+      srcBuf.ref.height = height;
+      srcBuf.ref.strideBytes = stride;
+      srcBuf.ref.format = format;
+
+      if (!inPlace) {
+        dstBuf.ref.data = dstDataPtr;
+        dstBuf.ref.width = width;
+        dstBuf.ref.height = height;
+        dstBuf.ref.strideBytes = stride;
+        dstBuf.ref.format = format;
+      }
+
+      // Populate Tone
+      final t = state.tune;
+      pipelineParams.ref.tone.exposure = t.exposure;
+      pipelineParams.ref.tone.contrast = t.contrast;
+      pipelineParams.ref.tone.saturation = t.saturation;
+      pipelineParams.ref.tone.brightness = t.brightness;
+      pipelineParams.ref.tone.warmth = t.warmth;
+      pipelineParams.ref.tone.tint = t.tint;
+      pipelineParams.ref.tone.highlights = t.highlights;
+      pipelineParams.ref.tone.shadows = t.shadows;
+      pipelineParams.ref.tone.whites = t.whites;
+      pipelineParams.ref.tone.blacks = t.blacks;
+      pipelineParams.ref.tone.ambiance = t.ambiance;
+
+      // Populate Vibrance & Clarity
+      pipelineParams.ref.vibrance = t.vibrance;
+      pipelineParams.ref.clarity = t.clarity;
+
+      // Populate Effects
+      final e = state.effects;
+      pipelineParams.ref.effects.bwMode = e.bwMode ? 1 : 0;
+      pipelineParams.ref.effects.grain = e.grain;
+      pipelineParams.ref.effects.vintage = e.vintage;
+      pipelineParams.ref.effects.drama = e.drama;
+
+      // Populate Vignette
+      final v = state.vignette;
+      pipelineParams.ref.vignette.amount = v.amount;
+      pipelineParams.ref.vignette.radius = v.radius;
+      pipelineParams.ref.vignette.feather = v.feather;
+      pipelineParams.ref.vignette.centerX = v.centerX;
+      pipelineParams.ref.vignette.centerY = v.centerY;
+
+      // Populate Details
+      pipelineParams.ref.structure = state.details.structure;
+
+      final curves = state.curves;
+      if (!curves.isIdentity) {
+        curvesPtr = calloc<AeviqueToneCurves>();
+        rgbPts = _allocateCurvePoints(curves.rgb);
+        redPts = _allocateCurvePoints(curves.red);
+        greenPts = _allocateCurvePoints(curves.green);
+        bluePts = _allocateCurvePoints(curves.blue);
+
+        curvesPtr.ref.rgb.points = rgbPts;
+        curvesPtr.ref.rgb.pointCount = curves.rgb.length;
+        curvesPtr.ref.red.points = redPts;
+        curvesPtr.ref.red.pointCount = curves.red.length;
+        curvesPtr.ref.green.points = greenPts;
+        curvesPtr.ref.green.pointCount = curves.green.length;
+        curvesPtr.ref.blue.points = bluePts;
+        curvesPtr.ref.blue.pointCount = curves.blue.length;
+      }
+
+      final status = _processPipeline(
+        srcBuf,
+        dstBuf,
+        pipelineParams,
+        curvesPtr,
+      );
+      if (status != AeviqueStatusCode.success) {
+        throw StateError(
+          'aevique_process_pipeline_rgba8 failed with code $status: ${getStatusString(status)}',
+        );
+      }
+
+      final resultView = dstDataPtr.asTypedList(totalBytes);
+      if (inPlace) {
+        rgbaBytes.setRange(0, totalBytes, resultView);
+        return rgbaBytes;
+      } else {
+        final outList = Uint8List(totalBytes);
+        outList.setRange(0, totalBytes, resultView);
+        return outList;
+      }
+    } finally {
+      if (rgbPts.address != 0) calloc.free(rgbPts);
+      if (redPts.address != 0) calloc.free(redPts);
+      if (greenPts.address != 0) calloc.free(greenPts);
+      if (bluePts.address != 0) calloc.free(bluePts);
+      if (curvesPtr.address != 0) calloc.free(curvesPtr);
+
+      calloc.free(pipelineParams);
       if (!inPlace) {
         calloc.free(dstBuf);
         calloc.free(dstDataPtr);

@@ -1,9 +1,12 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:lumaforge/core/image_engine/filter_kernels.dart';
+import 'package:lumaforge/core/image_engine/image_pipeline.dart';
 import 'package:lumaforge/core/image_engine/lut_generator.dart';
 import 'package:lumaforge/core/models/edit_state.dart';
 import 'package:lumaforge/core/native_engine/aevique_ffi.dart';
@@ -23,19 +26,22 @@ void main() {
   });
 
   group('AEVIQUE Native Engine FFI Integration', () {
-    test('Library loads and reports version 1.0.0', () {
+    test('Library loads and reports version 1.2.0', () {
       final version = engine.getVersion();
       final major = (version >> 16) & 0xFF;
       final minor = (version >> 8) & 0xFF;
       final patch = version & 0xFF;
 
       expect(major, equals(1));
-      expect(minor, equals(1));
+      expect(minor, equals(2));
       expect(patch, equals(0));
     });
 
     test('Status string mapping functions correctly', () {
-      expect(engine.getStatusString(AeviqueStatusCode.success), equals('Success'));
+      expect(
+        engine.getStatusString(AeviqueStatusCode.success),
+        equals('Success'),
+      );
       expect(
         engine.getStatusString(AeviqueStatusCode.errorNullPointer),
         contains('Null pointer'),
@@ -110,7 +116,11 @@ void main() {
       );
 
       for (int i = 0; i < bytes.length; i += 4) {
-        expect(out[i + 3], equals(bytes[i + 3]), reason: 'Alpha must match at pixel index ${i ~/ 4}');
+        expect(
+          out[i + 3],
+          equals(bytes[i + 3]),
+          reason: 'Alpha must match at pixel index ${i ~/ 4}',
+        );
       }
     });
 
@@ -133,8 +143,16 @@ void main() {
       );
 
       for (int i = 0; i < bytes.length; i += 4) {
-        expect(out[i + 0], equals(out[i + 1]), reason: 'R should equal G in B&W');
-        expect(out[i + 1], equals(out[i + 2]), reason: 'G should equal B in B&W');
+        expect(
+          out[i + 0],
+          equals(out[i + 1]),
+          reason: 'R should equal G in B&W',
+        );
+        expect(
+          out[i + 1],
+          equals(out[i + 2]),
+          reason: 'G should equal B in B&W',
+        );
       }
     });
   });
@@ -211,7 +229,10 @@ void main() {
           final diffG = (dartPixel.g.toInt() - gNative).abs();
           final diffB = (dartPixel.b.toInt() - bNative).abs();
 
-          maxAbsDiff = math.max(maxAbsDiff, math.max(diffR, math.max(diffG, diffB)));
+          maxAbsDiff = math.max(
+            maxAbsDiff,
+            math.max(diffR, math.max(diffG, diffB)),
+          );
 
           sumSquaredError += (diffR * diffR + diffG * diffG + diffB * diffB);
           if (diffR == 0 && diffG == 0 && diffB == 0) {
@@ -226,14 +247,291 @@ void main() {
       final exactMatchPercent = (exactMatches / totalPixels) * 100.0;
 
       // Print parity statistics for audit trail
-      print('\n--- Parity Statistics (64x64 Gradient, Exp: +20, Con: +15, Sat: +20) ---');
-      print('Exact 24-bit RGB matches: $exactMatches / $totalPixels (${exactMatchPercent.toStringAsFixed(1)}%)');
-      print('Max absolute channel difference: $maxAbsDiff LSB (tolerance <= 1)');
-      print('Mean Squared Error (MSE): ${meanSquaredError.toStringAsFixed(6)} (tolerance < 0.001)');
+      print(
+        '\n--- Parity Statistics (64x64 Gradient, Exp: +20, Con: +15, Sat: +20) ---',
+      );
+      print(
+        'Exact 24-bit RGB matches: $exactMatches / $totalPixels (${exactMatchPercent.toStringAsFixed(1)}%)',
+      );
+      print(
+        'Max absolute channel difference: $maxAbsDiff LSB (tolerance <= 1)',
+      );
+      print(
+        'Mean Squared Error (MSE): ${meanSquaredError.toStringAsFixed(6)} (tolerance < 0.001)',
+      );
 
-      expect(maxAbsDiff, lessThanOrEqualTo(1), reason: 'Maximum LSB difference must not exceed 1');
-      expect(meanSquaredError, lessThan(0.001), reason: 'MSE must be less than 0.001');
+      expect(
+        maxAbsDiff,
+        lessThanOrEqualTo(1),
+        reason: 'Maximum LSB difference must not exceed 1',
+      );
+      expect(
+        meanSquaredError,
+        lessThan(0.001),
+        reason: 'MSE must be less than 0.001',
+      );
     });
+
+    test('Phase 6 Vibrance numerical parity: Native vs Dart', () {
+      const width = 32;
+      const height = 32;
+      final dartImg = img.Image(width: width, height: height);
+      final rawRgba = Uint8List(width * height * 4);
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final r = (x * 255) ~/ width;
+          final g = (y * 255) ~/ height;
+          final b = ((x + y) * 255) ~/ (width + height);
+          dartImg.setPixelRgba(x, y, r, g, b, 255);
+          final idx = (y * width + x) * 4;
+          rawRgba[idx + 0] = r;
+          rawRgba[idx + 1] = g;
+          rawRgba[idx + 2] = b;
+          rawRgba[idx + 3] = 255;
+        }
+      }
+
+      const vibranceVal = 40.0;
+      FilterKernels.applyVibrance(dartImg, vibranceVal);
+
+      final state = const EditState(
+        tune: TuneAdjustments(vibrance: vibranceVal),
+      );
+      final nativeOut = engine.processPipelineRgba8(
+        rgbaBytes: rawRgba,
+        width: width,
+        height: height,
+        state: state,
+      );
+
+      int maxDiff = 0;
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final p = dartImg.getPixel(x, y);
+          final idx = (y * width + x) * 4;
+          final dR = (p.r.toInt() - nativeOut[idx + 0]).abs();
+          final dG = (p.g.toInt() - nativeOut[idx + 1]).abs();
+          final dB = (p.b.toInt() - nativeOut[idx + 2]).abs();
+          maxDiff = math.max(maxDiff, math.max(dR, math.max(dG, dB)));
+        }
+      }
+      expect(
+        maxDiff,
+        lessThanOrEqualTo(1),
+        reason: 'Vibrance parity maxDiff <= 1 LSB',
+      );
+    });
+
+    test('Phase 6 Clarity numerical parity: Native vs Dart', () {
+      const width = 32;
+      const height = 32;
+      final dartImg = img.Image(width: width, height: height);
+      final rawRgba = Uint8List(width * height * 4);
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final r = (x * 255) ~/ width;
+          final g = (y * 255) ~/ height;
+          final b = ((x + y) * 255) ~/ (width + height);
+          dartImg.setPixelRgba(x, y, r, g, b, 255);
+          final idx = (y * width + x) * 4;
+          rawRgba[idx + 0] = r;
+          rawRgba[idx + 1] = g;
+          rawRgba[idx + 2] = b;
+          rawRgba[idx + 3] = 255;
+        }
+      }
+
+      const clarityVal = 35.0;
+      FilterKernels.applyClarity(dartImg, clarityVal);
+
+      final state = const EditState(tune: TuneAdjustments(clarity: clarityVal));
+      final nativeOut = engine.processPipelineRgba8(
+        rgbaBytes: rawRgba,
+        width: width,
+        height: height,
+        state: state,
+      );
+
+      int maxDiff = 0;
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final p = dartImg.getPixel(x, y);
+          final idx = (y * width + x) * 4;
+          final dR = (p.r.toInt() - nativeOut[idx + 0]).abs();
+          final dG = (p.g.toInt() - nativeOut[idx + 1]).abs();
+          final dB = (p.b.toInt() - nativeOut[idx + 2]).abs();
+          maxDiff = math.max(maxDiff, math.max(dR, math.max(dG, dB)));
+        }
+      }
+      expect(
+        maxDiff,
+        lessThanOrEqualTo(1),
+        reason: 'Clarity parity maxDiff <= 1 LSB',
+      );
+    });
+
+    test('Phase 6 Monochrome (B&W Mode) numerical parity: Native vs Dart', () {
+      const width = 32;
+      const height = 32;
+      final dartImg = img.Image(width: width, height: height);
+      final rawRgba = Uint8List(width * height * 4);
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final r = (x * 255) ~/ width;
+          final g = (y * 255) ~/ height;
+          final b = ((x + y) * 255) ~/ (width + height);
+          dartImg.setPixelRgba(x, y, r, g, b, 255);
+          final idx = (y * width + x) * 4;
+          rawRgba[idx + 0] = r;
+          rawRgba[idx + 1] = g;
+          rawRgba[idx + 2] = b;
+          rawRgba[idx + 3] = 255;
+        }
+      }
+
+      FilterKernels.applySaturationAndBw(dartImg, 0.0, true);
+
+      final state = const EditState(effects: EffectsAdjustments(bwMode: true));
+      final nativeOut = engine.processPipelineRgba8(
+        rgbaBytes: rawRgba,
+        width: width,
+        height: height,
+        state: state,
+      );
+
+      int maxDiff = 0;
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final p = dartImg.getPixel(x, y);
+          final idx = (y * width + x) * 4;
+          final dR = (p.r.toInt() - nativeOut[idx + 0]).abs();
+          final dG = (p.g.toInt() - nativeOut[idx + 1]).abs();
+          final dB = (p.b.toInt() - nativeOut[idx + 2]).abs();
+          maxDiff = math.max(maxDiff, math.max(dR, math.max(dG, dB)));
+        }
+      }
+      expect(
+        maxDiff,
+        lessThanOrEqualTo(1),
+        reason: 'Monochrome parity maxDiff <= 1 LSB',
+      );
+    });
+
+    test('Phase 6 Vignette numerical parity: Native vs Dart', () {
+      const width = 48;
+      const height = 48;
+      final dartImg = img.Image(width: width, height: height);
+      final rawRgba = Uint8List(width * height * 4);
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final r = (x * 255) ~/ width;
+          final g = (y * 255) ~/ height;
+          final b = ((x + y) * 255) ~/ (width + height);
+          dartImg.setPixelRgba(x, y, r, g, b, 255);
+          final idx = (y * width + x) * 4;
+          rawRgba[idx + 0] = r;
+          rawRgba[idx + 1] = g;
+          rawRgba[idx + 2] = b;
+          rawRgba[idx + 3] = 255;
+        }
+      }
+
+      const vig = VignetteAdjustments(
+        amount: -40.0,
+        radius: 45.0,
+        feather: 35.0,
+      );
+      FilterKernels.applyVignette(dartImg, vig);
+
+      final state = const EditState(vignette: vig);
+      final nativeOut = engine.processPipelineRgba8(
+        rgbaBytes: rawRgba,
+        width: width,
+        height: height,
+        state: state,
+      );
+
+      int maxDiff = 0;
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final p = dartImg.getPixel(x, y);
+          final idx = (y * width + x) * 4;
+          final dR = (p.r.toInt() - nativeOut[idx + 0]).abs();
+          final dG = (p.g.toInt() - nativeOut[idx + 1]).abs();
+          final dB = (p.b.toInt() - nativeOut[idx + 2]).abs();
+          maxDiff = math.max(maxDiff, math.max(dR, math.max(dG, dB)));
+        }
+      }
+      expect(
+        maxDiff,
+        lessThanOrEqualTo(1),
+        reason: 'Vignette parity maxDiff <= 1 LSB',
+      );
+    });
+
+    test(
+      'Phase 6 Unified Pipeline (Tone + Curves + Vibrance + Clarity + Vignette) matches Dart within 1 LSB',
+      () {
+        const width = 32;
+        const height = 32;
+        final dartImg = img.Image(width: width, height: height);
+        final rawRgba = Uint8List(width * height * 4);
+
+        for (int y = 0; y < height; y++) {
+          for (int x = 0; x < width; x++) {
+            final r = (x * 255) ~/ width;
+            final g = (y * 255) ~/ height;
+            final b = ((x + y) * 255) ~/ (width + height);
+            dartImg.setPixelRgba(x, y, r, g, b, 255);
+            final idx = (y * width + x) * 4;
+            rawRgba[idx + 0] = r;
+            rawRgba[idx + 1] = g;
+            rawRgba[idx + 2] = b;
+            rawRgba[idx + 3] = 255;
+          }
+        }
+
+        final state = const EditState(
+          tune: TuneAdjustments(
+            exposure: 15.0,
+            contrast: 10.0,
+            saturation: 15.0,
+            warmth: 10.0,
+            vibrance: 20.0,
+            clarity: 15.0,
+          ),
+          vignette: VignetteAdjustments(amount: -25.0, radius: 50.0),
+        );
+
+        final processedDart = ImagePipeline.processRawImage(dartImg, state);
+        final nativeOut = engine.processPipelineRgba8(
+          rgbaBytes: rawRgba,
+          width: width,
+          height: height,
+          state: state,
+        );
+
+        int maxDiff = 0;
+        for (int y = 0; y < height; y++) {
+          for (int x = 0; x < width; x++) {
+            final p = processedDart.getPixel(x, y);
+            final idx = (y * width + x) * 4;
+            final dR = (p.r.toInt() - nativeOut[idx + 0]).abs();
+            final dG = (p.g.toInt() - nativeOut[idx + 1]).abs();
+            final dB = (p.b.toInt() - nativeOut[idx + 2]).abs();
+            maxDiff = math.max(maxDiff, math.max(dR, math.max(dG, dB)));
+          }
+        }
+        expect(
+          maxDiff,
+          lessThanOrEqualTo(1),
+          reason: 'Unified pipeline parity maxDiff <= 1 LSB',
+        );
+      },
+    );
   });
 }
-

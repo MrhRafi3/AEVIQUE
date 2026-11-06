@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 #define AEVIQUE_VERSION_MAJOR 1
-#define AEVIQUE_VERSION_MINOR 1
+#define AEVIQUE_VERSION_MINOR 2
 #define AEVIQUE_VERSION_PATCH 0
 
 /**
@@ -106,6 +106,42 @@ typedef struct AeviqueAdvancedToneParameters {
 } AeviqueAdvancedToneParameters;
 
 /**
+ * Vignette adjustment parameters matching AEVIQUE EditState.vignette semantics.
+ */
+typedef struct AeviqueVignetteParameters {
+    float amount;   /* -100.0f .. 100.0f (0 = neutral/identity; negative = dark edge, positive = bright) */
+    float radius;   /* 0.0f .. 100.0f (default 50.0f) */
+    float feather;  /* 0.0f .. 100.0f (default 50.0f) */
+    float center_x; /* 0.0f .. 1.0f (normalized center X, default 0.5f) */
+    float center_y; /* 0.0f .. 1.0f (normalized center Y, default 0.5f) */
+} AeviqueVignetteParameters;
+
+/**
+ * Photographic style effects parameters matching AEVIQUE EditState.effects semantics.
+ */
+typedef struct AeviqueEffectsParameters {
+    int32_t bw_mode;  /* 0 = standard color, 1 = B&W monochrome conversion */
+    float grain;      /* 0.0f .. 100.0f (photographic film grain synthesis) */
+    float vintage;    /* 0.0f .. 100.0f (vintage film tone and lifted blacks) */
+    float drama;      /* 0.0f .. 100.0f (moody chiaroscuro contrast) */
+} AeviqueEffectsParameters;
+
+/**
+ * Unified image pipeline parameters executing multiple compatible operations in one pass.
+ *
+ * Sequence:
+ *   Tone & Curves -> Vibrance -> Clarity -> Saturation & B/W -> Vintage -> Drama -> Grain -> Vignette -> Structure
+ */
+typedef struct AeviquePipelineParameters {
+    AeviqueAdvancedToneParameters tone;
+    float vibrance;                     /* -100.0f .. 100.0f (skin-tone preserving saturation) */
+    float clarity;                      /* -100.0f .. 100.0f (local midtone contrast) */
+    AeviqueEffectsParameters effects;
+    AeviqueVignetteParameters vignette;
+    float structure;                    /* 0.0f .. 100.0f (local micro-contrast detail) */
+} AeviquePipelineParameters;
+
+/**
  * Returns the version encoded as:
  * (major << 16) | (minor << 8) | patch
  */
@@ -170,6 +206,84 @@ AEVIQUE_API AeviqueStatus aevique_process_advanced_tone_rgba8(
     const AeviqueImageBuffer* src,
     AeviqueImageBuffer* dst,
     const AeviqueAdvancedToneParameters* params,
+    const AeviqueToneCurves* curves
+);
+
+/**
+ * Processes an image buffer with skin-tone preserving Vibrance.
+ *
+ * @param src Pointer to input image buffer (caller-owned).
+ * @param dst Pointer to output image buffer (caller-owned, may point to src).
+ * @param vibrance Amount in range [-100.0f .. 100.0f].
+ * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ */
+AEVIQUE_API AeviqueStatus aevique_process_vibrance_rgba8(
+    const AeviqueImageBuffer* src,
+    AeviqueImageBuffer* dst,
+    float vibrance
+);
+
+/**
+ * Processes an image buffer with local midtone Clarity.
+ *
+ * @param src Pointer to input image buffer (caller-owned).
+ * @param dst Pointer to output image buffer (caller-owned, may point to src).
+ * @param clarity Amount in range [-100.0f .. 100.0f].
+ * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ */
+AEVIQUE_API AeviqueStatus aevique_process_clarity_rgba8(
+    const AeviqueImageBuffer* src,
+    AeviqueImageBuffer* dst,
+    float clarity
+);
+
+/**
+ * Processes an image buffer with Saturation and Monochrome B&W conversion.
+ *
+ * @param src Pointer to input image buffer (caller-owned).
+ * @param dst Pointer to output image buffer (caller-owned, may point to src).
+ * @param saturation Amount in range [-100.0f .. 100.0f].
+ * @param bw_mode 1 for monochrome conversion, 0 for standard saturation.
+ * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ */
+AEVIQUE_API AeviqueStatus aevique_process_monochrome_rgba8(
+    const AeviqueImageBuffer* src,
+    AeviqueImageBuffer* dst,
+    float saturation,
+    int32_t bw_mode
+);
+
+/**
+ * Processes an image buffer with radial Vignette falloff.
+ *
+ * @param src Pointer to input image buffer (caller-owned).
+ * @param dst Pointer to output image buffer (caller-owned, may point to src).
+ * @param params Pointer to vignette parameters.
+ * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ */
+AEVIQUE_API AeviqueStatus aevique_process_vignette_rgba8(
+    const AeviqueImageBuffer* src,
+    AeviqueImageBuffer* dst,
+    const AeviqueVignetteParameters* params
+);
+
+/**
+ * Unified image processing pipeline: executes multiple compatible adjustments in a single native call.
+ *
+ * Fuses Tone & Curves, Vibrance, Clarity, Saturation/B&W, Vintage, Drama, Grain, and Vignette
+ * in a cache-friendly pixel pass with zero intermediate heap allocations, followed by Structure
+ * when active. Preserves alpha channel and supports in-place processing (`src->data == dst->data`).
+ *
+ * @param src Pointer to input image buffer (caller-owned).
+ * @param dst Pointer to output image buffer (caller-owned, may point to src).
+ * @param params Pointer to unified pipeline parameters.
+ * @param curves Pointer to quad-channel tone curves (may be NULL for identity).
+ * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ */
+AEVIQUE_API AeviqueStatus aevique_process_pipeline_rgba8(
+    const AeviqueImageBuffer* src,
+    AeviqueImageBuffer* dst,
+    const AeviquePipelineParameters* params,
     const AeviqueToneCurves* curves
 );
 

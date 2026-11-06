@@ -59,8 +59,8 @@ static AeviqueImageBuffer make_test_buffer(uint8_t* ptr, int32_t w, int32_t h, i
 // 1. Version check test
 static bool test_version() {
     uint32_t ver = aevique_get_version();
-    uint32_t expected = (1 << 16) | (1 << 8) | 0;
-    TEST_ASSERT(ver == expected, "Version should be 1.1.0");
+    uint32_t expected = (1 << 16) | (2 << 8) | 0;
+    TEST_ASSERT(ver == expected, "Version should be 1.2.0");
     return true;
 }
 
@@ -549,6 +549,224 @@ static bool test_combined_advanced_tone() {
     return true;
 }
 
+// 17. Vibrance behavior: skin-tone preserving saturation
+static bool test_vibrance_behavior() {
+    // Pixel 1: moderately saturated color (R: 180, G: 120, B: 100, A: 255)
+    // Pixel 2: low saturated gray-ish (R: 130, G: 128, B: 125, A: 255)
+    std::vector<uint8_t> src_mem = {
+        180, 120, 100, 255,
+        130, 128, 125, 255
+    };
+    std::vector<uint8_t> dst_mem(src_mem.size(), 0);
+    AeviqueImageBuffer src = make_test_buffer(src_mem.data(), 2, 1, 8);
+    AeviqueImageBuffer dst = make_test_buffer(dst_mem.data(), 2, 1, 8);
+
+    // Neutral vibrance = 0
+    AeviqueStatus st = aevique_process_vibrance_rgba8(&src, &dst, 0.0f);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "Neutral vibrance should succeed");
+    TEST_ASSERT(dst_mem[0] == 180 && dst_mem[1] == 120 && dst_mem[2] == 100, "Vibrance 0 must be identity");
+
+    // Positive vibrance +50: should boost low-saturated pixel more than high-saturated
+    st = aevique_process_vibrance_rgba8(&src, &dst, 50.0f);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "Positive vibrance should succeed");
+    TEST_ASSERT(dst_mem[3] == 255 && dst_mem[7] == 255, "Alpha must be preserved in vibrance");
+    TEST_ASSERT(dst_mem[0] >= 180, "Vibrance should increase red on warm tone");
+
+    return true;
+}
+
+// 18. Clarity behavior: local midtone contrast enhancement
+static bool test_clarity_behavior() {
+    // Pixel 1: extreme deep shadow (R: 5, G: 5, B: 5, A: 255) - near black
+    // Pixel 2: bright midtone (R: 192, G: 192, B: 192, A: 255)
+    std::vector<uint8_t> src_mem = {
+        5, 5, 5, 255,
+        192, 192, 192, 255
+    };
+    std::vector<uint8_t> dst_mem(src_mem.size(), 0);
+    AeviqueImageBuffer src = make_test_buffer(src_mem.data(), 2, 1, 8);
+    AeviqueImageBuffer dst = make_test_buffer(dst_mem.data(), 2, 1, 8);
+
+    AeviqueStatus st = aevique_process_clarity_rgba8(&src, &dst, 50.0f);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "Clarity should succeed");
+    TEST_ASSERT(dst_mem[3] == 255 && dst_mem[7] == 255, "Alpha must be preserved in clarity");
+
+    // Bright midtone pixel (lum 192 > 128) should increase in clarity boost
+    TEST_ASSERT(dst_mem[4] > 192, "Clarity > 0 should boost bright midtones");
+
+    // Deep shadow pixel should experience minimal change compared to midtone
+    int shadow_shift = std::abs(static_cast<int>(dst_mem[0]) - 5);
+    int midtone_shift = std::abs(static_cast<int>(dst_mem[4]) - 192);
+    TEST_ASSERT(midtone_shift > shadow_shift, "Clarity midtone change must exceed deep shadow change");
+
+    return true;
+}
+
+// 19. Monochrome B&W conversion
+static bool test_monochrome_bw_behavior() {
+    // Pixel: saturated orange (R: 240, G: 120, B: 30, A: 200)
+    std::vector<uint8_t> src_mem = { 240, 120, 30, 200 };
+    std::vector<uint8_t> dst_mem(4, 0);
+    AeviqueImageBuffer src = make_test_buffer(src_mem.data(), 1, 1, 4);
+    AeviqueImageBuffer dst = make_test_buffer(dst_mem.data(), 1, 1, 4);
+
+    // Compute expected Rec. 709 luminance
+    double exp_lum = 0.2126 * 240.0 + 0.7152 * 120.0 + 0.0722 * 30.0;
+    uint8_t exp_gray = static_cast<uint8_t>(std::round(exp_lum));
+
+    AeviqueStatus st = aevique_process_monochrome_rgba8(&src, &dst, 0.0f, 1);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "Monochrome conversion should succeed");
+    TEST_ASSERT(dst_mem[0] == exp_gray && dst_mem[1] == exp_gray && dst_mem[2] == exp_gray,
+                "All RGB channels must equal Rec. 709 luminance in B&W mode");
+    TEST_ASSERT(dst_mem[3] == 200, "Alpha channel must be preserved in B&W mode");
+
+    return true;
+}
+
+// 20. Vignette radial falloff
+static bool test_vignette_behavior() {
+    const int w = 100;
+    const int h = 100;
+    std::vector<uint8_t> src_mem(w * h * 4, 200);
+    std::vector<uint8_t> dst_mem(w * h * 4, 0);
+
+    AeviqueImageBuffer src = make_test_buffer(src_mem.data(), w, h, w * 4);
+    AeviqueImageBuffer dst = make_test_buffer(dst_mem.data(), w, h, w * 4);
+
+    AeviqueVignetteParameters v = {};
+    v.amount = -50.0f; // Darken edges
+    v.radius = 40.0f;
+    v.feather = 30.0f;
+    v.center_x = 0.5f;
+    v.center_y = 0.5f;
+
+    AeviqueStatus st = aevique_process_vignette_rgba8(&src, &dst, &v);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "Vignette should succeed");
+
+    // Center pixel (50, 50) must remain completely untouched (within radius)
+    size_t center_idx = (50 * w + 50) * 4;
+    TEST_ASSERT(dst_mem[center_idx] == 200, "Vignette center pixel must remain untouched");
+
+    // Corner pixel (0, 0) must be significantly darker
+    size_t corner_idx = 0;
+    TEST_ASSERT(dst_mem[corner_idx] < 200, "Vignette corner pixel must be darkened");
+
+    return true;
+}
+
+// 21. Unified Pipeline: Combined operations in single pass
+static bool test_pipeline_combined() {
+    const int w = 32;
+    const int h = 32;
+    std::vector<uint8_t> src_mem(w * h * 4);
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            size_t idx = (y * w + x) * 4;
+            src_mem[idx + 0] = static_cast<uint8_t>((x * 255) / w);
+            src_mem[idx + 1] = static_cast<uint8_t>((y * 255) / h);
+            src_mem[idx + 2] = static_cast<uint8_t>(((x + y) * 255) / (w + h));
+            src_mem[idx + 3] = 240;
+        }
+    }
+    std::vector<uint8_t> dst_mem(src_mem.size(), 0);
+    AeviqueImageBuffer src = make_test_buffer(src_mem.data(), w, h, w * 4);
+    AeviqueImageBuffer dst = make_test_buffer(dst_mem.data(), w, h, w * 4);
+
+    AeviquePipelineParameters params = {};
+    params.tone.exposure = 10.0f;
+    params.tone.contrast = 15.0f;
+    params.vibrance = 20.0f;
+    params.clarity = 15.0f;
+    params.effects.vintage = 10.0f;
+    params.effects.drama = 15.0f;
+    params.effects.grain = 10.0f;
+    params.vignette.amount = -30.0f;
+    params.vignette.radius = 45.0f;
+    params.vignette.feather = 40.0f;
+    params.vignette.center_x = 0.5f;
+    params.vignette.center_y = 0.5f;
+    params.structure = 15.0f;
+
+    AeviqueStatus st = aevique_process_pipeline_rgba8(&src, &dst, &params, nullptr);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "Unified pipeline should succeed");
+
+    // Check all pixels have alpha strictly preserved
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            size_t idx = (y * w + x) * 4;
+            if (dst_mem[idx + 3] != 240) {
+                TEST_ASSERT(false, "Alpha channel corrupted in unified pipeline");
+            }
+        }
+    }
+
+    // Verify in-place processing produces identical results to out-of-place
+    std::vector<uint8_t> in_place_mem = src_mem;
+    AeviqueImageBuffer in_place_buf = make_test_buffer(in_place_mem.data(), w, h, w * 4);
+    st = aevique_process_pipeline_rgba8(&in_place_buf, &in_place_buf, &params, nullptr);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "In-place unified pipeline should succeed");
+    TEST_ASSERT(dst_mem == in_place_mem, "In-place unified pipeline must match out-of-place exactly");
+
+    return true;
+}
+
+// 22. Pipeline RGB888 format support
+static bool test_pipeline_rgb888() {
+    const int w = 16;
+    const int h = 16;
+    const int stride = w * 3;
+    std::vector<uint8_t> src_mem(h * stride, 150);
+    std::vector<uint8_t> dst_mem(h * stride, 0);
+
+    AeviqueImageBuffer src;
+    src.data = src_mem.data();
+    src.width = w;
+    src.height = h;
+    src.stride_bytes = stride;
+    src.format = AEVIQUE_PIXEL_FORMAT_RGB888;
+
+    AeviqueImageBuffer dst = src;
+    dst.data = dst_mem.data();
+
+    AeviquePipelineParameters params = {};
+    params.tone.exposure = 20.0f;
+    params.vibrance = 15.0f;
+    params.clarity = 10.0f;
+
+    AeviqueStatus st = aevique_process_pipeline_rgba8(&src, &dst, &params, nullptr);
+    TEST_ASSERT(st == AEVIQUE_SUCCESS, "Pipeline RGB888 processing should succeed");
+    TEST_ASSERT(dst_mem[0] > 150, "RGB888 exposure +20 should boost channels");
+
+    return true;
+}
+
+// 23. Pipeline validation and bounds checking
+static bool test_pipeline_validation_and_errors() {
+    std::vector<uint8_t> mem(64, 0);
+    AeviqueImageBuffer buf = make_test_buffer(mem.data(), 4, 4, 16);
+    AeviquePipelineParameters params = {};
+
+    // Null checks
+    TEST_ASSERT(aevique_process_pipeline_rgba8(nullptr, &buf, &params, nullptr) == AEVIQUE_ERROR_NULL_POINTER,
+                "Null src must fail with NULL_POINTER");
+    TEST_ASSERT(aevique_process_pipeline_rgba8(&buf, nullptr, &params, nullptr) == AEVIQUE_ERROR_NULL_POINTER,
+                "Null dst must fail with NULL_POINTER");
+    TEST_ASSERT(aevique_process_pipeline_rgba8(&buf, &buf, nullptr, nullptr) == AEVIQUE_ERROR_NULL_POINTER,
+                "Null params must fail with NULL_POINTER");
+
+    // NaN parameter protection
+    params.vibrance = std::numeric_limits<float>::quiet_NaN();
+    TEST_ASSERT(aevique_process_pipeline_rgba8(&buf, &buf, &params, nullptr) == AEVIQUE_ERROR_INVALID_PARAMETER,
+                "NaN vibrance must fail with INVALID_PARAMETER");
+
+    params.vibrance = 0.0f;
+    params.vignette.amount = std::numeric_limits<float>::infinity();
+    TEST_ASSERT(aevique_process_pipeline_rgba8(&buf, &buf, &params, nullptr) == AEVIQUE_ERROR_INVALID_PARAMETER,
+                "Inf vignette must fail with INVALID_PARAMETER");
+
+    return true;
+}
+
 int main() {
     printf("========================================\n");
     printf("AEVIQUE Core Native Unit Test Suite\n");
@@ -570,6 +788,13 @@ int main() {
     RUN_TEST(test_warmth_and_tint);
     RUN_TEST(test_highlights_and_shadows);
     RUN_TEST(test_combined_advanced_tone);
+    RUN_TEST(test_vibrance_behavior);
+    RUN_TEST(test_clarity_behavior);
+    RUN_TEST(test_monochrome_bw_behavior);
+    RUN_TEST(test_vignette_behavior);
+    RUN_TEST(test_pipeline_combined);
+    RUN_TEST(test_pipeline_rgb888);
+    RUN_TEST(test_pipeline_validation_and_errors);
 
     printf("========================================\n");
     printf("Result: %d / %d tests passed\n", g_tests_passed, g_tests_run);

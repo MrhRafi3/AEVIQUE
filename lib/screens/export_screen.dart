@@ -85,9 +85,7 @@ class _ExportScreenState extends State<ExportScreen> {
         return;
       }
       if (kDebugMode) {
-        debugPrint(
-          '[AEVIQUE-EXPORT] Render #$renderId failed: $e',
-        );
+        debugPrint('[AEVIQUE-EXPORT] Render #$renderId failed: $e');
       }
       setState(() {
         _isRendering = false;

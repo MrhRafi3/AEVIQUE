@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,6 +135,129 @@ void main() {
       );
       print(
         'Native Export Pipeline:  ${nMed.toStringAsFixed(2)} ms (median) [p95: ${nP95.toStringAsFixed(2)} ms]',
+      );
+      print(
+        'Export Speedup:          ${(dMed / nMed).toStringAsFixed(2)}x faster',
+      );
+      print('Latency saved:           ${(dMed - nMed).toStringAsFixed(2)} ms');
+      print(
+        '================================================================\n',
+      );
+
+      expect(nMed, lessThan(dMed));
+    },
+  );
+
+  test(
+    'Benchmark Phase 6 Unified Pipeline Export: Tone + Vibrance + Clarity + Vignette (1200x670)',
+    () async {
+      const w = 1200;
+      const h = 670;
+      const iterations = 10;
+      const warmup = 2;
+
+      print(
+        '\n================================================================',
+      );
+      print(
+        'AEVIQUE PHASE 6 EXPORT BENCHMARK (Tone+Vibrance+Clarity+Vignette)',
+      );
+      print('================================================================');
+
+      final testImage = img.Image(width: w, height: h);
+      for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+          testImage.setPixelRgba(
+            x,
+            y,
+            (x * 255) ~/ w,
+            (y * 255) ~/ h,
+            ((x + y) * 255) ~/ (w + h),
+            255,
+          );
+        }
+      }
+      final sourceJpg = Uint8List.fromList(
+        img.encodeJpg(testImage, quality: 92),
+      );
+
+      final phase6State = EditState.identity().copyWith(
+        tune: const TuneAdjustments(
+          exposure: 20.0,
+          contrast: 15.0,
+          saturation: 20.0,
+          warmth: 15.0,
+          vibrance: 30.0,
+          clarity: 35.0,
+        ),
+        curves: ToneCurves(
+          rgb: [
+            const CurvePoint(0.0, 0.0),
+            const CurvePoint(0.25, 0.20),
+            const CurvePoint(0.75, 0.85),
+            const CurvePoint(1.0, 1.0),
+          ],
+        ),
+        vignette: const VignetteAdjustments(
+          amount: -40.0,
+          radius: 55.0,
+          feather: 50.0,
+        ),
+        effects: const EffectsAdjustments(grain: 10.0),
+      );
+
+      // Baseline Pure Dart Export
+      AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+      for (int i = 0; i < warmup; i++) {
+        await ImagePipeline.processImage(
+          sourceJpg,
+          phase6State,
+          jpegQuality: 92,
+        );
+      }
+      final List<double> dartTimes = [];
+      for (int i = 0; i < iterations; i++) {
+        final sw = Stopwatch()..start();
+        await ImagePipeline.processImage(
+          sourceJpg,
+          phase6State,
+          jpegQuality: 92,
+        );
+        sw.stop();
+        dartTimes.add(sw.elapsedMicroseconds / 1000.0);
+      }
+
+      // Native C++ Export (Phase 6 Unified Pipeline)
+      AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+      for (int i = 0; i < warmup; i++) {
+        await ImagePipeline.processImage(
+          sourceJpg,
+          phase6State,
+          jpegQuality: 92,
+        );
+      }
+      final List<double> nativeTimes = [];
+      for (int i = 0; i < iterations; i++) {
+        final sw = Stopwatch()..start();
+        await ImagePipeline.processImage(
+          sourceJpg,
+          phase6State,
+          jpegQuality: 92,
+        );
+        sw.stop();
+        nativeTimes.add(sw.elapsedMicroseconds / 1000.0);
+      }
+
+      final dMed = median(dartTimes);
+      final dP95 = p95(dartTimes);
+      final nMed = median(nativeTimes);
+      final nP95 = p95(nativeTimes);
+
+      print(
+        'Dart Export (Fallback):   ${dMed.toStringAsFixed(2)} ms (median) [p95: ${dP95.toStringAsFixed(2)} ms]',
+      );
+      print(
+        'Native Phase 6 Export:   ${nMed.toStringAsFixed(2)} ms (median) [p95: ${nP95.toStringAsFixed(2)} ms]',
       );
       print(
         'Export Speedup:          ${(dMed / nMed).toStringAsFixed(2)}x faster',

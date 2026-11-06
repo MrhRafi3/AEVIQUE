@@ -163,6 +163,86 @@ int main() {
         print_benchmark_row("Phase 3 Full Tone (Curves+Color+Sat)", s);
     }
 
+    // Phase 6: Expanded Operations & Unified Pipeline (1200x670)
+    printf("\n--- Phase 6 Expanded Operations & Unified Pipeline (1200x670) ---\n");
+    {
+        // 1. Vibrance Standalone
+        std::vector<double> times;
+        times.reserve(iterations);
+        for (int i = 0; i < warm_up; i++) aevique_process_vibrance_rgba8(&src, &dst, 35.0f);
+        for (int i = 0; i < iterations; i++) {
+            auto start = std::chrono::high_resolution_clock::now();
+            aevique_process_vibrance_rgba8(&src, &dst, 35.0f);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> el = end - start;
+            times.push_back(el.count());
+        }
+        print_benchmark_row("Phase 6 Standalone Vibrance (+35)", compute_stats(times));
+    }
+    {
+        // 2. Clarity Standalone
+        std::vector<double> times;
+        times.reserve(iterations);
+        for (int i = 0; i < warm_up; i++) aevique_process_clarity_rgba8(&src, &dst, 30.0f);
+        for (int i = 0; i < iterations; i++) {
+            auto start = std::chrono::high_resolution_clock::now();
+            aevique_process_clarity_rgba8(&src, &dst, 30.0f);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> el = end - start;
+            times.push_back(el.count());
+        }
+        print_benchmark_row("Phase 6 Standalone Clarity (+30)", compute_stats(times));
+    }
+    {
+        // 3. Vignette Standalone
+        AeviqueVignetteParameters v{};
+        v.amount = -45.0f;
+        v.radius = 45.0f;
+        v.feather = 35.0f;
+        v.center_x = 0.5f;
+        v.center_y = 0.5f;
+
+        std::vector<double> times;
+        times.reserve(iterations);
+        for (int i = 0; i < warm_up; i++) aevique_process_vignette_rgba8(&src, &dst, &v);
+        for (int i = 0; i < iterations; i++) {
+            auto start = std::chrono::high_resolution_clock::now();
+            aevique_process_vignette_rgba8(&src, &dst, &v);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> el = end - start;
+            times.push_back(el.count());
+        }
+        print_benchmark_row("Phase 6 Standalone Vignette (-45)", compute_stats(times));
+    }
+    {
+        // 4. Unified Full Pipeline (Tone + Curves + Vibrance + Clarity + Effects + Vignette + Structure)
+        AeviquePipelineParameters pipe_params{};
+        pipe_params.tone = adv_params;
+        pipe_params.vibrance = 25.0f;
+        pipe_params.clarity = 20.0f;
+        pipe_params.effects.drama = 15.0f;
+        pipe_params.effects.vintage = 10.0f;
+        pipe_params.effects.grain = 10.0f;
+        pipe_params.vignette.amount = -35.0f;
+        pipe_params.vignette.radius = 45.0f;
+        pipe_params.vignette.feather = 35.0f;
+        pipe_params.vignette.center_x = 0.5f;
+        pipe_params.vignette.center_y = 0.5f;
+        pipe_params.structure = 15.0f;
+
+        std::vector<double> times;
+        times.reserve(iterations);
+        for (int i = 0; i < warm_up; i++) aevique_process_pipeline_rgba8(&src, &dst, &pipe_params, &curves);
+        for (int i = 0; i < iterations; i++) {
+            auto start = std::chrono::high_resolution_clock::now();
+            aevique_process_pipeline_rgba8(&src, &dst, &pipe_params, &curves);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> el = end - start;
+            times.push_back(el.count());
+        }
+        print_benchmark_row("Phase 6 Unified Pipeline (All Fused)", compute_stats(times));
+    }
+
     // Full-resolution benchmark (4000x3000 = 12 MP)
     printf("\n--- Full Resolution 12 MP (4000x3000 RGBA8) ---\n");
     const int32_t full_w = 4000;
@@ -202,6 +282,37 @@ int main() {
         }
         BenchmarkStats s = compute_stats(times);
         print_benchmark_row("12 MP Full Tone (Curves+Tone+Sat)", s);
+    }
+
+    {
+        AeviquePipelineParameters pipe_params{};
+        pipe_params.tone = adv_params;
+        pipe_params.vibrance = 25.0f;
+        pipe_params.clarity = 20.0f;
+        pipe_params.effects.drama = 15.0f;
+        pipe_params.effects.vintage = 10.0f;
+        pipe_params.effects.grain = 10.0f;
+        pipe_params.vignette.amount = -35.0f;
+        pipe_params.vignette.radius = 45.0f;
+        pipe_params.vignette.feather = 35.0f;
+        pipe_params.vignette.center_x = 0.5f;
+        pipe_params.vignette.center_y = 0.5f;
+        pipe_params.structure = 15.0f;
+
+        for (int i = 0; i < 3; i++) {
+            aevique_process_pipeline_rgba8(&full_src, &full_dst, &pipe_params, &curves);
+        }
+        std::vector<double> times;
+        times.reserve(15);
+        for (int i = 0; i < 15; i++) {
+            auto start = std::chrono::high_resolution_clock::now();
+            aevique_process_pipeline_rgba8(&full_src, &full_dst, &pipe_params, &curves);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> elapsed = end - start;
+            times.push_back(elapsed.count());
+        }
+        BenchmarkStats s = compute_stats(times);
+        print_benchmark_row("12 MP Phase 6 Unified Pipeline", s);
     }
 
     printf("\n========================================================================================\n");

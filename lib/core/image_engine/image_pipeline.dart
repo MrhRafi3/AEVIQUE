@@ -33,14 +33,14 @@ class PreviewFrame {
   const PreviewFrame.native({
     required ui.Image this.uiImage,
     this.renderLatencyMs = 0.0,
-  })  : jpegBytes = null,
-        isNative = true;
+  }) : jpegBytes = null,
+       isNative = true;
 
   const PreviewFrame.fallback({
     required Uint8List this.jpegBytes,
     this.renderLatencyMs = 0.0,
-  })  : uiImage = null,
-        isNative = false;
+  }) : uiImage = null,
+       isNative = false;
 
   void dispose() {
     uiImage?.dispose();
@@ -79,7 +79,7 @@ class ImagePipeline {
           'EngineMode.nativeOnly requested but native library is unavailable or not loaded.',
         );
       }
-      if (!isNativePhase3Compatible(state)) {
+      if (!isNativeCompatible(state)) {
         throw UnsupportedError(
           'EngineMode.nativeOnly requested but EditState contains adjustments unsupported by native image core.',
         );
@@ -169,6 +169,18 @@ class ImagePipeline {
     return true;
   }
 
+  /// Checks whether an EditState is supported by Phase 6 unified native pipeline
+  /// (All 13 Tone adjustments including Vibrance & Clarity, Tone Curves, Vignette,
+  /// B&W mode, Film Grain, Vintage, Drama, and Structure).
+  static bool isNativePhase6Compatible(EditState state) {
+    if (!state.geometry.isIdentity) return false;
+    if (!state.portrait.isIdentity) return false;
+    if (state.effects.bloom != 0.0) return false;
+    if (state.effects.chromaticAberration != 0.0) return false;
+    if (state.details.sharpening != 0.0) return false;
+    return true;
+  }
+
   /// Returns a human-readable diagnosis why an [EditState] or environment cannot use the native engine.
   static String getNativeIncompatibilityReason(EditState state) {
     if (AeviqueNativeEngine.engineMode == EngineMode.dartOnly) {
@@ -177,35 +189,27 @@ class ImagePipeline {
     if (!AeviqueNativeEngine.isAvailable) {
       return 'native library is not loaded';
     }
-    if (state.presetName != null) {
-      return 'preset active: "${state.presetName}" (requires Dart LUT engine)';
-    }
-    if (state.filterId != null) {
-      return 'filter active: "${state.filterId}" (requires Dart filter kernel)';
-    }
-    if (!state.details.isIdentity) {
-      return 'details active (sharpening: ${state.details.sharpening}, structure: ${state.details.structure})';
-    }
-    if (!state.vignette.isIdentity) {
-      return 'vignette active (amount: ${state.vignette.amount})';
-    }
     if (!state.geometry.isIdentity) {
       return 'geometry active (rotation: ${state.geometry.rotationQuarterTurns}, flipH: ${state.geometry.flipHorizontal}, flipV: ${state.geometry.flipVertical})';
-    }
-    if (!state.effects.isIdentity) {
-      return 'effects active (grain, etc.)';
     }
     if (!state.portrait.isIdentity) {
       return 'portrait active (skin smoothing, face adjustments)';
     }
-    if (state.tune.vibrance != 0.0 || state.tune.clarity != 0.0) {
-      return 'vibrance/clarity active (vibrance: ${state.tune.vibrance}, clarity: ${state.tune.clarity})';
+    if (state.details.sharpening != 0.0) {
+      return 'sharpening active (${state.details.sharpening}, requires Dart unsharp mask)';
+    }
+    if (state.effects.bloom != 0.0) {
+      return 'bloom active (${state.effects.bloom}, requires Dart glow filter)';
+    }
+    if (state.effects.chromaticAberration != 0.0) {
+      return 'chromatic aberration active (${state.effects.chromaticAberration})';
     }
     return 'incompatible state';
   }
 
   /// Alias for the latest native engine compatibility check.
-  static bool isNativeCompatible(EditState state) => isNativePhase3Compatible(state);
+  static bool isNativeCompatible(EditState state) =>
+      isNativePhase6Compatible(state);
 
   /// Asynchronously decodes raw RGBA8 bytes directly into a GPU-backed [ui.Image],
   /// bypassing any intermediate JPEG compression.
@@ -272,29 +276,18 @@ class ImagePipeline {
   }) async {
     final sw = Stopwatch()..start();
 
-    // Check if eligible for native Phase 3 RGBA fast path
+    // Check if eligible for native RGBA fast path
     if (AeviqueNativeEngine.isAvailable &&
         rawPreviewRgba8 != null &&
-        isNativePhase3Compatible(state)) {
+        isNativeCompatible(state)) {
       try {
         final engine = AeviqueNativeEngine.instance;
         if (engine != null) {
-          final processedRgba = engine.processRgba8(
+          final processedRgba = engine.processPipelineRgba8(
             rgbaBytes: rawPreviewRgba8,
             width: previewBase.width,
             height: previewBase.height,
-            exposure: state.tune.exposure,
-            contrast: state.tune.contrast,
-            saturation: state.tune.saturation,
-            brightness: state.tune.brightness,
-            warmth: state.tune.warmth,
-            tint: state.tune.tint,
-            highlights: state.tune.highlights,
-            shadows: state.tune.shadows,
-            whites: state.tune.whites,
-            blacks: state.tune.blacks,
-            ambiance: state.tune.ambiance,
-            curves: state.curves,
+            state: state,
             inPlace: false,
           );
 
@@ -340,7 +333,7 @@ class ImagePipeline {
           'EngineMode.nativeOnly requested but rawPreviewRgba8 buffer is null.',
         );
       }
-      if (!isNativePhase3Compatible(state)) {
+      if (!isNativeCompatible(state)) {
         throw UnsupportedError(
           'EngineMode.nativeOnly requested but EditState contains adjustments unsupported by native image core.',
         );
@@ -666,7 +659,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
         'EngineMode.nativeOnly requested but native library is unavailable or not loaded in export isolate.',
       );
     }
-    if (!ImagePipeline.isNativePhase3Compatible(task.state)) {
+    if (!ImagePipeline.isNativeCompatible(task.state)) {
       throw UnsupportedError(
         'EngineMode.nativeOnly requested but EditState contains adjustments unsupported by native image core.',
       );
@@ -675,7 +668,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
 
   // 4. Native Full-Resolution Export Fast Path
   if (AeviqueNativeEngine.isAvailable &&
-      ImagePipeline.isNativePhase3Compatible(task.state)) {
+      ImagePipeline.isNativeCompatible(task.state)) {
     try {
       final engine = AeviqueNativeEngine.instance;
       if (engine != null) {
@@ -683,16 +676,19 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
 
         // Downscale if requested
         if (task.maxDimension != null &&
-            (working.width > task.maxDimension! || working.height > task.maxDimension!)) {
+            (working.width > task.maxDimension! ||
+                working.height > task.maxDimension!)) {
           if (working.width >= working.height) {
-            final targetH = (working.height * (task.maxDimension! / working.width)).round();
+            final targetH =
+                (working.height * (task.maxDimension! / working.width)).round();
             working = img.copyResize(
               working,
               width: task.maxDimension!,
               height: math.max(1, targetH),
             );
           } else {
-            final targetW = (working.width * (task.maxDimension! / working.height)).round();
+            final targetW =
+                (working.width * (task.maxDimension! / working.height)).round();
             working = img.copyResize(
               working,
               width: math.max(1, targetW),
@@ -702,29 +698,21 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
         }
 
         // Use 4 channels for PNG (or images with alpha), 3 channels for standard JPEG export
-        final numChannels = (task.outputPng || (working.numChannels == 4 && working.hasAlpha)) ? 4 : 3;
+        final numChannels =
+            (task.outputPng || (working.numChannels == 4 && working.hasAlpha))
+            ? 4
+            : 3;
         final rawBytes = (working.numChannels == numChannels)
             ? working.toUint8List()
             : working.convert(numChannels: numChannels).toUint8List();
 
-        // Process in-place through native C++ tone & curves engine
+        // Process in-place through native C++ unified pipeline
         final nativeSw = Stopwatch()..start();
-        final processedBytes = engine.processRgba8(
+        final processedBytes = engine.processPipelineRgba8(
           rgbaBytes: rawBytes,
           width: working.width,
           height: working.height,
-          exposure: task.state.tune.exposure,
-          contrast: task.state.tune.contrast,
-          saturation: task.state.tune.saturation,
-          brightness: task.state.tune.brightness,
-          warmth: task.state.tune.warmth,
-          tint: task.state.tune.tint,
-          highlights: task.state.tune.highlights,
-          shadows: task.state.tune.shadows,
-          whites: task.state.tune.whites,
-          blacks: task.state.tune.blacks,
-          ambiance: task.state.tune.ambiance,
-          curves: task.state.curves,
+          state: task.state,
           inPlace: true,
           numChannels: numChannels,
         );
@@ -735,7 +723,9 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
           height: working.height,
           bytes: processedBytes.buffer,
           numChannels: numChannels,
-          order: (numChannels == 4) ? img.ChannelOrder.rgba : img.ChannelOrder.rgb,
+          order: (numChannels == 4)
+              ? img.ChannelOrder.rgba
+              : img.ChannelOrder.rgb,
         );
 
         final Uint8List encoded;
@@ -770,7 +760,9 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
   }
 
   // 5. Dart Fallback Pipeline
-  final fallbackReason = ImagePipeline.getNativeIncompatibilityReason(task.state);
+  final fallbackReason = ImagePipeline.getNativeIncompatibilityReason(
+    task.state,
+  );
   final dartSw = Stopwatch()..start();
   final processed = ImagePipeline.processRawImage(
     decoded,
