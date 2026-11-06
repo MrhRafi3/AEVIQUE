@@ -50,16 +50,6 @@ From discovering creative possibilities to managing recent edits, AEVIQUE aims t
 | Git & GitHub | Version control |
 | VS Code | Development environment |
 
-## 📸 Screenshots
-
-<div align="center">
-
-<!-- Add screenshots from your app here -->
-
-_Showcase the AEVIQUE home screen, presets, editing interface, and recent edits._
-
-</div>
-
 ## 🚀 Getting Started
 
 Run AEVIQUE locally by following these steps.
