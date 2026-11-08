@@ -109,6 +109,14 @@ class EffectsPanel extends StatelessWidget {
                 onReset: () => onEffectsChanged(effects.copyWith(bloom: 0.0)),
               ),
               AeviquePrecisionSlider(
+                label: 'Diffusion Glow',
+                value: effects.glow,
+                min: 0.0,
+                max: 100.0,
+                onChanged: (v) => onEffectsChanged(effects.copyWith(glow: v)),
+                onReset: () => onEffectsChanged(effects.copyWith(glow: 0.0)),
+              ),
+              AeviquePrecisionSlider(
                 label: 'Chromatic Aberration',
                 value: effects.chromaticAberration,
                 min: 0.0,
@@ -118,6 +126,36 @@ class EffectsPanel extends StatelessWidget {
                 onReset: () => onEffectsChanged(
                   effects.copyWith(chromaticAberration: 0.0),
                 ),
+              ),
+              AeviquePrecisionSlider(
+                label: 'Lens Blur / Bokeh',
+                value: effects.lensBlur,
+                min: 0.0,
+                max: 100.0,
+                onChanged: (v) =>
+                    onEffectsChanged(effects.copyWith(lensBlur: v)),
+                onReset: () =>
+                    onEffectsChanged(effects.copyWith(lensBlur: 0.0)),
+              ),
+              AeviquePrecisionSlider(
+                label: 'Vintage Film',
+                value: effects.vintage,
+                min: 0.0,
+                max: 100.0,
+                onChanged: (v) =>
+                    onEffectsChanged(effects.copyWith(vintage: v)),
+                onReset: () =>
+                    onEffectsChanged(effects.copyWith(vintage: 0.0)),
+              ),
+              AeviquePrecisionSlider(
+                label: 'Dramatic Contrast',
+                value: effects.drama,
+                min: 0.0,
+                max: 100.0,
+                onChanged: (v) =>
+                    onEffectsChanged(effects.copyWith(drama: v)),
+                onReset: () =>
+                    onEffectsChanged(effects.copyWith(drama: 0.0)),
               ),
             ],
           ),

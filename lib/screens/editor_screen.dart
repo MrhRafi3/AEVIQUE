@@ -12,12 +12,16 @@ import '../theme/aevique_theme.dart';
 import '../widgets/aevique_glass.dart';
 import '../widgets/aevique_ui_components.dart';
 import '../widgets/before_after_viewer.dart';
+import '../services/preset_repository.dart';
 import '../widgets/crop_overlay_widget.dart';
+import '../widgets/history_timeline_sheet.dart';
 import '../widgets/photo_adaptive_background.dart';
 import '../widgets/tool_panels/crop_panel.dart';
 import '../widgets/tool_panels/curves_panel.dart';
 import '../widgets/tool_panels/effects_panel.dart';
 import '../widgets/tool_panels/filters_panel.dart';
+import '../widgets/tool_panels/hsl_panel.dart';
+import '../widgets/tool_panels/mask_panel.dart';
 import '../widgets/tool_panels/portrait_panel.dart';
 import '../widgets/tool_panels/presets_panel.dart';
 import '../widgets/tool_panels/tune_panel.dart';
@@ -61,7 +65,8 @@ class _EditorScreenState extends State<EditorScreen> {
   int _latestRequestId = 0;
 
   String?
-  _activeTool; // 'crop', 'adjust', 'filter', 'curves', 'effects', 'presets', 'portrait'
+  _activeTool; // 'crop', 'adjust', 'filter', 'curves', 'effects', 'presets', 'portrait', 'hsl', 'mask'
+  int? _activeMaskIndex;
   bool _isBlemishModeActive = false;
   double _blemishRadius = 0.025;
 
@@ -243,6 +248,100 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
+  Future<void> _showSavePresetDialog() async {
+    final nameController = TextEditingController(text: 'My Preset');
+    final descController = TextEditingController(text: 'Custom photographic style');
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF14141C),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AeviqueTheme.borderLight, width: 0.8),
+        ),
+        title: const Text(
+          'Save as Preset',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: const InputDecoration(
+                labelText: 'Preset Name',
+                labelStyle: TextStyle(color: AeviqueTheme.textSecondary),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: AeviqueTheme.borderSubtle),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: AeviqueTheme.primaryBlueLight),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descController,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+                labelStyle: TextStyle(color: AeviqueTheme.textSecondary),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: AeviqueTheme.borderSubtle),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: AeviqueTheme.primaryBlueLight),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AeviqueTheme.primaryBlue,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Save Preset'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved == true && nameController.text.trim().isNotEmpty) {
+      final preset = CustomPreset(
+        id: 'preset_${DateTime.now().millisecondsSinceEpoch}',
+        name: nameController.text.trim(),
+        description: descController.text.trim().isEmpty
+            ? 'User Custom Preset'
+            : descController.text.trim(),
+        state: _workingState,
+        createdAt: DateTime.now(),
+      );
+      await PresetRepository.savePreset(preset);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Preset "${preset.name}" saved successfully!'),
+            backgroundColor: AeviqueTheme.charcoalSurface,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleBackAction() async {
     if (_activeTool != null) {
       if (_workingState != _history.current) {
@@ -365,6 +464,43 @@ class _EditorScreenState extends State<EditorScreen> {
       _workingState.copyWith(
         portrait: _workingState.portrait.copyWith(blemishes: updated),
       ),
+    );
+  }
+
+  void _handleBrushStroke(Offset localPos, Size boxSize) {
+    if (_workingState.masks.isEmpty || _basePreviewImage == null) return;
+    final idx =
+        (_activeMaskIndex ?? 0).clamp(0, _workingState.masks.length - 1);
+    final mask = _workingState.masks[idx];
+    if (mask.type != MaskType.brush) return;
+
+    final aspect = _basePreviewImage!.width / _basePreviewImage!.height;
+    double renderW, renderH, offsetX = 0, offsetY = 0;
+    final boxAspect = boxSize.width / boxSize.height;
+
+    if (boxAspect > aspect) {
+      renderH = boxSize.height;
+      renderW = renderH * aspect;
+      offsetX = (boxSize.width - renderW) / 2;
+    } else {
+      renderW = boxSize.width;
+      renderH = renderW / aspect;
+      offsetY = (boxSize.height - renderH) / 2;
+    }
+
+    final imgX = (localPos.dx - offsetX) / renderW;
+    final imgY = (localPos.dy - offsetY) / renderH;
+
+    if (imgX < 0 || imgX > 1 || imgY < 0 || imgY > 1) return;
+
+    final points = List<MaskPoint>.from(mask.brushPoints)
+      ..add(MaskPoint(x: imgX, y: imgY, radius: 0.04, feather: 0.5));
+
+    final updatedMasks = List<SelectiveMask>.from(_workingState.masks);
+    updatedMasks[idx] = mask.copyWith(brushPoints: points);
+
+    _requestRender(
+      _workingState.copyWith(masks: updatedMasks, showMaskOverlay: true),
     );
   }
 
@@ -543,6 +679,21 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
 
+        // Mask interactive brush stroke overlay
+        if ((_activeTool == 'mask' || _activeTool == 'masks') &&
+            _workingState.masks.isNotEmpty)
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onPanDown: (d) => _handleBrushStroke(d.localPosition, constraints.biggest),
+                  onPanUpdate: (d) => _handleBrushStroke(d.localPosition, constraints.biggest),
+                );
+              },
+            ),
+          ),
+
         // Blemish interactive overlay
         if (_isBlemishModeActive && _basePreviewImage != null)
           Positioned.fill(
@@ -706,6 +857,43 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ),
               ),
+              const SizedBox(width: 2),
+              Tooltip(
+                message: 'History Timeline',
+                child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (context) => HistoryTimelineSheet(
+                        history: _history,
+                        onJumpToStep: (step) {
+                          final st = _history.jumpToIndex(step);
+                          if (st != null) {
+                            _workingState = st;
+                            setState(() {});
+                            _requestRender(st);
+                          }
+                        },
+                        onClearHistory: () {
+                          _history.reset(toState: _workingState);
+                          setState(() {});
+                        },
+                      ),
+                    );
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.history_rounded,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(width: 4),
               // "Export" Action Button (Phone 3)
               Tooltip(
@@ -758,22 +946,15 @@ class _EditorScreenState extends State<EditorScreen> {
         scrollDirection: Axis.horizontal,
         child: AeviqueFloatingDock(
           children: [
-            _buildDockModeItem('tune', 'Light Adjustments', Icons.tune_rounded),
+            _buildDockModeItem('tune', 'Adjust', Icons.tune_rounded),
             _buildDockModeItem('crop', 'Crop', Icons.crop_rounded),
-            _buildDockModeItem('tune', 'Light', Icons.wb_sunny_outlined),
-            _buildDockModeItem('tune', 'Color', Icons.palette_outlined),
-            _buildDockModeItem(
-              'filter',
-              'Filters',
-              Icons.filter_vintage_rounded,
-            ),
+            _buildDockModeItem('hsl', 'HSL Mixer', Icons.colorize_rounded),
             _buildDockModeItem('curves', 'Curves', Icons.show_chart_rounded),
+            _buildDockModeItem('mask', 'Masks', Icons.masks_rounded),
             _buildDockModeItem('effects', 'Effects', Icons.blur_on_rounded),
-            _buildDockModeItem(
-              'portrait',
-              'Portrait',
-              Icons.face_retouching_natural_rounded,
-            ),
+            _buildDockModeItem('filter', 'Filters', Icons.filter_vintage_rounded),
+            _buildDockModeItem('presets', 'Presets', Icons.bookmarks_rounded),
+            _buildDockModeItem('portrait', 'Portrait', Icons.face_retouching_natural_rounded),
           ],
         ),
       ),
@@ -955,11 +1136,17 @@ class _EditorScreenState extends State<EditorScreen> {
                 const SizedBox(width: 6),
                 _buildDesktopTab('tune', 'Color'),
                 const SizedBox(width: 6),
+                _buildDesktopTab('hsl', 'HSL Mixer'),
+                const SizedBox(width: 6),
                 _buildDesktopTab('filter', 'Filters'),
                 const SizedBox(width: 6),
                 _buildDesktopTab('curves', 'Curves'),
                 const SizedBox(width: 6),
+                _buildDesktopTab('mask', 'Masks'),
+                const SizedBox(width: 6),
                 _buildDesktopTab('effects', 'Effects'),
+                const SizedBox(width: 6),
+                _buildDesktopTab('presets', 'Presets'),
                 const SizedBox(width: 6),
                 _buildDesktopTab('portrait', 'Portrait'),
               ],
@@ -1086,8 +1273,13 @@ class _EditorScreenState extends State<EditorScreen> {
       case 'filter':
       case 'filters':
         return 'Filter';
+      case 'hsl':
+        return 'HSL Color Mixer';
       case 'curves':
         return 'Curves';
+      case 'mask':
+      case 'masks':
+        return 'Selective Masks';
       case 'effects':
         return 'Effects';
       case 'presets':
@@ -1167,10 +1359,24 @@ class _EditorScreenState extends State<EditorScreen> {
             );
           },
         );
+      case 'hsl':
+        return HslPanel(
+          adjustments: _workingState.hsl,
+          onChanged: (hsl) => _requestRender(_workingState.copyWith(hsl: hsl)),
+        );
       case 'curves':
         return CurvesPanel(
           curves: _workingState.curves,
           onChanged: (c) => _requestRender(_workingState.copyWith(curves: c)),
+        );
+      case 'mask':
+      case 'masks':
+        return MaskPanel(
+          masks: _workingState.masks,
+          showMaskOverlay: _workingState.showMaskOverlay,
+          onMasksChanged: (m) => _requestRender(_workingState.copyWith(masks: m)),
+          onOverlayToggled: (ov) => _requestRender(_workingState.copyWith(showMaskOverlay: ov)),
+          onActiveMaskChanged: (idx) => setState(() => _activeMaskIndex = idx),
         );
       case 'effects':
         return EffectsPanel(
@@ -1195,6 +1401,19 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
             );
           },
+          onCustomPresetSelected: (custom) {
+            _requestRender(
+              _workingState.copyWith(
+                presetName: custom.name,
+                tune: custom.state.tune,
+                details: custom.state.details,
+                effects: custom.state.effects,
+                vignette: custom.state.vignette,
+                hsl: custom.state.hsl,
+                curves: custom.state.curves,
+              ),
+            );
+          },
           onClearPreset: () {
             _requestRender(
               _workingState.copyWith(
@@ -1203,9 +1422,12 @@ class _EditorScreenState extends State<EditorScreen> {
                 details: const DetailsAdjustments(),
                 effects: const EffectsAdjustments(),
                 vignette: const VignetteAdjustments(),
+                hsl: const HslAdjustments(),
+                curves: const ToneCurves(),
               ),
             );
           },
+          onSaveCurrentAsPreset: _showSavePresetDialog,
         );
       case 'portrait':
         return PortraitPanel(

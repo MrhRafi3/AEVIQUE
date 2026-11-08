@@ -1,5 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
 import '../services/export_service.dart';
@@ -33,6 +35,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
   bool _outputPng = false;
   double _quality = 92.0;
+  double _scaleFactor = 1.0; // 1.0 = Original, 0.75 = 75%, 0.5 = 50%, 0.25 = 25%
 
   @override
   void initState() {
@@ -44,13 +47,22 @@ class _ExportScreenState extends State<ExportScreen> {
     final renderId = ++_activeRenderId;
     setState(() {
       _isRendering = true;
-      _statusMessage = 'Rendering full-resolution photo...';
+      _statusMessage = 'Rendering photo export...';
     });
 
     try {
+      int? maxDim;
+      if (_scaleFactor < 0.99) {
+        final decoded = img.decodeImage(widget.sourceBytes);
+        if (decoded != null) {
+          maxDim = (math.max(decoded.width, decoded.height) * _scaleFactor).round();
+        }
+      }
+
       final result = await ImagePipeline.processImage(
         widget.sourceBytes,
         widget.state,
+        maxDimension: maxDim,
         jpegQuality: _quality.round(),
         outputPng: _outputPng,
       );
@@ -249,6 +261,60 @@ class _ExportScreenState extends State<ExportScreen> {
                           },
                         ),
                       ],
+                    ),
+
+                    // Resolution Scale Selector
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AeviquePillChip(
+                            label: '100%',
+                            isSelected: _scaleFactor == 1.0,
+                            onTap: () {
+                              if (_scaleFactor != 1.0) {
+                                setState(() => _scaleFactor = 1.0);
+                                _renderFullResolution();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          AeviquePillChip(
+                            label: '75%',
+                            isSelected: _scaleFactor == 0.75,
+                            onTap: () {
+                              if (_scaleFactor != 0.75) {
+                                setState(() => _scaleFactor = 0.75);
+                                _renderFullResolution();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          AeviquePillChip(
+                            label: '50%',
+                            isSelected: _scaleFactor == 0.50,
+                            onTap: () {
+                              if (_scaleFactor != 0.50) {
+                                setState(() => _scaleFactor = 0.50);
+                                _renderFullResolution();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          AeviquePillChip(
+                            label: '25%',
+                            isSelected: _scaleFactor == 0.25,
+                            onTap: () {
+                              if (_scaleFactor != 0.25) {
+                                setState(() => _scaleFactor = 0.25);
+                                _renderFullResolution();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
                     ),
 
                     // Quality Slider (if JPEG)

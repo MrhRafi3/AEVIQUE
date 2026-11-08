@@ -52,6 +52,13 @@ class HistoryManager {
     return current;
   }
 
+  /// Jumps directly to any snapshot index in the timeline.
+  EditState? jumpToIndex(int index) {
+    if (index < 0 || index >= _stack.length) return null;
+    _currentIndex = index;
+    return current;
+  }
+
   void reset({EditState? toState}) {
     _stack.clear();
     _stack.add(toState ?? EditState.identity());

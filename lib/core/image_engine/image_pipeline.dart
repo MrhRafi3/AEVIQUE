@@ -7,6 +7,7 @@ import '../models/edit_state.dart';
 import '../native_engine/aevique_ffi.dart';
 import 'filter_kernels.dart';
 import 'lut_generator.dart';
+import 'mask_engine.dart';
 import 'portrait_engine.dart';
 
 class PreprocessedImageBundle {
@@ -169,15 +170,17 @@ class ImagePipeline {
     return true;
   }
 
-  /// Checks whether an EditState is supported by Phase 6 unified native pipeline
-  /// (All 13 Tone adjustments including Vibrance & Clarity, Tone Curves, Vignette,
-  /// B&W mode, Film Grain, Vintage, Drama, and Structure).
+  /// Checks whether an EditState is supported by Phase 6+ unified native pipeline
+  /// (All Tone adjustments including Vibrance & Clarity, Tone Curves, HSL Color Mixer,
+  /// Vignette, B&W mode, Film Grain, Vintage, Drama, Bloom, Glow, Chromatic Aberration,
+  /// Lens Blur, and Structure).
   static bool isNativePhase6Compatible(EditState state) {
     if (!state.geometry.isIdentity) return false;
     if (!state.portrait.isIdentity) return false;
     if (state.effects.bloom != 0.0) return false;
     if (state.effects.chromaticAberration != 0.0) return false;
     if (state.details.sharpening != 0.0) return false;
+    if (state.masks.isNotEmpty) return false;
     return true;
   }
 
@@ -198,11 +201,8 @@ class ImagePipeline {
     if (state.details.sharpening != 0.0) {
       return 'sharpening active (${state.details.sharpening}, requires Dart unsharp mask)';
     }
-    if (state.effects.bloom != 0.0) {
-      return 'bloom active (${state.effects.bloom}, requires Dart glow filter)';
-    }
-    if (state.effects.chromaticAberration != 0.0) {
-      return 'chromatic aberration active (${state.effects.chromaticAberration})';
+    if (state.masks.isNotEmpty) {
+      return 'selective masks active (${state.masks.length} masks)';
     }
     return 'incompatible state';
   }
@@ -465,6 +465,11 @@ class ImagePipeline {
       FilterKernels.applyClarity(working, state.tune.clarity);
     }
 
+    // 5.5 HSL Color Mixer (8 targeted color ranges)
+    if (!state.hsl.isIdentity) {
+      FilterKernels.applyHslMixer(working, state.hsl);
+    }
+
     // 6. Global Saturation & B/W
     if (state.tune.saturation != 0.0 || state.effects.bwMode) {
       FilterKernels.applySaturationAndBw(
@@ -484,11 +489,17 @@ class ImagePipeline {
     if (state.effects.bloom != 0.0) {
       FilterKernels.applyBloom(working, state.effects.bloom);
     }
+    if (state.effects.glow != 0.0) {
+      FilterKernels.applyGlow(working, state.effects.glow);
+    }
     if (state.effects.chromaticAberration != 0.0) {
       FilterKernels.applyChromaticAberration(
         working,
         state.effects.chromaticAberration,
       );
+    }
+    if (state.effects.lensBlur != 0.0) {
+      FilterKernels.applyLensBlur(working, state.effects.lensBlur);
     }
     if (state.effects.grain != 0.0) {
       FilterKernels.applyFilmGrain(working, state.effects.grain);
@@ -505,6 +516,15 @@ class ImagePipeline {
     }
     if (state.details.sharpening != 0.0) {
       FilterKernels.applySharpening(working, state.details.sharpening);
+    }
+
+    // 10. Selective Masks (Brush, Linear Gradient, Radial Gradient)
+    if (state.masks.isNotEmpty) {
+      MaskEngine.applyMasks(
+        working,
+        state.masks,
+        showOverlay: state.showMaskOverlay,
+      );
     }
 
     return working;

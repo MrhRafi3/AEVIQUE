@@ -66,9 +66,300 @@ static void interpolate_curve_channel(const AeviqueCurveChannel* channel, uint8_
             const double p1_x = static_cast<double>(sorted[idx + 1].x);
             const double p1_y = static_cast<double>(sorted[idx + 1].y);
             const double dx = p1_x - p0_x;
-            const double t = dx > 0.0 ? (norm_x - p0_x) / dx : 0.0;
-            const double interpolated_y = p0_y + (p1_y - p0_y) * t;
-            lut[i] = clamp_u8(static_cast<int>(std::round(interpolated_y * 255.0)));
+            if (dx <= 1e-6) {
+                lut[i] = clamp_u8(static_cast<int>(std::round(p0_y * 255.0)));
+            } else if (num_points == 2) {
+                const double t = (norm_x - p0_x) / dx;
+                const double interpolated_y = p0_y + (p1_y - p0_y) * t;
+                lut[i] = clamp_u8(static_cast<int>(std::round(interpolated_y * 255.0)));
+            } else {
+                const double t = (norm_x - p0_x) / dx;
+                double m0 = p1_y - p0_y;
+                double m1 = m0;
+                if (idx > 0) {
+                    double prev_dx = p0_x - static_cast<double>(sorted[idx - 1].x);
+                    if (prev_dx > 1e-6) {
+                        m0 = 0.5 * ((p1_y - p0_y) + (p0_y - static_cast<double>(sorted[idx - 1].y)));
+                    }
+                }
+                if (idx + 2 < num_points) {
+                    double next_dx = static_cast<double>(sorted[idx + 2].x) - p1_x;
+                    if (next_dx > 1e-6) {
+                        m1 = 0.5 * ((static_cast<double>(sorted[idx + 2].y) - p1_y) + (p1_y - p0_y));
+                    }
+                }
+                const double h00 = (1.0 + 2.0 * t) * (1.0 - t) * (1.0 - t);
+                const double h10 = t * (1.0 - t) * (1.0 - t);
+                const double h01 = t * t * (3.0 - 2.0 * t);
+                const double h11 = t * t * (t - 1.0);
+                const double interpolated_y = h00 * p0_y + h10 * m0 + h01 * p1_y + h11 * m1;
+                lut[i] = clamp_u8(static_cast<int>(std::round(clamp_double(interpolated_y, 0.0, 1.0) * 255.0)));
+            }
+        }
+    }
+}
+
+static inline void rgb_to_hsl(float r, float g, float b, float& h, float& s, float& l) {
+    float max_c = std::max({r, g, b});
+    float min_c = std::min({r, g, b});
+    float delta = max_c - min_c;
+
+    l = (max_c + min_c) * 0.5f;
+
+    if (delta < 1e-5f) {
+        h = 0.0f;
+        s = 0.0f;
+    } else {
+        s = (l > 0.5f) ? (delta / (2.0f - max_c - min_c)) : (delta / (max_c + min_c));
+
+        if (max_c == r) {
+            h = (g - b) / delta + (g < b ? 6.0f : 0.0f);
+        } else if (max_c == g) {
+            h = (b - r) / delta + 2.0f;
+        } else {
+            h = (r - g) / delta + 4.0f;
+        }
+        h *= 60.0f;
+    }
+}
+
+static inline float hue_to_rgb(float p, float q, float t) {
+    if (t < 0.0f) t += 1.0f;
+    if (t > 1.0f) t -= 1.0f;
+    if (t < 1.0f / 6.0f) return p + (q - p) * 6.0f * t;
+    if (t < 1.0f / 2.0f) return q;
+    if (t < 2.0f / 3.0f) return p + (q - p) * (2.0f / 3.0f - t) * 6.0f;
+    return p;
+}
+
+static inline void hsl_to_rgb(float h, float s, float l, float& r, float& g, float& b) {
+    if (s < 1e-5f) {
+        r = g = b = l;
+    } else {
+        h = h / 360.0f;
+        if (h < 0.0f) h += 1.0f;
+        if (h >= 1.0f) h -= 1.0f;
+
+        float q = (l < 0.5f) ? (l * (1.0f + s)) : (l + s - l * s);
+        float p = 2.0f * l - q;
+
+        r = hue_to_rgb(p, q, h + 1.0f / 3.0f);
+        g = hue_to_rgb(p, q, h);
+        b = hue_to_rgb(p, q, h - 1.0f / 3.0f);
+    }
+}
+
+static inline bool is_hsl_neutral(const AeviqueHslParameters* hsl) {
+    if (hsl == nullptr) return true;
+    const AeviqueHslBand* bands[8] = {
+        &hsl->red, &hsl->orange, &hsl->yellow, &hsl->green,
+        &hsl->aqua, &hsl->blue, &hsl->purple, &hsl->magenta
+    };
+    for (int i = 0; i < 8; i++) {
+        if (std::abs(bands[i]->hue) > 1e-4f ||
+            std::abs(bands[i]->saturation) > 1e-4f ||
+            std::abs(bands[i]->luminance) > 1e-4f) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static inline void apply_hsl_pixel(
+    uint8_t& r_u8, uint8_t& g_u8, uint8_t& b_u8,
+    const AeviqueHslParameters& hsl
+) {
+    float r = static_cast<float>(r_u8) / 255.0f;
+    float g = static_cast<float>(g_u8) / 255.0f;
+    float b = static_cast<float>(b_u8) / 255.0f;
+
+    float h, s, l;
+    rgb_to_hsl(r, g, b, h, s, l);
+
+    if (s < 0.02f) {
+        return; // Grayscale or near-grayscale is neutral
+    }
+
+    static const float center_hues[8] = {
+        0.0f,   // Red
+        30.0f,  // Orange
+        60.0f,  // Yellow
+        120.0f, // Green
+        180.0f, // Aqua
+        240.0f, // Blue
+        280.0f, // Purple
+        320.0f  // Magenta
+    };
+
+    static const float half_width = 35.0f;
+
+    const AeviqueHslBand* bands[8] = {
+        &hsl.red, &hsl.orange, &hsl.yellow, &hsl.green,
+        &hsl.aqua, &hsl.blue, &hsl.purple, &hsl.magenta
+    };
+
+    float delta_h = 0.0f;
+    float sat_mult = 1.0f;
+    float delta_l = 0.0f;
+
+    for (int i = 0; i < 8; i++) {
+        float center = center_hues[i];
+        float d = std::abs(h - center);
+        if (d > 180.0f) d = 360.0f - d;
+
+        if (d < half_width) {
+            float weight = 0.5f * (1.0f + std::cos(3.141592653589793f * d / half_width));
+            delta_h += weight * (bands[i]->hue * 0.35f);
+            sat_mult += weight * (bands[i]->saturation / 100.0f);
+            delta_l += weight * (bands[i]->luminance / 100.0f * 0.45f);
+        }
+    }
+
+    h = std::fmod(h + delta_h + 360.0f, 360.0f);
+    s = clamp_float(s * std::max(0.0f, sat_mult), 0.0f, 1.0f);
+    l = clamp_float(l + delta_l, 0.0f, 1.0f);
+
+    float out_r, out_g, out_b;
+    hsl_to_rgb(h, s, l, out_r, out_g, out_b);
+
+    r_u8 = clamp_u8(static_cast<int>(std::round(out_r * 255.0f)));
+    g_u8 = clamp_u8(static_cast<int>(std::round(out_g * 255.0f)));
+    b_u8 = clamp_u8(static_cast<int>(std::round(out_b * 255.0f)));
+}
+
+// Separable fast box / gaussian approximation on an image buffer
+static void apply_fast_diffusion(
+    uint8_t* data, int32_t width, int32_t height, int32_t stride, int32_t channels,
+    float factor, bool highlight_only
+) {
+    if (factor <= 0.001f || width < 4 || height < 4) return;
+
+    float blend_weight = factor * 0.5f;
+    int32_t dw = std::max(4, width / 4);
+    int32_t dh = std::max(4, height / 4);
+    std::vector<uint8_t> down(static_cast<size_t>(dw * dh * channels));
+
+    for (int32_t dy = 0; dy < dh; dy++) {
+        int32_t sy = (dy * height) / dh;
+        const uint8_t* srow = data + sy * stride;
+        uint8_t* drow = down.data() + dy * (dw * channels);
+        for (int32_t dx = 0; dx < dw; dx++) {
+            int32_t sx = (dx * width) / dw;
+            const uint8_t* sp = srow + sx * channels;
+            uint8_t* dp = drow + dx * channels;
+
+            float lum = 0.2126f * sp[0] + 0.7152f * sp[1] + 0.0722f * sp[2];
+            if (highlight_only && lum < 155.0f) {
+                dp[0] = 0;
+                dp[1] = 0;
+                dp[2] = 0;
+            } else {
+                dp[0] = sp[0];
+                dp[1] = sp[1];
+                dp[2] = sp[2];
+            }
+            if (channels == 4) dp[3] = sp[3];
+        }
+    }
+
+    std::vector<uint8_t> blurred = down;
+    for (int32_t y = 1; y < dh - 1; y++) {
+        for (int32_t x = 1; x < dw - 1; x++) {
+            for (int32_t c = 0; c < 3; c++) {
+                int sum = 0;
+                for (int ky = -1; ky <= 1; ky++) {
+                    for (int kx = -1; kx <= 1; kx++) {
+                        sum += down[static_cast<size_t>(((y + ky) * dw + (x + kx)) * channels + c)];
+                    }
+                }
+                blurred[static_cast<size_t>((y * dw + x) * channels + c)] = static_cast<uint8_t>(sum / 9);
+            }
+        }
+    }
+
+    for (int32_t y = 0; y < height; y++) {
+        int32_t dy = (y * dh) / height;
+        uint8_t* row = data + y * stride;
+        const uint8_t* brow = blurred.data() + dy * (dw * channels);
+        for (int32_t x = 0; x < width; x++) {
+            int32_t dx = (x * dw) / width;
+            uint8_t* p = row + x * channels;
+            const uint8_t* bp = brow + dx * channels;
+
+            p[0] = clamp_u8(static_cast<int>(p[0] + bp[0] * blend_weight));
+            p[1] = clamp_u8(static_cast<int>(p[1] + bp[1] * blend_weight));
+            p[2] = clamp_u8(static_cast<int>(p[2] + bp[2] * blend_weight));
+        }
+    }
+}
+
+static void apply_chromatic_aberration_native(
+    uint8_t* data, int32_t width, int32_t height, int32_t stride, int32_t channels,
+    float strength
+) {
+    if (strength <= 0.001f || width < 8) return;
+    int offset = std::max(1, static_cast<int>(std::round((strength / 100.0f) * 12.0f)));
+    std::vector<uint8_t> temp_row(static_cast<size_t>(width * channels));
+
+    for (int32_t y = 0; y < height; y++) {
+        uint8_t* row = data + y * stride;
+        std::memcpy(temp_row.data(), row, static_cast<size_t>(width * channels));
+
+        for (int32_t x = 0; x < width; x++) {
+            int rx = std::max(0, x - offset);
+            int bx = std::min(width - 1, x + offset);
+            row[x * channels + 0] = temp_row[static_cast<size_t>(rx * channels + 0)];
+            row[x * channels + 2] = temp_row[static_cast<size_t>(bx * channels + 2)];
+        }
+    }
+}
+
+static void apply_lens_blur_native(
+    uint8_t* data, int32_t width, int32_t height, int32_t stride, int32_t channels,
+    float strength
+) {
+    if (strength <= 0.001f || width < 4 || height < 4) return;
+    int radius = std::max(1, static_cast<int>(std::round((strength / 100.0f) * 8.0f)));
+
+    std::vector<uint8_t> temp(static_cast<size_t>(height * stride));
+    for (int32_t y = 0; y < height; y++) {
+        const uint8_t* src_row = data + y * stride;
+        uint8_t* dst_row = temp.data() + y * stride;
+
+        for (int32_t x = 0; x < width; x++) {
+            int32_t sum_r = 0, sum_g = 0, sum_b = 0, count = 0;
+            int32_t start_x = std::max(0, x - radius);
+            int32_t end_x = std::min(width - 1, x + radius);
+            for (int32_t kx = start_x; kx <= end_x; kx++) {
+                const uint8_t* p = src_row + kx * channels;
+                sum_r += p[0];
+                sum_g += p[1];
+                sum_b += p[2];
+                count++;
+            }
+            dst_row[x * channels + 0] = static_cast<uint8_t>(sum_r / count);
+            dst_row[x * channels + 1] = static_cast<uint8_t>(sum_g / count);
+            dst_row[x * channels + 2] = static_cast<uint8_t>(sum_b / count);
+            if (channels == 4) dst_row[x * channels + 3] = src_row[x * channels + 3];
+        }
+    }
+
+    for (int32_t x = 0; x < width; x++) {
+        for (int32_t y = 0; y < height; y++) {
+            int32_t sum_r = 0, sum_g = 0, sum_b = 0, count = 0;
+            int32_t start_y = std::max(0, y - radius);
+            int32_t end_y = std::min(height - 1, y + radius);
+            for (int32_t ky = start_y; ky <= end_y; ky++) {
+                const uint8_t* p = temp.data() + ky * stride + x * channels;
+                sum_r += p[0];
+                sum_g += p[1];
+                sum_b += p[2];
+                count++;
+            }
+            uint8_t* out_p = data + y * stride + x * channels;
+            out_p[0] = static_cast<uint8_t>(sum_r / count);
+            out_p[1] = static_cast<uint8_t>(sum_g / count);
+            out_p[2] = static_cast<uint8_t>(sum_b / count);
         }
     }
 }
@@ -161,12 +452,29 @@ AeviqueStatus aevique_process_pipeline_rgba8(
             std::isnan(params->effects.grain) || std::isinf(params->effects.grain) ||
             std::isnan(params->effects.vintage) || std::isinf(params->effects.vintage) ||
             std::isnan(params->effects.drama) || std::isinf(params->effects.drama) ||
+            std::isnan(params->effects.bloom) || std::isinf(params->effects.bloom) ||
+            std::isnan(params->effects.glow) || std::isinf(params->effects.glow) ||
+            std::isnan(params->effects.chromatic_aberration) || std::isinf(params->effects.chromatic_aberration) ||
+            std::isnan(params->effects.lens_blur) || std::isinf(params->effects.lens_blur) ||
             std::isnan(params->vignette.amount) || std::isinf(params->vignette.amount) ||
             std::isnan(params->vignette.radius) || std::isinf(params->vignette.radius) ||
             std::isnan(params->vignette.feather) || std::isinf(params->vignette.feather) ||
             std::isnan(params->vignette.center_x) || std::isinf(params->vignette.center_x) ||
             std::isnan(params->vignette.center_y) || std::isinf(params->vignette.center_y)) {
             return AEVIQUE_ERROR_INVALID_PARAMETER;
+        }
+
+        // Validate HSL parameters for NaN or Inf
+        const AeviqueHslBand* hsl_bands_check[8] = {
+            &params->hsl.red, &params->hsl.orange, &params->hsl.yellow, &params->hsl.green,
+            &params->hsl.aqua, &params->hsl.blue, &params->hsl.purple, &params->hsl.magenta
+        };
+        for (int i = 0; i < 8; i++) {
+            if (std::isnan(hsl_bands_check[i]->hue) || std::isinf(hsl_bands_check[i]->hue) ||
+                std::isnan(hsl_bands_check[i]->saturation) || std::isinf(hsl_bands_check[i]->saturation) ||
+                std::isnan(hsl_bands_check[i]->luminance) || std::isinf(hsl_bands_check[i]->luminance)) {
+                return AEVIQUE_ERROR_INVALID_PARAMETER;
+            }
         }
 
         // Validate curve points for NaN or Inf if provided
@@ -314,16 +622,22 @@ AeviqueStatus aevique_process_pipeline_rgba8(
         const bool is_neutral_sat = (std::abs(saturation) < 1e-4f && bw_mode == 0);
         const bool is_neutral_vibrance = (std::abs(vibrance) < 1e-4f);
         const bool is_neutral_clarity = (std::abs(clarity) < 1e-4f);
+        const bool is_neutral_hsl = is_hsl_neutral(&params->hsl);
         const bool is_neutral_vintage = (vintage <= 0.001f);
         const bool is_neutral_drama = (drama <= 0.001f);
         const bool is_neutral_grain = (grain <= 0.001f);
+        const bool is_neutral_bloom = (params->effects.bloom <= 0.001f);
+        const bool is_neutral_glow = (params->effects.glow <= 0.001f);
+        const bool is_neutral_chromatic = (params->effects.chromatic_aberration <= 0.001f);
+        const bool is_neutral_lens_blur = (params->effects.lens_blur <= 0.001f);
         const bool is_neutral_vignette = (std::abs(vig_amount_param) < 1e-4f);
         const bool is_neutral_structure = (structure <= 0.001f);
 
         // Fast-path 0: completely neutral adjustment state
         if (is_neutral_lut && is_neutral_sat && is_neutral_vibrance && is_neutral_clarity &&
-            is_neutral_vintage && is_neutral_drama && is_neutral_grain && is_neutral_vignette &&
-            is_neutral_structure) {
+            is_neutral_hsl && is_neutral_vintage && is_neutral_drama && is_neutral_grain &&
+            is_neutral_bloom && is_neutral_glow && is_neutral_chromatic && is_neutral_lens_blur &&
+            is_neutral_vignette && is_neutral_structure) {
             if (src->data == dst->data) {
                 return AEVIQUE_SUCCESS;
             }
@@ -342,9 +656,10 @@ AeviqueStatus aevique_process_pipeline_rgba8(
         const int32_t channels = bpp;
 
         // Fast-path 1: Tone-only (3 1D LUT lookups per pixel, zero floating-point arithmetic)
-        if (is_neutral_sat && is_neutral_vibrance && is_neutral_clarity &&
-            is_neutral_vintage && is_neutral_drama && is_neutral_grain && is_neutral_vignette &&
-            is_neutral_structure) {
+        if (is_neutral_sat && is_neutral_vibrance && is_neutral_clarity && is_neutral_hsl &&
+            is_neutral_vintage && is_neutral_drama && is_neutral_grain &&
+            is_neutral_bloom && is_neutral_glow && is_neutral_chromatic && is_neutral_lens_blur &&
+            is_neutral_vignette && is_neutral_structure) {
             for (int32_t y = 0; y < height; y++) {
                 const uint8_t* src_row = src->data + y * src_stride;
                 uint8_t* dst_row = dst->data + y * dst_stride;
@@ -365,8 +680,10 @@ AeviqueStatus aevique_process_pipeline_rgba8(
         }
 
         // Fast-path 2: Tone + Saturation only (no other effects active)
-        if (is_neutral_vibrance && is_neutral_clarity && is_neutral_vintage &&
-            is_neutral_drama && is_neutral_grain && is_neutral_vignette && is_neutral_structure) {
+        if (is_neutral_vibrance && is_neutral_clarity && is_neutral_hsl &&
+            is_neutral_vintage && is_neutral_drama && is_neutral_grain &&
+            is_neutral_bloom && is_neutral_glow && is_neutral_chromatic && is_neutral_lens_blur &&
+            is_neutral_vignette && is_neutral_structure) {
             const float sat_factor = bw_mode ? 0.0f : clamp_float((saturation + 100.0f) / 100.0f, 0.0f, 3.0f);
             for (int32_t y = 0; y < height; y++) {
                 const uint8_t* src_row = src->data + y * src_stride;
@@ -461,6 +778,11 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                     r = clamp_u8(static_cast<int>(std::round(r_f + delta)));
                     g = clamp_u8(static_cast<int>(std::round(g_f + delta)));
                     b = clamp_u8(static_cast<int>(std::round(b_f + delta)));
+                }
+
+                // Stage 3.5: HSL Color Mixer (8-band targeted color adjustments)
+                if (!is_neutral_hsl) {
+                    apply_hsl_pixel(r, g, b, params->hsl);
                 }
 
                 // Stage 4: Saturation & B/W Monochrome
@@ -564,6 +886,30 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                     p[2] = clamp_u8(static_cast<int>(std::round(static_cast<double>(p[2]) + (static_cast<double>(p[2]) - avg_b) * factor)));
                 }
             }
+        }
+
+        // Stage 10: Highlight Bloom
+        if (!is_neutral_bloom) {
+            apply_fast_diffusion(dst->data, width, height, dst_stride, channels,
+                                 clamp_float(params->effects.bloom, 0.0f, 100.0f) / 100.0f, true);
+        }
+
+        // Stage 11: Soft Diffusion Glow
+        if (!is_neutral_glow) {
+            apply_fast_diffusion(dst->data, width, height, dst_stride, channels,
+                                 clamp_float(params->effects.glow, 0.0f, 100.0f) / 100.0f, false);
+        }
+
+        // Stage 12: Chromatic Aberration
+        if (!is_neutral_chromatic) {
+            apply_chromatic_aberration_native(dst->data, width, height, dst_stride, channels,
+                                              clamp_float(params->effects.chromatic_aberration, 0.0f, 100.0f));
+        }
+
+        // Stage 13: Lens Blur
+        if (!is_neutral_lens_blur) {
+            apply_lens_blur_native(dst->data, width, height, dst_stride, channels,
+                                   clamp_float(params->effects.lens_blur, 0.0f, 100.0f));
         }
 
         return AEVIQUE_SUCCESS;
@@ -686,5 +1032,23 @@ AeviqueStatus aevique_process_vignette_rgba8(
     AeviquePipelineParameters p;
     std::memset(&p, 0, sizeof(AeviquePipelineParameters));
     p.vignette = *params;
+    return aevique_process_pipeline_rgba8(src, dst, &p, nullptr);
+}
+
+AeviqueStatus aevique_process_hsl_rgba8(
+    const AeviqueImageBuffer* src,
+    AeviqueImageBuffer* dst,
+    const AeviqueHslParameters* params
+) {
+    if (params == nullptr) {
+        return AEVIQUE_ERROR_NULL_POINTER;
+    }
+    AeviquePipelineParameters p;
+    std::memset(&p, 0, sizeof(AeviquePipelineParameters));
+    p.hsl = *params;
+    p.vignette.radius = 50.0f;
+    p.vignette.feather = 50.0f;
+    p.vignette.center_x = 0.5f;
+    p.vignette.center_y = 0.5f;
     return aevique_process_pipeline_rgba8(src, dst, &p, nullptr);
 }

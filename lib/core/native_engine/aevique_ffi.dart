@@ -143,6 +143,30 @@ final class AeviqueVignetteParameters extends ffi.Struct {
   external double centerY;
 }
 
+/// Single color band HSL adjustments matching AeviqueHslBand
+final class AeviqueHslBand extends ffi.Struct {
+  @ffi.Float()
+  external double hue;
+
+  @ffi.Float()
+  external double saturation;
+
+  @ffi.Float()
+  external double luminance;
+}
+
+/// 8-channel HSL Color Mixer matching AeviqueHslParameters
+final class AeviqueHslParameters extends ffi.Struct {
+  external AeviqueHslBand red;
+  external AeviqueHslBand orange;
+  external AeviqueHslBand yellow;
+  external AeviqueHslBand green;
+  external AeviqueHslBand aqua;
+  external AeviqueHslBand blue;
+  external AeviqueHslBand purple;
+  external AeviqueHslBand magenta;
+}
+
 /// Effects parameters struct matching AeviqueEffectsParameters
 final class AeviqueEffectsParameters extends ffi.Struct {
   @ffi.Int32()
@@ -156,6 +180,18 @@ final class AeviqueEffectsParameters extends ffi.Struct {
 
   @ffi.Float()
   external double drama;
+
+  @ffi.Float()
+  external double bloom;
+
+  @ffi.Float()
+  external double glow;
+
+  @ffi.Float()
+  external double chromaticAberration;
+
+  @ffi.Float()
+  external double lensBlur;
 }
 
 /// Unified pipeline parameters struct matching AeviquePipelineParameters
@@ -167,6 +203,8 @@ final class AeviquePipelineParameters extends ffi.Struct {
 
   @ffi.Float()
   external double clarity;
+
+  external AeviqueHslParameters hsl;
 
   external AeviqueEffectsParameters effects;
 
@@ -280,6 +318,19 @@ typedef _ProcessVignetteDart =
       ffi.Pointer<AeviqueVignetteParameters> params,
     );
 
+typedef _ProcessHslC =
+    ffi.Int32 Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueHslParameters> params,
+    );
+typedef _ProcessHslDart =
+    int Function(
+      ffi.Pointer<AeviqueImageBuffer> src,
+      ffi.Pointer<AeviqueImageBuffer> dst,
+      ffi.Pointer<AeviqueHslParameters> params,
+    );
+
 /// Safe, high-level Dart FFI wrapper for AEVIQUE native C++ engine.
 class AeviqueNativeEngine {
   /// Global engine execution mode.
@@ -342,6 +393,7 @@ class AeviqueNativeEngine {
   late final _ProcessClarityDart _processClarity;
   late final _ProcessMonochromeDart _processMonochrome;
   late final _ProcessVignetteDart _processVignette;
+  late final _ProcessHslDart _processHsl;
 
   AeviqueNativeEngine._(this._dylib) {
     _getVersion = _dylib.lookupFunction<_GetVersionC, _GetVersionDart>(
@@ -378,6 +430,9 @@ class AeviqueNativeEngine {
         .lookupFunction<_ProcessVignetteC, _ProcessVignetteDart>(
           'aevique_process_vignette_rgba8',
         );
+    _processHsl = _dylib.lookupFunction<_ProcessHslC, _ProcessHslDart>(
+      'aevique_process_hsl_rgba8',
+    );
   }
 
   /// Loads the AEVIQUE native engine dynamic library.
@@ -505,6 +560,21 @@ class AeviqueNativeEngine {
     required ffi.Pointer<AeviqueVignetteParameters> params,
   }) {
     return _processVignette(src, dst, params);
+  }
+
+  /// Calls the low-level C ABI function `aevique_process_hsl_rgba8`.
+  int processHslRaw({
+    required ffi.Pointer<AeviqueImageBuffer> src,
+    required ffi.Pointer<AeviqueImageBuffer> dst,
+    required ffi.Pointer<AeviqueHslParameters> params,
+  }) {
+    return _processHsl(src, dst, params);
+  }
+
+  static void _copyHslBand(AeviqueHslBand dst, HslChannelAdjustment src) {
+    dst.hue = src.hue;
+    dst.saturation = src.saturation;
+    dst.luminance = src.luminance;
   }
 
   static ffi.Pointer<AeviqueCurvePoint> _allocateCurvePoints(
@@ -756,12 +826,27 @@ class AeviqueNativeEngine {
       pipelineParams.ref.vibrance = t.vibrance;
       pipelineParams.ref.clarity = t.clarity;
 
+      // Populate HSL Color Mixer
+      final hsl = state.hsl;
+      _copyHslBand(pipelineParams.ref.hsl.red, hsl.red);
+      _copyHslBand(pipelineParams.ref.hsl.orange, hsl.orange);
+      _copyHslBand(pipelineParams.ref.hsl.yellow, hsl.yellow);
+      _copyHslBand(pipelineParams.ref.hsl.green, hsl.green);
+      _copyHslBand(pipelineParams.ref.hsl.aqua, hsl.aqua);
+      _copyHslBand(pipelineParams.ref.hsl.blue, hsl.blue);
+      _copyHslBand(pipelineParams.ref.hsl.purple, hsl.purple);
+      _copyHslBand(pipelineParams.ref.hsl.magenta, hsl.magenta);
+
       // Populate Effects
       final e = state.effects;
       pipelineParams.ref.effects.bwMode = e.bwMode ? 1 : 0;
       pipelineParams.ref.effects.grain = e.grain;
       pipelineParams.ref.effects.vintage = e.vintage;
       pipelineParams.ref.effects.drama = e.drama;
+      pipelineParams.ref.effects.bloom = e.bloom;
+      pipelineParams.ref.effects.glow = e.glow;
+      pipelineParams.ref.effects.chromaticAberration = e.chromaticAberration;
+      pipelineParams.ref.effects.lensBlur = e.lensBlur;
 
       // Populate Vignette
       final v = state.vignette;

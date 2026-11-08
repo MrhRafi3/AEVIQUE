@@ -135,6 +135,42 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
     _updateChannelPoints(const [CurvePoint(0.0, 0.0), CurvePoint(1.0, 1.0)]);
   }
 
+  void _resetAllChannels() {
+    HapticFeedback.lightImpact();
+    _activePointIndex = null;
+    widget.onCurvesChanged(const ToneCurves());
+    setState(() {});
+  }
+
+  void _deleteSelectedPoint() {
+    if (_activePointIndex == null) return;
+    final points = List<CurvePoint>.from(_activePoints);
+    if (_activePointIndex! > 0 && _activePointIndex! < points.length - 1) {
+      HapticFeedback.lightImpact();
+      points.removeAt(_activePointIndex!);
+      _activePointIndex = null;
+      _updateChannelPoints(points);
+      setState(() {});
+    }
+  }
+
+  void _handleDoubleTapDown(TapDownDetails details, Size size) {
+    final points = List<CurvePoint>.from(_activePoints);
+    for (var i = 1; i < points.length - 1; i++) {
+      final px = points[i].x * size.width;
+      final py = (1.0 - points[i].y) * size.height;
+      final dist = (Offset(px, py) - details.localPosition).distance;
+      if (dist < 28.0) {
+        HapticFeedback.lightImpact();
+        points.removeAt(i);
+        _activePointIndex = null;
+        _updateChannelPoints(points);
+        setState(() {});
+        return;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.compactMode) {
@@ -201,14 +237,41 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                   ),
                 ],
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  size: 18,
-                  color: Colors.white70,
-                ),
-                tooltip: 'Reset Channel',
-                onPressed: _resetCurrentChannel,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_activePointIndex != null &&
+                      _activePointIndex! > 0 &&
+                      _activePointIndex! < _activePoints.length - 1)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: AeviqueTheme.coralRedLight,
+                      ),
+                      tooltip: 'Delete Point',
+                      onPressed: _deleteSelectedPoint,
+                    ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.refresh_rounded,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
+                    tooltip: 'Reset Channel',
+                    onPressed: _resetCurrentChannel,
+                  ),
+                  if (!widget.curves.isIdentity)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.restart_alt_rounded,
+                        size: 18,
+                        color: AeviqueTheme.coralRedLight,
+                      ),
+                      tooltip: 'Reset All Channels',
+                      onPressed: _resetAllChannels,
+                    ),
+                ],
               ),
             ],
           ),
@@ -229,6 +292,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                     constraints.maxHeight,
                   );
                   return GestureDetector(
+                    onDoubleTapDown: (d) => _handleDoubleTapDown(d, size),
                     onPanDown: (d) => _handlePanDown(d.localPosition, size),
                     onPanUpdate: (d) => _handlePanUpdate(d.localPosition, size),
                     onPanEnd: (_) => _handlePanEnd(),

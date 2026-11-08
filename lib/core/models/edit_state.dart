@@ -1,4 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'hsl_adjustments.dart';
+import 'mask_model.dart';
+
+export 'hsl_adjustments.dart';
+export 'mask_model.dart';
 
 @immutable
 class CurvePoint {
@@ -476,6 +481,8 @@ class EffectsAdjustments {
   final bool bwMode;
   final double grain; // 0 .. 100
   final double bloom; // 0 .. 100
+  final double glow; // 0 .. 100 (diffusion / mist glow)
+  final double lensBlur; // 0 .. 100 (optical bokeh / defocus blur)
   final double vintage; // 0 .. 100
   final double drama; // 0 .. 100
   final double chromaticAberration; // 0 .. 100
@@ -484,6 +491,8 @@ class EffectsAdjustments {
     this.bwMode = false,
     this.grain = 0.0,
     this.bloom = 0.0,
+    this.glow = 0.0,
+    this.lensBlur = 0.0,
     this.vintage = 0.0,
     this.drama = 0.0,
     this.chromaticAberration = 0.0,
@@ -493,6 +502,8 @@ class EffectsAdjustments {
       !bwMode &&
       grain == 0.0 &&
       bloom == 0.0 &&
+      glow == 0.0 &&
+      lensBlur == 0.0 &&
       vintage == 0.0 &&
       drama == 0.0 &&
       chromaticAberration == 0.0;
@@ -501,6 +512,8 @@ class EffectsAdjustments {
     bool? bwMode,
     double? grain,
     double? bloom,
+    double? glow,
+    double? lensBlur,
     double? vintage,
     double? drama,
     double? chromaticAberration,
@@ -508,6 +521,8 @@ class EffectsAdjustments {
     bwMode: bwMode ?? this.bwMode,
     grain: grain ?? this.grain,
     bloom: bloom ?? this.bloom,
+    glow: glow ?? this.glow,
+    lensBlur: lensBlur ?? this.lensBlur,
     vintage: vintage ?? this.vintage,
     drama: drama ?? this.drama,
     chromaticAberration: chromaticAberration ?? this.chromaticAberration,
@@ -517,6 +532,8 @@ class EffectsAdjustments {
     'bwMode': bwMode,
     'grain': grain,
     'bloom': bloom,
+    'glow': glow,
+    'lensBlur': lensBlur,
     'vintage': vintage,
     'drama': drama,
     'chromaticAberration': chromaticAberration,
@@ -527,6 +544,8 @@ class EffectsAdjustments {
         bwMode: json['bwMode'] as bool? ?? false,
         grain: (json['grain'] as num?)?.toDouble() ?? 0.0,
         bloom: (json['bloom'] as num?)?.toDouble() ?? 0.0,
+        glow: (json['glow'] as num?)?.toDouble() ?? 0.0,
+        lensBlur: (json['lensBlur'] as num?)?.toDouble() ?? 0.0,
         vintage: (json['vintage'] as num?)?.toDouble() ?? 0.0,
         drama: (json['drama'] as num?)?.toDouble() ?? 0.0,
         chromaticAberration:
@@ -541,13 +560,23 @@ class EffectsAdjustments {
           bwMode == other.bwMode &&
           grain == other.grain &&
           bloom == other.bloom &&
+          glow == other.glow &&
+          lensBlur == other.lensBlur &&
           vintage == other.vintage &&
           drama == other.drama &&
           chromaticAberration == other.chromaticAberration;
 
   @override
-  int get hashCode =>
-      Object.hash(bwMode, grain, bloom, vintage, drama, chromaticAberration);
+  int get hashCode => Object.hash(
+    bwMode,
+    grain,
+    bloom,
+    glow,
+    lensBlur,
+    vintage,
+    drama,
+    chromaticAberration,
+  );
 }
 
 @immutable
@@ -650,10 +679,13 @@ class EditState {
   final TuneAdjustments tune;
   final DetailsAdjustments details;
   final ToneCurves curves;
+  final HslAdjustments hsl;
   final VignetteAdjustments vignette;
   final GeometryAdjustments geometry;
   final EffectsAdjustments effects;
   final PortraitAdjustments portrait;
+  final List<SelectiveMask> masks;
+  final bool showMaskOverlay;
   final String? filterId;
   final double
   filterIntensity; // 0.0 .. 100.0 (where 0.0 = 100% original, 100.0 = full filter)
@@ -663,10 +695,13 @@ class EditState {
     this.tune = const TuneAdjustments(),
     this.details = const DetailsAdjustments(),
     this.curves = const ToneCurves(),
+    this.hsl = const HslAdjustments(),
     this.vignette = const VignetteAdjustments(),
     this.geometry = const GeometryAdjustments(),
     this.effects = const EffectsAdjustments(),
     this.portrait = const PortraitAdjustments(),
+    this.masks = const [],
+    this.showMaskOverlay = false,
     this.filterId,
     this.filterIntensity = 100.0,
     this.presetName,
@@ -678,10 +713,12 @@ class EditState {
       tune.isIdentity &&
       details.isIdentity &&
       curves.isIdentity &&
+      hsl.isIdentity &&
       vignette.isIdentity &&
       geometry.isIdentity &&
       effects.isIdentity &&
       portrait.isIdentity &&
+      masks.isEmpty &&
       filterId == null &&
       presetName == null;
 
@@ -689,10 +726,13 @@ class EditState {
     TuneAdjustments? tune,
     DetailsAdjustments? details,
     ToneCurves? curves,
+    HslAdjustments? hsl,
     VignetteAdjustments? vignette,
     GeometryAdjustments? geometry,
     EffectsAdjustments? effects,
     PortraitAdjustments? portrait,
+    List<SelectiveMask>? masks,
+    bool? showMaskOverlay,
     String? filterId,
     double? filterIntensity,
     String? presetName,
@@ -702,10 +742,13 @@ class EditState {
     tune: tune ?? this.tune,
     details: details ?? this.details,
     curves: curves ?? this.curves,
+    hsl: hsl ?? this.hsl,
     vignette: vignette ?? this.vignette,
     geometry: geometry ?? this.geometry,
     effects: effects ?? this.effects,
     portrait: portrait ?? this.portrait,
+    masks: masks ?? this.masks,
+    showMaskOverlay: showMaskOverlay ?? this.showMaskOverlay,
     filterId: clearFilter ? null : (filterId ?? this.filterId),
     filterIntensity: filterIntensity ?? this.filterIntensity,
     presetName: clearPreset ? null : (presetName ?? this.presetName),
@@ -715,10 +758,13 @@ class EditState {
     'tune': tune.toJson(),
     'details': details.toJson(),
     'curves': curves.toJson(),
+    'hsl': hsl.toJson(),
     'vignette': vignette.toJson(),
     'geometry': geometry.toJson(),
     'effects': effects.toJson(),
     'portrait': portrait.toJson(),
+    'masks': masks.map((m) => m.toJson()).toList(),
+    'showMaskOverlay': showMaskOverlay,
     'filterId': filterId,
     'filterIntensity': filterIntensity,
     'presetName': presetName,
@@ -738,6 +784,9 @@ class EditState {
     curves: json['curves'] != null
         ? ToneCurves.fromJson(Map<String, dynamic>.from(json['curves'] as Map))
         : const ToneCurves(),
+    hsl: json['hsl'] != null
+        ? HslAdjustments.fromJson(Map<String, dynamic>.from(json['hsl'] as Map))
+        : const HslAdjustments(),
     vignette: json['vignette'] != null
         ? VignetteAdjustments.fromJson(
             Map<String, dynamic>.from(json['vignette'] as Map),
@@ -758,6 +807,12 @@ class EditState {
             Map<String, dynamic>.from(json['portrait'] as Map),
           )
         : const PortraitAdjustments(),
+    masks:
+        (json['masks'] as List?)
+            ?.map((e) => SelectiveMask.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList() ??
+        const [],
+    showMaskOverlay: json['showMaskOverlay'] as bool? ?? false,
     filterId: json['filterId'] as String?,
     filterIntensity: (json['filterIntensity'] as num?)?.toDouble() ?? 100.0,
     presetName: json['presetName'] as String?,
@@ -771,10 +826,13 @@ class EditState {
           tune == other.tune &&
           details == other.details &&
           curves == other.curves &&
+          hsl == other.hsl &&
           vignette == other.vignette &&
           geometry == other.geometry &&
           effects == other.effects &&
           portrait == other.portrait &&
+          listEquals(masks, other.masks) &&
+          showMaskOverlay == other.showMaskOverlay &&
           filterId == other.filterId &&
           (filterIntensity - other.filterIntensity).abs() < 1e-4 &&
           presetName == other.presetName;
@@ -784,10 +842,13 @@ class EditState {
     tune,
     details,
     curves,
+    hsl,
     vignette,
     geometry,
     effects,
     portrait,
+    Object.hashAll(masks),
+    showMaskOverlay,
     filterId,
     filterIntensity,
     presetName,

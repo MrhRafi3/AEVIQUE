@@ -117,25 +117,53 @@ typedef struct AeviqueVignetteParameters {
 } AeviqueVignetteParameters;
 
 /**
+ * Single color band HSL adjustments matching AEVIQUE HslAdjustments semantics.
+ */
+typedef struct AeviqueHslBand {
+    float hue;        /* -100.0f .. 100.0f (angular hue shift) */
+    float saturation; /* -100.0f .. 100.0f (saturation multiplier) */
+    float luminance;  /* -100.0f .. 100.0f (luminance offset) */
+} AeviqueHslBand;
+
+/**
+ * 8-channel HSL Color Mixer matching AEVIQUE HslAdjustments model.
+ */
+typedef struct AeviqueHslParameters {
+    AeviqueHslBand red;
+    AeviqueHslBand orange;
+    AeviqueHslBand yellow;
+    AeviqueHslBand green;
+    AeviqueHslBand aqua;
+    AeviqueHslBand blue;
+    AeviqueHslBand purple;
+    AeviqueHslBand magenta;
+} AeviqueHslParameters;
+
+/**
  * Photographic style effects parameters matching AEVIQUE EditState.effects semantics.
  */
 typedef struct AeviqueEffectsParameters {
-    int32_t bw_mode;  /* 0 = standard color, 1 = B&W monochrome conversion */
-    float grain;      /* 0.0f .. 100.0f (photographic film grain synthesis) */
-    float vintage;    /* 0.0f .. 100.0f (vintage film tone and lifted blacks) */
-    float drama;      /* 0.0f .. 100.0f (moody chiaroscuro contrast) */
+    int32_t bw_mode;             /* 0 = standard color, 1 = B&W monochrome conversion */
+    float grain;                 /* 0.0f .. 100.0f (photographic film grain synthesis) */
+    float vintage;               /* 0.0f .. 100.0f (vintage film tone and lifted blacks) */
+    float drama;                 /* 0.0f .. 100.0f (moody chiaroscuro contrast) */
+    float bloom;                 /* 0.0f .. 100.0f (highlight bloom glow) */
+    float glow;                  /* 0.0f .. 100.0f (soft diffusion mist glow) */
+    float chromatic_aberration;  /* 0.0f .. 100.0f (color fringing offset) */
+    float lens_blur;             /* 0.0f .. 100.0f (optical bokeh / defocus blur) */
 } AeviqueEffectsParameters;
 
 /**
  * Unified image pipeline parameters executing multiple compatible operations in one pass.
  *
  * Sequence:
- *   Tone & Curves -> Vibrance -> Clarity -> Saturation & B/W -> Vintage -> Drama -> Grain -> Vignette -> Structure
+ *   Tone & Curves -> Vibrance -> Clarity -> HSL Mixer -> Saturation & B/W -> Vintage -> Drama -> Grain -> Bloom/Glow -> Vignette -> Structure -> Lens Blur
  */
 typedef struct AeviquePipelineParameters {
     AeviqueAdvancedToneParameters tone;
     float vibrance;                     /* -100.0f .. 100.0f (skin-tone preserving saturation) */
     float clarity;                      /* -100.0f .. 100.0f (local midtone contrast) */
+    AeviqueHslParameters hsl;
     AeviqueEffectsParameters effects;
     AeviqueVignetteParameters vignette;
     float structure;                    /* 0.0f .. 100.0f (local micro-contrast detail) */
@@ -265,6 +293,20 @@ AEVIQUE_API AeviqueStatus aevique_process_vignette_rgba8(
     const AeviqueImageBuffer* src,
     AeviqueImageBuffer* dst,
     const AeviqueVignetteParameters* params
+);
+
+/**
+ * Processes an image buffer with the 8-channel HSL Color Mixer.
+ *
+ * @param src Pointer to input image buffer (caller-owned).
+ * @param dst Pointer to output image buffer (caller-owned, may point to src).
+ * @param params Pointer to HSL parameters.
+ * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ */
+AEVIQUE_API AeviqueStatus aevique_process_hsl_rgba8(
+    const AeviqueImageBuffer* src,
+    AeviqueImageBuffer* dst,
+    const AeviqueHslParameters* params
 );
 
 /**

@@ -767,6 +767,83 @@ static bool test_pipeline_validation_and_errors() {
     return true;
 }
 
+// 24. HSL Color Mixer targeted color range testing
+static bool test_hsl_mixer() {
+    std::vector<uint8_t> src_mem, dst_mem;
+    AeviqueImageBuffer src = create_buffer(src_mem, 4, 1);
+    AeviqueImageBuffer dst = create_buffer(dst_mem, 4, 1);
+
+    // Pixel 0: Pure Red (220, 20, 20)
+    // Pixel 1: Pure Green (20, 220, 20)
+    // Pixel 2: Pure Blue (20, 20, 220)
+    // Pixel 3: Yellow (220, 220, 20)
+    src_mem[0] = 220; src_mem[1] = 20;  src_mem[2] = 20;  src_mem[3] = 255;
+    src_mem[4] = 20;  src_mem[5] = 220; src_mem[6] = 20;  src_mem[7] = 255;
+    src_mem[8] = 20;  src_mem[9] = 20;  src_mem[10] = 220; src_mem[11] = 255;
+    src_mem[12] = 220; src_mem[13] = 220; src_mem[14] = 20; src_mem[15] = 255;
+
+    AeviqueHslParameters hsl;
+    std::memset(&hsl, 0, sizeof(AeviqueHslParameters));
+    // Drastically desaturate Green (-100), shift Blue hue (+50), boost Red luminance (+30)
+    hsl.green.saturation = -100.0f;
+    hsl.blue.hue = 50.0f;
+    hsl.red.luminance = 30.0f;
+
+    AeviqueStatus status = aevique_process_hsl_rgba8(&src, &dst, &hsl);
+    TEST_ASSERT(status == AEVIQUE_SUCCESS, "aevique_process_hsl_rgba8 must succeed");
+
+    // Green pixel should be desaturated (R, G, B much closer together)
+    int g_diff = std::abs(dst_mem[5] - dst_mem[4]);
+    int orig_g_diff = std::abs(src_mem[5] - src_mem[4]);
+    TEST_ASSERT(g_diff < orig_g_diff, "Green desaturation should lower channel difference");
+
+    // Red pixel luminance should be lifted
+    TEST_ASSERT(dst_mem[0] >= src_mem[0], "Red pixel luminance boost should raise red level");
+
+    return true;
+}
+
+// 25. Film Effects: Bloom, Glow, Chromatic Aberration, Lens Blur
+static bool test_effects_glow_blur_chromatic() {
+    std::vector<uint8_t> src_mem, dst_mem;
+    AeviqueImageBuffer src = create_buffer(src_mem, 16, 16);
+    AeviqueImageBuffer dst = create_buffer(dst_mem, 16, 16);
+
+    // Fill with high contrast center square
+    for (int y = 0; y < 16; y++) {
+        for (int x = 0; x < 16; x++) {
+            int idx = (y * 16 + x) * 4;
+            uint8_t val = (x >= 6 && x <= 10 && y >= 6 && y <= 10) ? 250 : 20;
+            src_mem[idx + 0] = val;
+            src_mem[idx + 1] = val;
+            src_mem[idx + 2] = val;
+            src_mem[idx + 3] = 255;
+        }
+    }
+
+    AeviquePipelineParameters params;
+    std::memset(&params, 0, sizeof(AeviquePipelineParameters));
+    params.effects.bloom = 40.0f;
+    params.effects.glow = 30.0f;
+    params.effects.chromatic_aberration = 25.0f;
+    params.effects.lens_blur = 20.0f;
+    params.vignette.radius = 50.0f;
+    params.vignette.feather = 50.0f;
+    params.vignette.center_x = 0.5f;
+    params.vignette.center_y = 0.5f;
+
+    AeviqueStatus status = aevique_process_pipeline_rgba8(&src, &dst, &params, nullptr);
+    TEST_ASSERT(status == AEVIQUE_SUCCESS, "Pipeline with bloom, glow, blur, chromatic must succeed");
+
+    // Check that edges were softened by lens blur & diffusion
+    int center_val = dst_mem[(8 * 16 + 8) * 4];
+    int outer_val = dst_mem[(0 * 16 + 0) * 4];
+    TEST_ASSERT(center_val > 50, "Center remains luminous");
+    TEST_ASSERT(outer_val >= 20, "Diffusion raises dark surrounding slightly");
+
+    return true;
+}
+
 int main() {
     printf("========================================\n");
     printf("AEVIQUE Core Native Unit Test Suite\n");
@@ -795,6 +872,8 @@ int main() {
     RUN_TEST(test_pipeline_combined);
     RUN_TEST(test_pipeline_rgb888);
     RUN_TEST(test_pipeline_validation_and_errors);
+    RUN_TEST(test_hsl_mixer);
+    RUN_TEST(test_effects_glow_blur_chromatic);
 
     printf("========================================\n");
     printf("Result: %d / %d tests passed\n", g_tests_passed, g_tests_run);

@@ -109,6 +109,7 @@ class LutGenerator {
   /// Interpolates a list of CurvePoint into a 256-element uint8 LUT.
   /// If points represent an identity line (e.g. [(0,0), (1,1)]), it strictly
   /// produces the linear identity map without introducing unwanted S-curves.
+  /// For >2 points, applies smooth cubic Hermite spline interpolation matching native C++ core.
   static Uint8List _interpolateCurve(List<CurvePoint> points) {
     final lut = Uint8List(256);
     if (points.isEmpty || _isIdentityCurve(points)) {
@@ -121,6 +122,7 @@ class LutGenerator {
     // Sort by x
     final sorted = List<CurvePoint>.from(points)
       ..sort((a, b) => a.x.compareTo(b.x));
+    final n = sorted.length;
 
     for (var i = 0; i < 256; i++) {
       final normX = i / 255.0;
@@ -130,19 +132,44 @@ class LutGenerator {
       } else if (normX >= sorted.last.x) {
         lut[i] = (sorted.last.y * 255.0).clamp(0.0, 255.0).round();
       } else {
-        // Find surrounding segment [p0, p1]
+        // Find surrounding segment [idx, idx + 1]
         var idx = 0;
-        while (idx < sorted.length - 1 && sorted[idx + 1].x < normX) {
+        while (idx < n - 1 && sorted[idx + 1].x < normX) {
           idx++;
         }
         final p0 = sorted[idx];
         final p1 = sorted[idx + 1];
         final dx = p1.x - p0.x;
-        final t = dx > 0 ? (normX - p0.x) / dx : 0.0;
+        final t = dx > 1e-6 ? (normX - p0.x) / dx : 0.0;
 
-        // Linear interpolation between consecutive points avoids artificial contrast boosts
-        final interpolatedY = p0.y + (p1.y - p0.y) * t;
-        lut[i] = (interpolatedY * 255.0).clamp(0.0, 255.0).round();
+        if (n == 2) {
+          // Fast linear interpolation for 2 endpoints
+          final interpolatedY = p0.y + (p1.y - p0.y) * t;
+          lut[i] = (interpolatedY * 255.0).clamp(0.0, 255.0).round();
+        } else {
+          // Smooth Hermite cubic spline for n > 2
+          final t = (normX - p0.x) / dx;
+          var m0 = p1.y - p0.y;
+          var m1 = m0;
+          if (idx > 0) {
+            final prevDx = p0.x - sorted[idx - 1].x;
+            if (prevDx > 1e-6) {
+              m0 = 0.5 * ((p1.y - p0.y) + (p0.y - sorted[idx - 1].y));
+            }
+          }
+          if (idx + 2 < n) {
+            final nextDx = sorted[idx + 2].x - p1.x;
+            if (nextDx > 1e-6) {
+              m1 = 0.5 * ((sorted[idx + 2].y - p1.y) + (p1.y - p0.y));
+            }
+          }
+          final h00 = (1.0 + 2.0 * t) * (1.0 - t) * (1.0 - t);
+          final h10 = t * (1.0 - t) * (1.0 - t);
+          final h01 = t * t * (3.0 - 2.0 * t);
+          final h11 = t * t * (t - 1.0);
+          final interpolatedY = h00 * p0.y + h10 * m0 + h01 * p1.y + h11 * m1;
+          lut[i] = (interpolatedY.clamp(0.0, 1.0) * 255.0).round().clamp(0, 255);
+        }
       }
     }
     return lut;

@@ -284,4 +284,188 @@ class FilterKernels {
       p.b = (p.b * mult).round().clamp(0, 255);
     }
   }
+
+  /// Soft diffusion mist glow
+  static void applyGlow(img.Image image, double strength) {
+    if (strength <= 0.0) return;
+
+    final factor = (strength / 100.0) * 0.65;
+    final glowDown = img.copyResize(
+      image,
+      width: math.max(32, image.width ~/ 4),
+      height: math.max(32, image.height ~/ 4),
+    );
+    final glowUp = img.copyResize(
+      glowDown,
+      width: image.width,
+      height: image.height,
+    );
+
+    for (var y = 0; y < image.height; y++) {
+      for (var x = 0; x < image.width; x++) {
+        final p = image.getPixel(x, y);
+        final g = glowUp.getPixel(x, y);
+
+        p.r = (p.r + g.r * factor).round().clamp(0, 255);
+        p.g = (p.g + g.g * factor).round().clamp(0, 255);
+        p.b = (p.b + g.b * factor).round().clamp(0, 255);
+      }
+    }
+  }
+
+  /// Optical lens blur / bokeh simulation
+  static void applyLensBlur(img.Image image, double strength) {
+    if (strength <= 0.0) return;
+
+    final radius = ((strength / 100.0) * 8.0).round().clamp(1, 12);
+    final w = image.width;
+    final h = image.height;
+
+    // Fast 2D separable box blur
+    final copy = img.Image.from(image);
+
+    // Horizontal pass
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var rSum = 0;
+        var gSum = 0;
+        var bSum = 0;
+        var count = 0;
+        final xMin = math.max(0, x - radius);
+        final xMax = math.min(w - 1, x + radius);
+        for (var kx = xMin; kx <= xMax; kx++) {
+          final p = copy.getPixel(kx, y);
+          rSum += p.r.toInt();
+          gSum += p.g.toInt();
+          bSum += p.b.toInt();
+          count++;
+        }
+        final target = image.getPixel(x, y);
+        target.r = (rSum ~/ count).clamp(0, 255);
+        target.g = (gSum ~/ count).clamp(0, 255);
+        target.b = (bSum ~/ count).clamp(0, 255);
+      }
+    }
+
+    // Vertical pass
+    final hCopy = img.Image.from(image);
+    for (var y = 0; y < h; y++) {
+      final yMin = math.max(0, y - radius);
+      final yMax = math.min(h - 1, y + radius);
+      for (var x = 0; x < w; x++) {
+        var rSum = 0;
+        var gSum = 0;
+        var bSum = 0;
+        var count = 0;
+        for (var ky = yMin; ky <= yMax; ky++) {
+          final p = hCopy.getPixel(x, ky);
+          rSum += p.r.toInt();
+          gSum += p.g.toInt();
+          bSum += p.b.toInt();
+          count++;
+        }
+        final target = image.getPixel(x, y);
+        target.r = (rSum ~/ count).clamp(0, 255);
+        target.g = (gSum ~/ count).clamp(0, 255);
+        target.b = (bSum ~/ count).clamp(0, 255);
+      }
+    }
+  }
+
+  /// 8-channel HSL color mixer
+  static void applyHslMixer(img.Image image, HslAdjustments hsl) {
+    if (hsl.isIdentity) return;
+
+    final bands = [
+      (hsl.red, 0.0, 30.0),
+      (hsl.orange, 30.0, 25.0),
+      (hsl.yellow, 60.0, 30.0),
+      (hsl.green, 120.0, 40.0),
+      (hsl.aqua, 180.0, 35.0),
+      (hsl.blue, 240.0, 35.0),
+      (hsl.purple, 280.0, 25.0),
+      (hsl.magenta, 320.0, 25.0),
+    ];
+
+    double hueDiff(double h1, double h2) {
+      final d = (h1 - h2).abs() % 360.0;
+      return d > 180.0 ? 360.0 - d : d;
+    }
+
+    for (final pixel in image) {
+      final r = pixel.r / 255.0;
+      final g = pixel.g / 255.0;
+      final b = pixel.b / 255.0;
+
+      final maxVal = math.max(r, math.max(g, b));
+      final minVal = math.min(r, math.min(g, b));
+      final delta = maxVal - minVal;
+
+      var l = (maxVal + minVal) * 0.5;
+      if (delta < 1e-4) continue; // Achromatic / neutral gray
+
+      final s = l > 0.5 ? delta / (2.0 - maxVal - minVal) : delta / (maxVal + minVal);
+
+      double h;
+      if ((maxVal - r).abs() < 1e-5) {
+        h = ((g - b) / delta) % 6.0;
+      } else if ((maxVal - g).abs() < 1e-5) {
+        h = (b - r) / delta + 2.0;
+      } else {
+        h = (r - g) / delta + 4.0;
+      }
+      h = (h * 60.0) % 360.0;
+      if (h < 0.0) h += 360.0;
+
+      var totalWeight = 0.0;
+      var dH = 0.0;
+      var dS = 0.0;
+      var dL = 0.0;
+
+      for (final band in bands) {
+        final adj = band.$1;
+        final center = band.$2;
+        final width = band.$3;
+        final dist = hueDiff(h, center);
+        if (dist < width) {
+          final w = 0.5 * (1.0 + math.cos(math.pi * dist / width));
+          totalWeight += w;
+          dH += (adj.hue * 0.3) * w;
+          dS += (adj.saturation / 100.0) * w;
+          dL += (adj.luminance / 100.0) * w;
+        }
+      }
+
+      if (totalWeight < 1e-4) continue;
+
+      final norm = 1.0 / math.max(1.0, totalWeight);
+      final finalH = ((h + dH * norm) % 360.0 + 360.0) % 360.0;
+      final finalS = (s * (1.0 + dS * norm)).clamp(0.0, 1.0);
+      final finalL = (l + dL * norm * 0.5).clamp(0.0, 1.0);
+
+      // Convert HSL back to RGB
+      final c = (1.0 - (2.0 * finalL - 1.0).abs()) * finalS;
+      final xVal = c * (1.0 - ((finalH / 60.0) % 2.0 - 1.0).abs());
+      final m = finalL - c * 0.5;
+
+      double rPrime, gPrime, bPrime;
+      if (finalH < 60.0) {
+        rPrime = c; gPrime = xVal; bPrime = 0.0;
+      } else if (finalH < 120.0) {
+        rPrime = xVal; gPrime = c; bPrime = 0.0;
+      } else if (finalH < 180.0) {
+        rPrime = 0.0; gPrime = c; bPrime = xVal;
+      } else if (finalH < 240.0) {
+        rPrime = 0.0; gPrime = xVal; bPrime = c;
+      } else if (finalH < 300.0) {
+        rPrime = xVal; gPrime = 0.0; bPrime = c;
+      } else {
+        rPrime = c; gPrime = 0.0; bPrime = xVal;
+      }
+
+      pixel.r = ((rPrime + m) * 255.0).round().clamp(0, 255);
+      pixel.g = ((gPrime + m) * 255.0).round().clamp(0, 255);
+      pixel.b = ((bPrime + m) * 255.0).round().clamp(0, 255);
+    }
+  }
 }

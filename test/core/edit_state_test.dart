@@ -98,6 +98,101 @@ void main() {
       expect(restored.geometry.cropRight, 0.9);
       expect(restored, equals(original));
     });
+
+    test('HslAdjustments updateBand, resetBand, and roundtrip serialization', () {
+      final initialHsl = const HslAdjustments();
+      expect(initialHsl.isIdentity, isTrue);
+
+      final updated = initialHsl
+          .updateBand(HslColorBand.blue, hue: 15.0, saturation: 25.0, luminance: -10.0)
+          .updateBand(HslColorBand.orange, hue: -5.0, saturation: 30.0);
+
+      expect(updated.isIdentity, isFalse);
+      expect(updated.blue.hue, 15.0);
+      expect(updated.blue.saturation, 25.0);
+      expect(updated.blue.luminance, -10.0);
+      expect(updated.orange.hue, -5.0);
+      expect(updated.orange.saturation, 30.0);
+      expect(updated.red.isIdentity, isTrue);
+
+      final resetBlue = updated.resetBand(HslColorBand.blue);
+      expect(resetBlue.blue.isIdentity, isTrue);
+      expect(resetBlue.orange.isIdentity, isFalse);
+
+      final state = EditState.identity().copyWith(hsl: updated);
+      final json = state.toJson();
+      final restored = EditState.fromJson(json);
+
+      expect(restored.hsl.blue.hue, 15.0);
+      expect(restored.hsl.blue.saturation, 25.0);
+      expect(restored.hsl.orange.saturation, 30.0);
+      expect(restored.hsl, equals(updated));
+    });
+
+    test('SelectiveMask and MaskToneAdjustments serialization and equality', () {
+      final mask1 = SelectiveMask(
+        id: 'brush_1',
+        name: 'Sky Brush',
+        type: MaskType.brush,
+        inverted: false,
+        opacity: 0.85,
+        brushPoints: const [
+          MaskPoint(x: 0.2, y: 0.3, radius: 0.05, feather: 0.6),
+          MaskPoint(x: 0.25, y: 0.35, radius: 0.05, feather: 0.6),
+        ],
+        adjustments: const MaskToneAdjustments(exposure: 15.0, clarity: 20.0),
+      );
+
+      final mask2 = SelectiveMask(
+        id: 'linear_1',
+        name: 'Ground Gradient',
+        type: MaskType.linearGradient,
+        inverted: true,
+        linearData: const LinearGradientData(startX: 0.5, startY: 0.7, endX: 0.5, endY: 1.0),
+        adjustments: const MaskToneAdjustments(warmth: 25.0, brightness: -10.0),
+      );
+
+      final state = EditState.identity().copyWith(
+        masks: [mask1, mask2],
+        showMaskOverlay: true,
+      );
+
+      expect(state.isIdentity, isFalse);
+      expect(state.masks.length, 2);
+      expect(state.showMaskOverlay, isTrue);
+
+      final json = state.toJson();
+      final restored = EditState.fromJson(json);
+
+      expect(restored.masks.length, 2);
+      expect(restored.masks[0].id, 'brush_1');
+      expect(restored.masks[0].brushPoints.length, 2);
+      expect(restored.masks[0].adjustments.exposure, 15.0);
+      expect(restored.masks[1].inverted, isTrue);
+      expect(restored.masks[1].adjustments.warmth, 25.0);
+      expect(restored.showMaskOverlay, isTrue);
+      expect(restored, equals(state));
+    });
+
+    test('EffectsAdjustments glow and lensBlur', () {
+      final effects = const EffectsAdjustments(
+        bloom: 20.0,
+        glow: 35.0,
+        lensBlur: 45.0,
+        grain: 10.0,
+      );
+      expect(effects.isIdentity, isFalse);
+      expect(effects.glow, 35.0);
+      expect(effects.lensBlur, 45.0);
+
+      final state = EditState.identity().copyWith(effects: effects);
+      final json = state.toJson();
+      final restored = EditState.fromJson(json);
+
+      expect(restored.effects.glow, 35.0);
+      expect(restored.effects.lensBlur, 45.0);
+      expect(restored.effects, equals(effects));
+    });
   });
 
   group('HistoryManager', () {
