@@ -191,33 +191,48 @@ static inline void apply_hsl_pixel(
         320.0f  // Magenta
     };
 
-    static const float half_width = 35.0f;
+    static const float half_widths[8] = {
+        35.0f,  // Red
+        28.0f,  // Orange
+        38.0f,  // Yellow
+        48.0f,  // Green
+        42.0f,  // Aqua
+        42.0f,  // Blue
+        32.0f,  // Purple
+        32.0f   // Magenta
+    };
 
     const AeviqueHslBand* bands[8] = {
         &hsl.red, &hsl.orange, &hsl.yellow, &hsl.green,
         &hsl.aqua, &hsl.blue, &hsl.purple, &hsl.magenta
     };
 
+    float total_weight = 0.0f;
     float delta_h = 0.0f;
-    float sat_mult = 1.0f;
+    float delta_s = 0.0f;
     float delta_l = 0.0f;
 
     for (int i = 0; i < 8; i++) {
         float center = center_hues[i];
+        float width = half_widths[i];
         float d = std::abs(h - center);
         if (d > 180.0f) d = 360.0f - d;
 
-        if (d < half_width) {
-            float weight = 0.5f * (1.0f + std::cos(3.141592653589793f * d / half_width));
-            delta_h += weight * (bands[i]->hue * 0.35f);
-            sat_mult += weight * (bands[i]->saturation / 100.0f);
-            delta_l += weight * (bands[i]->luminance / 100.0f * 0.45f);
+        if (d < width) {
+            float weight = 0.5f * (1.0f + std::cos(3.141592653589793f * d / width));
+            total_weight += weight;
+            delta_h += weight * (bands[i]->hue * 0.45f);
+            delta_s += weight * (bands[i]->saturation / 100.0f);
+            delta_l += weight * (bands[i]->luminance / 100.0f * 0.5f);
         }
     }
 
-    h = std::fmod(h + delta_h + 360.0f, 360.0f);
-    s = clamp_float(s * std::max(0.0f, sat_mult), 0.0f, 1.0f);
-    l = clamp_float(l + delta_l, 0.0f, 1.0f);
+    if (total_weight > 1e-4f) {
+        float norm = 1.0f / std::max(1.0f, total_weight);
+        h = std::fmod(h + delta_h * norm + 360.0f, 360.0f);
+        s = clamp_float(s * (1.0f + delta_s * norm), 0.0f, 1.0f);
+        l = clamp_float(l + delta_l * norm, 0.0f, 1.0f);
+    }
 
     float out_r, out_g, out_b;
     hsl_to_rgb(h, s, l, out_r, out_g, out_b);

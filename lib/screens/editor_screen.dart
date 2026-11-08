@@ -75,6 +75,10 @@ class _EditorScreenState extends State<EditorScreen> {
     super.initState();
     _history = HistoryManager(initialState: EditState.identity());
     _workingState = _history.current;
+    // Immediately present the initial image bytes with zero blocking lag
+    _previewBytes = widget.initialImageBytes;
+    _originalPreviewBytes = widget.initialImageBytes;
+    _isLoadingBase = false;
 
     if (widget.initialPresetId != null) {
       final filter = FilterCatalogue.findById(widget.initialPresetId!);
@@ -119,7 +123,9 @@ class _EditorScreenState extends State<EditorScreen> {
         _thumbnailImage = bundle.thumbnailImage;
         _originalPreviewBytes = bundle.originalPreviewBytes;
         _rawPreviewRgba8 = bundle.rawPreviewRgba8;
-        _previewBytes = bundle.originalPreviewBytes;
+        if (_previewUiImage == null && _workingState.isIdentity) {
+          _previewBytes = bundle.originalPreviewBytes;
+        }
         _isLoadingBase = false;
       });
 
@@ -129,8 +135,8 @@ class _EditorScreenState extends State<EditorScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _previewBytes = widget.initialImageBytes;
-        _originalPreviewBytes = widget.initialImageBytes;
+        _previewBytes ??= widget.initialImageBytes;
+        _originalPreviewBytes ??= widget.initialImageBytes;
         _isLoadingBase = false;
       });
     }
@@ -572,31 +578,34 @@ class _EditorScreenState extends State<EditorScreen> {
   Widget _buildMobileLayout() {
     final isToolOpen = _activeTool != null;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // 1. Center Image Canvas (Dominates Screen)
-        Positioned.fill(
-          child: Column(
-            children: [
-              _buildTopBar(),
-              Expanded(child: _buildCanvasStack()),
-              // Reserve bottom space for floating dock or tool sheet
-              SizedBox(
-                height: isToolOpen ? (_activeTool == 'crop' ? 220 : 260) : 100,
-              ),
-            ],
-          ),
-        ),
+    return SafeArea(
+      top: true,
+      bottom: true,
+      child: Column(
+        children: [
+          // 1. Sleek Liquid Glass Top Bar (Back, Undo, Redo, Compare, Export)
+          _buildTopBar(),
 
-        // 2. Floating Bottom Controls: Either Mode Dock or Active Tool Sheet
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: isToolOpen ? _buildActiveToolSheet() : _buildNeutralModeDock(),
-        ),
-      ],
+          // 2. Responsive Center Canvas (Dominates Screen, Never Covered by Controls)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+              child: Center(
+                child: _buildCanvasStack(),
+              ),
+            ),
+          ),
+
+          // 3. Bottom Controls: Docked Cleanly Below Canvas
+          if (isToolOpen)
+            _buildActiveToolSheet()
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildNeutralModeDock(),
+            ),
+        ],
+      ),
     );
   }
 
@@ -986,14 +995,15 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  // Active Tool Panel / Sheet (Phone 3, 4, 5)
+  // Active Tool Panel / Sheet (Compact Bottom Inspector with Zero Photo Occlusion)
   Widget _buildActiveToolSheet() {
     final panelContent = _getPanelWidget(_activeTool!);
+    final maxPanelHeight = MediaQuery.sizeOf(context).height * 0.42;
 
     return AeviqueGlass(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       hasGrabHandle: _activeTool == 'filter',
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1015,14 +1025,15 @@ class _EditorScreenState extends State<EditorScreen> {
                 style: const TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
                   color: Colors.white,
                 ),
               ),
               IconButton(
                 icon: const Icon(
                   Icons.check_rounded,
-                  size: 20,
+                  size: 22,
                   color: AeviqueTheme.primaryBlueLight,
                 ),
                 tooltip: 'Apply',
@@ -1030,89 +1041,14 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
             ],
           ),
-          panelContent,
-          const SizedBox(height: 12),
-
-          // Contextual Mode Dock & Prominent Circular Checkmark FAB
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Contextual pill switcher: Crop | Adjust | Filter
-              LiquidGlassPanel(
-                variant: LiquidGlassVariant.ultraClear,
-                borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildContextModeChip('crop', 'Crop', Icons.crop_rounded),
-                    _buildContextModeChip(
-                      'adjust',
-                      'Adjust',
-                      Icons.tune_rounded,
-                    ),
-                    _buildContextModeChip(
-                      'filter',
-                      'Filter',
-                      Icons.filter_vintage_rounded,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Prominent Circular Checkmark FAB with Liquid Blue Glow
-              AeviqueAmberFab(
-                icon: Icons.check_rounded,
-                size: 52,
-                iconSize: 28,
-                tooltip: 'Apply',
-                onPressed: _applyToolChanges,
-              ),
-            ],
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxPanelHeight),
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: panelContent,
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildContextModeChip(String id, String label, IconData icon) {
-    final isSelected = _activeTool == id;
-    return GestureDetector(
-      onTap: () => setState(() => _activeTool = id),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: isSelected
-            ? BoxDecoration(
-                color: AeviqueTheme.primaryBlue.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AeviqueTheme.primaryBlueLight,
-                  width: 1.0,
-                ),
-              )
-            : null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 14,
-              color: isSelected
-                  ? AeviqueTheme.primaryBlueLight
-                  : Colors.white60,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.white70,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

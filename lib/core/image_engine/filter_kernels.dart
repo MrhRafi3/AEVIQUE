@@ -377,14 +377,14 @@ class FilterKernels {
     if (hsl.isIdentity) return;
 
     final bands = [
-      (hsl.red, 0.0, 30.0),
-      (hsl.orange, 30.0, 25.0),
-      (hsl.yellow, 60.0, 30.0),
-      (hsl.green, 120.0, 40.0),
-      (hsl.aqua, 180.0, 35.0),
-      (hsl.blue, 240.0, 35.0),
-      (hsl.purple, 280.0, 25.0),
-      (hsl.magenta, 320.0, 25.0),
+      (hsl.red, 0.0, 35.0),
+      (hsl.orange, 30.0, 28.0),
+      (hsl.yellow, 60.0, 38.0),
+      (hsl.green, 120.0, 48.0),
+      (hsl.aqua, 180.0, 42.0),
+      (hsl.blue, 240.0, 42.0),
+      (hsl.purple, 280.0, 32.0),
+      (hsl.magenta, 320.0, 32.0),
     ];
 
     double hueDiff(double h1, double h2) {
@@ -430,9 +430,9 @@ class FilterKernels {
         if (dist < width) {
           final w = 0.5 * (1.0 + math.cos(math.pi * dist / width));
           totalWeight += w;
-          dH += (adj.hue * 0.3) * w;
+          dH += (adj.hue * 0.45) * w;
           dS += (adj.saturation / 100.0) * w;
-          dL += (adj.luminance / 100.0) * w;
+          dL += (adj.luminance / 100.0 * 0.5) * w;
         }
       }
 
@@ -441,7 +441,7 @@ class FilterKernels {
       final norm = 1.0 / math.max(1.0, totalWeight);
       final finalH = ((h + dH * norm) % 360.0 + 360.0) % 360.0;
       final finalS = (s * (1.0 + dS * norm)).clamp(0.0, 1.0);
-      final finalL = (l + dL * norm * 0.5).clamp(0.0, 1.0);
+      final finalL = (l + dL * norm).clamp(0.0, 1.0);
 
       // Convert HSL back to RGB
       final c = (1.0 - (2.0 * finalL - 1.0).abs()) * finalS;

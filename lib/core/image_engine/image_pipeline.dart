@@ -621,7 +621,7 @@ PreprocessedImageBundle _isolatePrepareBundle(_PrepareBundleTask task) {
   );
 
   final origPreviewBytes = Uint8List.fromList(
-    img.encodeJpg(preview, quality: 95),
+    img.encodeJpg(preview, quality: 90),
   );
 
   final rgbaPreview = preview.convert(numChannels: 4);

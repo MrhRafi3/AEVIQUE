@@ -28,8 +28,6 @@ class DefaultImageRepository implements ImageRepository {
     try {
       final xFile = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 4096,
-        maxHeight: 4096,
       );
       if (xFile == null) return null;
       return await xFile.readAsBytes();
@@ -43,8 +41,6 @@ class DefaultImageRepository implements ImageRepository {
     try {
       final xFile = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 4096,
-        maxHeight: 4096,
       );
       if (xFile == null) return null;
       return await xFile.readAsBytes();

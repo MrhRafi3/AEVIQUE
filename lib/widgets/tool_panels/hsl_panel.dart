@@ -20,6 +20,21 @@ class HslPanel extends StatefulWidget {
 
 class _HslPanelState extends State<HslPanel> {
   HslColorBand _activeBand = HslColorBand.red;
+  late HslAdjustments _adjustments;
+
+  @override
+  void initState() {
+    super.initState();
+    _adjustments = widget.adjustments;
+  }
+
+  @override
+  void didUpdateWidget(covariant HslPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.adjustments != oldWidget.adjustments) {
+      _adjustments = widget.adjustments;
+    }
+  }
 
   Color _getBandColor(HslColorBand band) {
     switch (band) {
@@ -42,9 +57,43 @@ class _HslPanelState extends State<HslPanel> {
     }
   }
 
+  void _onBandChanged({double? hue, double? saturation, double? luminance}) {
+    final updated = _adjustments.updateBand(
+      _activeBand,
+      hue: hue,
+      saturation: saturation,
+      luminance: luminance,
+    );
+    setState(() {
+      _adjustments = updated;
+    });
+    widget.onChanged(updated);
+  }
+
+  void _resetActiveBand() {
+    final updated = _adjustments.updateBand(
+      _activeBand,
+      hue: 0.0,
+      saturation: 0.0,
+      luminance: 0.0,
+    );
+    setState(() {
+      _adjustments = updated;
+    });
+    widget.onChanged(updated);
+  }
+
+  void _resetAllBands() {
+    const updated = HslAdjustments();
+    setState(() {
+      _adjustments = updated;
+    });
+    widget.onChanged(updated);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentAdj = widget.adjustments.getBand(_activeBand);
+    final currentAdj = _adjustments.getBand(_activeBand);
     final bandColor = _getBandColor(_activeBand);
 
     return Column(
@@ -60,7 +109,7 @@ class _HslPanelState extends State<HslPanel> {
               children: HslColorBand.values.map((band) {
                 final isSelected = band == _activeBand;
                 final color = _getBandColor(band);
-                final hasEdits = !widget.adjustments.getBand(band).isIdentity;
+                final hasEdits = !_adjustments.getBand(band).isIdentity;
 
                 return GestureDetector(
                   onTap: () {
@@ -150,16 +199,7 @@ class _HslPanelState extends State<HslPanel> {
                 children: [
                   if (!currentAdj.isIdentity)
                     GestureDetector(
-                      onTap: () {
-                        widget.onChanged(
-                          widget.adjustments.updateBand(
-                            _activeBand,
-                            hue: 0.0,
-                            saturation: 0.0,
-                            luminance: 0.0,
-                          ),
-                        );
-                      },
+                      onTap: _resetActiveBand,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         child: Text(
@@ -173,12 +213,10 @@ class _HslPanelState extends State<HslPanel> {
                         ),
                       ),
                     ),
-                  if (!widget.adjustments.isIdentity) ...[
+                  if (!_adjustments.isIdentity) ...[
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () {
-                        widget.onChanged(const HslAdjustments());
-                      },
+                      onTap: _resetAllBands,
                       child: const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         child: Text(
@@ -211,11 +249,8 @@ class _HslPanelState extends State<HslPanel> {
                 value: currentAdj.hue,
                 min: -100,
                 max: 100,
-                onChanged: (val) {
-                  widget.onChanged(
-                    widget.adjustments.updateBand(_activeBand, hue: val),
-                  );
-                },
+                onChanged: (val) => _onBandChanged(hue: val),
+                onReset: () => _onBandChanged(hue: 0.0),
                 activeColor: bandColor,
               ),
               AeviquePrecisionSlider(
@@ -223,11 +258,8 @@ class _HslPanelState extends State<HslPanel> {
                 value: currentAdj.saturation,
                 min: -100,
                 max: 100,
-                onChanged: (val) {
-                  widget.onChanged(
-                    widget.adjustments.updateBand(_activeBand, saturation: val),
-                  );
-                },
+                onChanged: (val) => _onBandChanged(saturation: val),
+                onReset: () => _onBandChanged(saturation: 0.0),
                 activeColor: bandColor,
               ),
               AeviquePrecisionSlider(
@@ -235,11 +267,8 @@ class _HslPanelState extends State<HslPanel> {
                 value: currentAdj.luminance,
                 min: -100,
                 max: 100,
-                onChanged: (val) {
-                  widget.onChanged(
-                    widget.adjustments.updateBand(_activeBand, luminance: val),
-                  );
-                },
+                onChanged: (val) => _onBandChanged(luminance: val),
+                onReset: () => _onBandChanged(luminance: 0.0),
                 activeColor: bandColor,
               ),
             ],

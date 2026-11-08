@@ -9,7 +9,6 @@ import '../widgets/motion/abstract_3d_graphics.dart';
 import 'camera_screen.dart';
 import 'editor_screen.dart';
 import 'gallery_screen.dart';
-import 'batch_processing_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 
@@ -391,52 +390,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                     ],
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  // Batch Processing Entry Point
-                                  LiquidGlassPanel(
-                                    variant: LiquidGlassVariant.ultraClear,
-                                    borderRadius: BorderRadius.circular(
-                                      AeviqueTheme.radiusLg,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                      vertical: 12.0,
-                                    ),
-                                    onTap: () {
-                                      HapticFeedback.lightImpact();
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) => BatchProcessingScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.auto_awesome_motion_rounded,
-                                          size: 18,
-                                          color: AeviqueTheme.creativeOrange,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Flexible(
-                                          child: Text(
-                                            'Batch Processing',
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 13.0,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
                                   ),
                                 ],
                               ),
