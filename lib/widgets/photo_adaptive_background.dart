@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../theme/aevique_theme.dart';
+import '../theme/luma_theme.dart';
 
-/// Photo-Adaptive Ambient Background for the AEVIQUE Editor.
+/// Photo-Adaptive Ambient Background for the LumaFix Editor.
 ///
 /// Implements Layer 1 of the Editor workspace:
 /// - Derived purely from the active photo bytes.
@@ -23,7 +23,7 @@ class PhotoAdaptiveBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (imageBytes == null || imageBytes!.isEmpty) {
-      return Container(color: AeviqueTheme.deepCanvas, child: child);
+      return Container(color: LumaTheme.deepCanvas, child: child);
     }
 
     return Stack(
@@ -62,9 +62,9 @@ class PhotoAdaptiveBackground extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AeviqueTheme.deepCanvas.withValues(alpha: 0.72),
-                    AeviqueTheme.deepCanvas.withValues(alpha: 0.48),
-                    AeviqueTheme.deepCanvas.withValues(alpha: 0.82),
+                    LumaTheme.deepCanvas.withValues(alpha: 0.72),
+                    LumaTheme.deepCanvas.withValues(alpha: 0.48),
+                    LumaTheme.deepCanvas.withValues(alpha: 0.82),
                   ],
                   stops: const [0.0, 0.45, 1.0],
                 ),
@@ -83,7 +83,7 @@ class PhotoAdaptiveBackground extends StatelessWidget {
                   radius: 1.1,
                   colors: [
                     Colors.transparent,
-                    AeviqueTheme.deepCanvas.withValues(alpha: 0.55),
+                    LumaTheme.deepCanvas.withValues(alpha: 0.55),
                   ],
                 ),
               ),

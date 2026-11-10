@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import '../core/native_engine/aevique_ffi.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
+import '../core/native_engine/lumafix_ffi.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_glass.dart';
 
-/// Minimal, premium creative Profile screen for AEVIQUE.
+/// Minimal, premium creative Profile screen for LumaFix.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final nativeEngineActive = AeviqueNativeEngine.isAvailable;
+    final nativeEngineActive = LumaFixNativeEngine.isAvailable;
 
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepCanvas,
+      backgroundColor: LumaTheme.deepCanvas,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -22,7 +22,7 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 LiquidGlassPanel(
                   variant: LiquidGlassVariant.ultraClear,
-                  borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
+                  borderRadius: BorderRadius.circular(LumaTheme.radiusFull),
                   padding: const EdgeInsets.all(10),
                   onTap: () => Navigator.of(context).pop(),
                   child: const Icon(
@@ -50,7 +50,7 @@ class ProfileScreen extends StatelessWidget {
             // Profile Header Glass Card
             LiquidGlassPanel(
               variant: LiquidGlassVariant.standard,
-              borderRadius: BorderRadius.circular(AeviqueTheme.radiusXl),
+              borderRadius: BorderRadius.circular(LumaTheme.radiusXl),
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
@@ -64,14 +64,14 @@ class ProfileScreen extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          AeviqueTheme.primaryBlue,
-                          AeviqueTheme.creativeOrange,
-                          AeviqueTheme.coralRed,
+                          LumaTheme.primaryBlue,
+                          LumaTheme.creativeOrange,
+                          LumaTheme.coralRed,
                         ],
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AeviqueTheme.primaryBlueGlow,
+                          color: LumaTheme.primaryBlueGlow,
                           blurRadius: 24,
                           spreadRadius: 2,
                         ),
@@ -81,7 +81,7 @@ class ProfileScreen extends StatelessWidget {
                     child: Container(
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AeviqueTheme.deepCanvas,
+                        color: LumaTheme.deepCanvas,
                       ),
                       child: const Center(
                         child: Icon(
@@ -96,7 +96,7 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   const Text(
-                    'AEVIQUE Studio Creator',
+                    'LumaFix Studio Creator',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 19,
@@ -112,7 +112,7 @@ class ProfileScreen extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
-                      color: AeviqueTheme.textSecondary,
+                      color: LumaTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -131,20 +131,20 @@ class ProfileScreen extends StatelessWidget {
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.2,
-                  color: AeviqueTheme.textSecondary,
+                  color: LumaTheme.textSecondary,
                 ),
               ),
             ),
 
             LiquidGlassPanel(
               variant: LiquidGlassVariant.standard,
-              borderRadius: BorderRadius.circular(AeviqueTheme.radiusLg),
+              borderRadius: BorderRadius.circular(LumaTheme.radiusLg),
               padding: const EdgeInsets.all(18.0),
               child: Column(
                 children: [
                   _buildStatRow(
                     icon: Icons.memory_rounded,
-                    iconColor: AeviqueTheme.primaryBlueLight,
+                    iconColor: LumaTheme.primaryBlueLight,
                     title: 'Native Image Processing Engine',
                     value: nativeEngineActive
                         ? 'C++ Accelerated (v1.2.0)'
@@ -152,22 +152,22 @@ class ProfileScreen extends StatelessWidget {
                     isHighlight: nativeEngineActive,
                   ),
                   const Divider(
-                    color: AeviqueTheme.glassBorderSubtle,
+                    color: LumaTheme.glassBorderSubtle,
                     height: 24,
                   ),
                   _buildStatRow(
                     icon: Icons.palette_outlined,
-                    iconColor: AeviqueTheme.creativeOrangeLight,
+                    iconColor: LumaTheme.creativeOrangeLight,
                     title: 'Processing Color Model',
                     value: 'Wide Gamut 32-bit Float',
                   ),
                   const Divider(
-                    color: AeviqueTheme.glassBorderSubtle,
+                    color: LumaTheme.glassBorderSubtle,
                     height: 24,
                   ),
                   _buildStatRow(
                     icon: Icons.security_rounded,
-                    iconColor: AeviqueTheme.success,
+                    iconColor: LumaTheme.success,
                     title: 'Privacy & Data Integrity',
                     value: '100% On-Device Offline',
                   ),
@@ -180,7 +180,7 @@ class ProfileScreen extends StatelessWidget {
             // Export & Device Workspace Info
             LiquidGlassPanel(
               variant: LiquidGlassVariant.standard,
-              borderRadius: BorderRadius.circular(AeviqueTheme.radiusLg),
+              borderRadius: BorderRadius.circular(LumaTheme.radiusLg),
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,12 +190,12 @@ class ProfileScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AeviqueTheme.creativeOrangeSurface,
+                          color: LumaTheme.creativeOrangeSurface,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.workspace_premium_rounded,
-                          color: AeviqueTheme.creativeOrange,
+                          color: LumaTheme.creativeOrange,
                           size: 20,
                         ),
                       ),
@@ -219,7 +219,7 @@ class ProfileScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 12.5,
-                                color: AeviqueTheme.textSecondary,
+                                color: LumaTheme.textSecondary,
                                 height: 1.4,
                               ),
                             ),
@@ -264,7 +264,7 @@ class ProfileScreen extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
-                  color: AeviqueTheme.textSecondary,
+                  color: LumaTheme.textSecondary,
                 ),
               ),
               const SizedBox(height: 2),
@@ -275,7 +275,7 @@ class ProfileScreen extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: isHighlight
-                      ? AeviqueTheme.primaryBlueLight
+                      ? LumaTheme.primaryBlueLight
                       : Colors.white,
                 ),
               ),

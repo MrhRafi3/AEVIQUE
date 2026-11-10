@@ -1,31 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/models/edit_state.dart';
-import 'core/native_engine/aevique_ffi.dart';
+import 'core/native_engine/lumafix_ffi.dart';
 import 'screens/editor_screen.dart';
 import 'screens/export_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/presets_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/camera_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/image_repository.dart';
-import 'theme/aevique_theme.dart';
+import 'theme/luma_theme.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize native C++ image engine if dynamic library is available on host platform
-  AeviqueNativeEngine.tryLoad();
+  LumaFixNativeEngine.tryLoad();
 
-  // Pure dark navigation bar and status bar overlay matching AEVIQUE Deep Black
+  // Pure dark navigation bar and status bar overlay matching LumaFix Deep Black
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AeviqueTheme.deepBlack,
+      systemNavigationBarColor: LumaTheme.deepBlack,
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
@@ -43,7 +44,7 @@ void main(List<String> args) async {
     initialScreen = await _buildTargetScreen(targetScreen);
   }
 
-  runApp(AeviqueApp(home: initialScreen));
+  runApp(LumaFixApp(home: initialScreen));
 }
 
 Future<Widget> _buildTargetScreen(String screenName) async {
@@ -112,27 +113,26 @@ Future<Widget> _buildTargetScreen(String screenName) async {
       return const CameraScreen();
     case 'profile':
       return const ProfileScreen();
+    case 'login':
+      return const LoginScreen();
     case 'splash':
     default:
       return const SplashScreen();
   }
 }
 
-class AeviqueApp extends StatelessWidget {
+class LumaFixApp extends StatelessWidget {
   final Widget? home;
 
-  const AeviqueApp({super.key, this.home});
+  const LumaFixApp({super.key, this.home});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AEVIQUE',
+      title: 'LumaFix',
       debugShowCheckedModeBanner: false,
-      theme: AeviqueTheme.darkTheme,
+      theme: LumaTheme.darkTheme,
       home: home ?? const SplashScreen(),
     );
   }
 }
-
-// Backward-compatible alias
-typedef LumaForgeApp = AeviqueApp;

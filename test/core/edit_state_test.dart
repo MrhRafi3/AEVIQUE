@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/models/history_manager.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/models/history_manager.dart';
 
 void main() {
   group('EditState and Sub-models', () {

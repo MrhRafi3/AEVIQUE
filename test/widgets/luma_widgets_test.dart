@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumaforge/theme/luma_theme.dart';
-import 'package:lumaforge/widgets/before_after_viewer.dart';
-import 'package:lumaforge/widgets/luma_slider.dart';
+import 'package:lumafix/theme/luma_theme.dart';
+import 'package:lumafix/widgets/before_after_viewer.dart';
+import 'package:lumafix/widgets/luma_slider.dart';
 
 void main() {
   testWidgets('LumaSlider displays title, value, and triggers onChanged', (

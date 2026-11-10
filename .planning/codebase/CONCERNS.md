@@ -7,12 +7,12 @@ last_mapped_at: 2026-11-06
 **Analysis Date:** 2026-11-06
 
 ## 1. UI Redesign & Brand Transition
-- **Remaining Legacy Naming:** The project was originally named `lumaforge` before rebranding to `AEVIQUE`. Backward-compatibility aliases (`LumaTheme`, `LumaForgeApp`) exist to prevent regressions, but older styling conventions linger in some tool panels.
+- **Brand Transition (Resolved):** The migration from legacy naming (`lumaforge` / `AEVIQUE`) to `LumaFix` is fully complete across Flutter, C++ engine, Android (`com.lumafix.lumafix`), iOS (`com.lumafix.lumafix`), documentation, and the GitHub repository. Legacy compatibility aliases have been retired in favor of native `LumaTheme` and `LumaFixNativeEngine`.
 - **Desktop/macOS Optimization:** The existing layout is predominantly phone-first. While it scales without overflow, macOS users benefit from a true desktop workspace featuring a sidebar inspector and mouse-friendly controls rather than mobile-style bottom sheets.
 
 ## 2. Tool Panels Visual Cohesion
-- Individual editing panels (`tune_panel.dart`, `crop_panel.dart`, `details_panel.dart`, `effects_panel.dart`, `filters_panel.dart`, `portrait_panel.dart`, `presets_panel.dart`, `curve_editor_widget.dart`) must adhere strictly to the new AEVIQUE luxury darkroom visual identity (deep charcoal, champagne gold, ivory, zero-detent sliders, and refined spacing).
-- Old material styling in tool subpanels must be replaced with `AeviqueUIComponents` and `AeviqueTheme`.
+- Individual editing panels (`tune_panel.dart`, `crop_panel.dart`, `details_panel.dart`, `effects_panel.dart`, `filters_panel.dart`, `portrait_panel.dart`, `presets_panel.dart`, `curve_editor_widget.dart`) must adhere strictly to the new LumaFix luxury darkroom visual identity (deep charcoal, champagne gold, ivory, zero-detent sliders, and refined spacing).
+- Old material styling in tool subpanels must be replaced with `LumaFixUIComponents` and `LumaFixTheme`.
 
 ## 3. High-DPI & Large Photo Memory Management
 - Full-resolution camera imports on modern smartphones (48MP–200MP) require careful memory handling during preview generation and export.

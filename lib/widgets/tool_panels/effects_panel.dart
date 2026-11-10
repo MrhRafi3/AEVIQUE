@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_ui_components.dart';
 
 class EffectsPanel extends StatelessWidget {
   final EffectsAdjustments effects;
@@ -34,8 +34,8 @@ class EffectsPanel extends StatelessWidget {
                 children: [
                   Switch(
                     value: effects.bwMode,
-                    activeThumbColor: AeviqueTheme.primaryBlueLight,
-                    activeTrackColor: AeviqueTheme.primaryBlueSurface,
+                    activeThumbColor: LumaTheme.primaryBlueLight,
+                    activeTrackColor: LumaTheme.primaryBlueSurface,
                     inactiveThumbColor: Colors.white60,
                     inactiveTrackColor: Colors.white12,
                     onChanged: (val) {
@@ -54,7 +54,7 @@ class EffectsPanel extends StatelessWidget {
                           : FontWeight.w500,
                       color: effects.bwMode
                           ? Colors.white
-                          : AeviqueTheme.textSecondary,
+                          : LumaTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -70,7 +70,7 @@ class EffectsPanel extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
-                    color: AeviqueTheme.textMuted,
+                    color: LumaTheme.textMuted,
                   ),
                 ),
               ),
@@ -82,7 +82,7 @@ class EffectsPanel extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             children: [
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Vignette Amount',
                 value: vignette.amount,
                 min: 0.0,
@@ -92,7 +92,7 @@ class EffectsPanel extends StatelessWidget {
                 onReset: () =>
                     onVignetteChanged(vignette.copyWith(amount: 0.0)),
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Film Grain',
                 value: effects.grain,
                 min: 0.0,
@@ -100,7 +100,7 @@ class EffectsPanel extends StatelessWidget {
                 onChanged: (v) => onEffectsChanged(effects.copyWith(grain: v)),
                 onReset: () => onEffectsChanged(effects.copyWith(grain: 0.0)),
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Highlight Bloom',
                 value: effects.bloom,
                 min: 0.0,
@@ -108,7 +108,7 @@ class EffectsPanel extends StatelessWidget {
                 onChanged: (v) => onEffectsChanged(effects.copyWith(bloom: v)),
                 onReset: () => onEffectsChanged(effects.copyWith(bloom: 0.0)),
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Diffusion Glow',
                 value: effects.glow,
                 min: 0.0,
@@ -116,7 +116,7 @@ class EffectsPanel extends StatelessWidget {
                 onChanged: (v) => onEffectsChanged(effects.copyWith(glow: v)),
                 onReset: () => onEffectsChanged(effects.copyWith(glow: 0.0)),
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Chromatic Aberration',
                 value: effects.chromaticAberration,
                 min: 0.0,
@@ -127,7 +127,7 @@ class EffectsPanel extends StatelessWidget {
                   effects.copyWith(chromaticAberration: 0.0),
                 ),
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Lens Blur / Bokeh',
                 value: effects.lensBlur,
                 min: 0.0,
@@ -137,7 +137,7 @@ class EffectsPanel extends StatelessWidget {
                 onReset: () =>
                     onEffectsChanged(effects.copyWith(lensBlur: 0.0)),
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Vintage Film',
                 value: effects.vintage,
                 min: 0.0,
@@ -147,7 +147,7 @@ class EffectsPanel extends StatelessWidget {
                 onReset: () =>
                     onEffectsChanged(effects.copyWith(vintage: 0.0)),
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Dramatic Contrast',
                 value: effects.drama,
                 min: 0.0,

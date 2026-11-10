@@ -6,11 +6,11 @@ import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
 import '../core/models/history_manager.dart';
-import '../core/native_engine/aevique_ffi.dart';
+import '../core/native_engine/lumafix_ffi.dart';
 import '../core/presets/filter_catalogue.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
-import '../widgets/aevique_ui_components.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_glass.dart';
+import '../widgets/luma_ui_components.dart';
 import '../widgets/before_after_viewer.dart';
 import '../services/preset_repository.dart';
 import '../widgets/crop_overlay_widget.dart';
@@ -159,7 +159,7 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     final debounceDuration =
-        (AeviqueNativeEngine.isAvailable &&
+        (LumaFixNativeEngine.isAvailable &&
             ImagePipeline.isNativeCompatible(state))
         ? const Duration(milliseconds: 16)
         : const Duration(milliseconds: 30);
@@ -264,7 +264,7 @@ class _EditorScreenState extends State<EditorScreen> {
         backgroundColor: const Color(0xFF14141C),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AeviqueTheme.borderLight, width: 0.8),
+          side: const BorderSide(color: LumaTheme.borderLight, width: 0.8),
         ),
         title: const Text(
           'Save as Preset',
@@ -283,12 +283,12 @@ class _EditorScreenState extends State<EditorScreen> {
               style: const TextStyle(color: Colors.white, fontSize: 13),
               decoration: const InputDecoration(
                 labelText: 'Preset Name',
-                labelStyle: TextStyle(color: AeviqueTheme.textSecondary),
+                labelStyle: TextStyle(color: LumaTheme.textSecondary),
                 enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: AeviqueTheme.borderSubtle),
+                  borderSide: BorderSide(color: LumaTheme.borderSubtle),
                 ),
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: AeviqueTheme.primaryBlueLight),
+                  borderSide: BorderSide(color: LumaTheme.primaryBlueLight),
                 ),
               ),
             ),
@@ -298,12 +298,12 @@ class _EditorScreenState extends State<EditorScreen> {
               style: const TextStyle(color: Colors.white, fontSize: 13),
               decoration: const InputDecoration(
                 labelText: 'Description (optional)',
-                labelStyle: TextStyle(color: AeviqueTheme.textSecondary),
+                labelStyle: TextStyle(color: LumaTheme.textSecondary),
                 enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: AeviqueTheme.borderSubtle),
+                  borderSide: BorderSide(color: LumaTheme.borderSubtle),
                 ),
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: AeviqueTheme.primaryBlueLight),
+                  borderSide: BorderSide(color: LumaTheme.primaryBlueLight),
                 ),
               ),
             ),
@@ -316,7 +316,7 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AeviqueTheme.primaryBlue,
+              backgroundColor: LumaTheme.primaryBlue,
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.of(context).pop(true),
@@ -341,7 +341,7 @@ class _EditorScreenState extends State<EditorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Preset "${preset.name}" saved successfully!'),
-            backgroundColor: AeviqueTheme.charcoalSurface,
+            backgroundColor: LumaTheme.charcoalSurface,
           ),
         );
       }
@@ -371,7 +371,7 @@ class _EditorScreenState extends State<EditorScreen> {
         backgroundColor: const Color(0xFF14141C),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AeviqueTheme.borderLight, width: 0.8),
+          side: const BorderSide(color: LumaTheme.borderLight, width: 0.8),
         ),
         title: const Text(
           'Unsaved Edits',
@@ -387,7 +387,7 @@ class _EditorScreenState extends State<EditorScreen> {
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 13,
-            color: AeviqueTheme.textSecondary,
+            color: LumaTheme.textSecondary,
             height: 1.4,
           ),
         ),
@@ -410,7 +410,7 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: AeviqueTheme.primaryBlue,
+              backgroundColor: LumaTheme.primaryBlue,
               foregroundColor: Colors.white,
             ),
             onPressed: () =>
@@ -519,7 +519,7 @@ class _EditorScreenState extends State<EditorScreen> {
         _handleBackAction();
       },
       child: Scaffold(
-        backgroundColor: AeviqueTheme.deepCanvas,
+        backgroundColor: LumaTheme.deepCanvas,
         body: PhotoAdaptiveBackground(
           imageBytes: widget.initialImageBytes,
           child: SafeArea(
@@ -627,7 +627,7 @@ class _EditorScreenState extends State<EditorScreen> {
           decoration: const BoxDecoration(
             color: Color(0x8C14141C),
             border: Border(
-              left: BorderSide(color: AeviqueTheme.border, width: 0.8),
+              left: BorderSide(color: LumaTheme.border, width: 0.8),
             ),
           ),
           child: _buildDesktopSidebar(_activeTool),
@@ -660,7 +660,7 @@ class _EditorScreenState extends State<EditorScreen> {
         else
           const Center(
             child: CircularProgressIndicator(
-              color: AeviqueTheme.primaryBlue,
+              color: LumaTheme.primaryBlue,
               strokeWidth: 2.0,
             ),
           ),
@@ -738,7 +738,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AeviqueTheme.primaryBlue.withValues(alpha: 0.5),
+                  color: LumaTheme.primaryBlue.withValues(alpha: 0.5),
                   width: 0.8,
                 ),
               ),
@@ -750,7 +750,7 @@ class _EditorScreenState extends State<EditorScreen> {
                     height: 10,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
-                      color: AeviqueTheme.primaryBlueLight,
+                      color: LumaTheme.primaryBlueLight,
                     ),
                   ),
                   SizedBox(width: 6),
@@ -760,7 +760,7 @@ class _EditorScreenState extends State<EditorScreen> {
                       fontFamily: 'Inter',
                       fontSize: 9,
                       fontWeight: FontWeight.w600,
-                      color: AeviqueTheme.primaryBlueLight,
+                      color: LumaTheme.primaryBlueLight,
                     ),
                   ),
                 ],
@@ -803,8 +803,8 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
               const SizedBox(width: 4),
               Text(
-                'AEVIQUE',
-                style: AeviqueTheme.wordmarkStyle(
+                'LUMAFIX',
+                style: LumaTheme.wordmarkStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.5,
@@ -953,7 +953,7 @@ class _EditorScreenState extends State<EditorScreen> {
     return Center(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: AeviqueFloatingDock(
+        child: LumaFloatingDock(
           children: [
             _buildDockModeItem('tune', 'Adjust', Icons.tune_rounded),
             _buildDockModeItem('crop', 'Crop', Icons.crop_rounded),
@@ -1000,7 +1000,7 @@ class _EditorScreenState extends State<EditorScreen> {
     final panelContent = _getPanelWidget(_activeTool!);
     final maxPanelHeight = MediaQuery.sizeOf(context).height * 0.42;
 
-    return AeviqueGlass(
+    return LumaGlass(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       hasGrabHandle: _activeTool == 'filter',
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -1015,7 +1015,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 icon: const Icon(
                   Icons.close_rounded,
                   size: 20,
-                  color: AeviqueTheme.coralRedLight,
+                  color: LumaTheme.coralRedLight,
                 ),
                 tooltip: 'Cancel',
                 onPressed: _cancelToolChanges,
@@ -1034,7 +1034,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 icon: const Icon(
                   Icons.check_rounded,
                   size: 22,
-                  color: AeviqueTheme.primaryBlueLight,
+                  color: LumaTheme.primaryBlueLight,
                 ),
                 tooltip: 'Apply',
                 onPressed: _applyToolChanges,
@@ -1090,7 +1090,7 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ),
 
-        const Divider(color: AeviqueTheme.borderSubtle),
+        const Divider(color: LumaTheme.borderSubtle),
 
         // Inspector Content
         Expanded(
@@ -1144,7 +1144,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             icon: const Icon(
                               Icons.check_rounded,
                               size: 20,
-                              color: AeviqueTheme.primaryBlueLight,
+                              color: LumaTheme.primaryBlueLight,
                             ),
                             tooltip: 'Apply',
                             onPressed: _applyToolChanges,
@@ -1169,14 +1169,14 @@ class _EditorScreenState extends State<EditorScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: AeviqueButton.secondary(
+                  child: LumaButton.secondary(
                     label: 'Reset Tool',
                     onPressed: _cancelToolChanges,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: AeviqueButton(
+                  child: LumaButton(
                     label: 'Apply Edits',
                     onPressed: _applyToolChanges,
                   ),
@@ -1190,7 +1190,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Widget _buildDesktopTab(String id, String label) {
     final isSelected = _activeTool == id;
-    return AeviquePillChip(
+    return LumaPillChip(
       label: label,
       isSelected: isSelected,
       onTap: () => setState(() => _activeTool = id),
@@ -1425,7 +1425,7 @@ class _BlemishOverlayPainter extends CustomPainter {
     }
 
     final circlePaint = Paint()
-      ..color = AeviqueTheme.primaryBlueLight.withValues(alpha: 0.85)
+      ..color = LumaTheme.primaryBlueLight.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 

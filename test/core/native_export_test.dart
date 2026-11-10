@@ -4,25 +4,25 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/image_engine/image_pipeline.dart';
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/native_engine/aevique_ffi.dart';
+import 'package:lumafix/core/image_engine/image_pipeline.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/native_engine/lumafix_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    const dylibPath = 'native/aevique_core/build/libaevique_core.dylib';
+    const dylibPath = 'native/lumafix_core/build/liblumafix_core.dylib';
     if (File(dylibPath).existsSync()) {
-      AeviqueNativeEngine.tryLoad(customLibraryPath: dylibPath);
+      LumaFixNativeEngine.tryLoad(customLibraryPath: dylibPath);
     }
   });
 
   tearDown(() {
-    AeviqueNativeEngine.engineMode = EngineMode.auto;
+    LumaFixNativeEngine.engineMode = EngineMode.auto;
   });
 
-  group('AEVIQUE Native Full-Resolution Export Engine', () {
+  group('LumaFix Native Full-Resolution Export Engine', () {
     test(
       'Parity: Native full-resolution export matches Dart reference within 1 LSB',
       () async {
@@ -56,7 +56,7 @@ void main() {
         );
 
         // Force pure Dart export
-        AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
         final dartExportBytes = await ImagePipeline.processImage(
           sourcePng,
           testState,
@@ -65,7 +65,7 @@ void main() {
         final dartImage = img.decodePng(dartExportBytes)!;
 
         // Force Native export
-        AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
         final nativeExportBytes = await ImagePipeline.processImage(
           sourcePng,
           testState,
@@ -135,7 +135,7 @@ void main() {
       );
 
       // Dart reference
-      AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+      LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
       final dartBytes = await ImagePipeline.processImage(
         sourcePng,
         curveState,
@@ -144,7 +144,7 @@ void main() {
       final dartImg = img.decodePng(dartBytes)!;
 
       // Native export
-      AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+      LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
       final nativeBytes = await ImagePipeline.processImage(
         sourcePng,
         curveState,
@@ -182,7 +182,7 @@ void main() {
         tune: const TuneAdjustments(exposure: 20.0, contrast: 15.0),
       );
 
-      AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+      LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
       final exportBytes = await ImagePipeline.processImage(
         sourcePng,
         state,
@@ -243,10 +243,10 @@ void main() {
           img.encodeJpg(img.Image(width: 10, height: 10)),
         );
         final unsupportedState = EditState.identity().copyWith(
-          details: const DetailsAdjustments(sharpening: 20.0),
+          effects: const EffectsAdjustments(bloom: 20.0),
         );
 
-        AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
         expect(
           () => ImagePipeline.processImage(imgBytes, unsupportedState),
           throwsA(isA<UnsupportedError>()),
@@ -264,10 +264,10 @@ void main() {
           tune: const TuneAdjustments(exposure: 10.0),
         );
 
-        AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
         // Temporarily clear instance
-        final origInstance = AeviqueNativeEngine.instance;
-        AeviqueNativeEngine.setInstance(null);
+        final origInstance = LumaFixNativeEngine.instance;
+        LumaFixNativeEngine.setInstance(null);
 
         expect(
           () => ImagePipeline.processImage(imgBytes, state),
@@ -275,7 +275,7 @@ void main() {
         );
 
         // Restore
-        AeviqueNativeEngine.setInstance(origInstance);
+        LumaFixNativeEngine.setInstance(origInstance);
       },
     );
 
@@ -289,7 +289,7 @@ void main() {
           effects: const EffectsAdjustments(bloom: 20.0),
         );
 
-        AeviqueNativeEngine.engineMode = EngineMode.auto;
+        LumaFixNativeEngine.engineMode = EngineMode.auto;
         final result = await ImagePipeline.processImage(
           imgBytes,
           fallbackState,
@@ -332,7 +332,7 @@ void main() {
         );
 
         // Force pure Dart export
-        AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
         final dartExportBytes = await ImagePipeline.processImage(
           sourcePng,
           testState,
@@ -341,7 +341,7 @@ void main() {
         final dartImage = img.decodePng(dartExportBytes)!;
 
         // Force Native export
-        AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
         final nativeExportBytes = await ImagePipeline.processImage(
           sourcePng,
           testState,

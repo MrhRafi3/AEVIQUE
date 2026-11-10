@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/image_engine/image_pipeline.dart';
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/presets/filter_catalogue.dart';
-import 'package:lumaforge/core/presets/preset_catalogue.dart';
+import 'package:lumafix/core/image_engine/image_pipeline.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/presets/filter_catalogue.dart';
+import 'package:lumafix/core/presets/preset_catalogue.dart';
 
 void main() {
   late Uint8List testImageBytes;

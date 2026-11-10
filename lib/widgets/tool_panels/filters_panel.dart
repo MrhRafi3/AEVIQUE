@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import '../../core/image_engine/image_pipeline.dart';
 import '../../core/presets/filter_catalogue.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_ui_components.dart';
 
 class FiltersPanel extends StatefulWidget {
   final String? activeFilterId;
@@ -90,7 +90,7 @@ class _FiltersPanelState extends State<FiltersPanel> {
               horizontal: 20.0,
               vertical: 4.0,
             ),
-            child: AeviquePrecisionSlider(
+            child: LumaPrecisionSlider(
               label: 'Intensity',
               value: widget.filterIntensity,
               min: 0.0,
@@ -164,14 +164,14 @@ class _FiltersPanelState extends State<FiltersPanel> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected
-                    ? AeviqueTheme.primaryBlue
+                    ? LumaTheme.primaryBlue
                     : Colors.white.withValues(alpha: 0.12),
                 width: isSelected ? 1.8 : 0.8,
               ),
               boxShadow: [
                 if (isSelected)
                   BoxShadow(
-                    color: AeviqueTheme.primaryBlueGlow,
+                    color: LumaTheme.primaryBlueGlow,
                     blurRadius: 14,
                     spreadRadius: 1,
                   ),
@@ -187,7 +187,7 @@ class _FiltersPanelState extends State<FiltersPanel> {
                         Icons.filter_hdr_outlined,
                         size: 24,
                         color: isSelected
-                            ? AeviqueTheme.primaryBlueLight
+                            ? LumaTheme.primaryBlueLight
                             : Colors.white38,
                       ),
                     ),
@@ -205,7 +205,7 @@ class _FiltersPanelState extends State<FiltersPanel> {
                 fontFamily: 'Inter',
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Colors.white : AeviqueTheme.textMuted,
+                color: isSelected ? Colors.white : LumaTheme.textMuted,
               ),
             ),
           ),

@@ -10,16 +10,16 @@ last_mapped_at: 2026-11-06
 
 - **Mechanism:** Direct Dart FFI (`dart:ffi`) over C ABI
 - **Library Path:**
-  - macOS: `native/aevique_core/build/libaevique_core.dylib`
-  - Android: `libaevique_core.so` bundled in native JNI libs
+  - macOS: `native/lumafix_core/build/liblumafix_core.dylib`
+  - Android: `liblumafix_core.so` bundled in native JNI libs
   - Fallback: Pure-Dart isolate pipeline in `lib/core/image_engine/image_pipeline.dart` when dynamic library is absent
 - **Functions Bound:**
-  - `aevique_get_version`
-  - `aevique_process_image` (RGBA8888 strided buffer processing)
-  - `aevique_process_pipeline_rgba8888` (full multi-stage adjustment pipeline)
-  - `aevique_process_pipeline_rgb888` (compact 3-channel buffer processing)
-  - `aevique_apply_curves` (RGB and composite spline tone curves)
-  - `aevique_apply_vignette` (radial intensity falloff)
+  - `lumafix_get_version`
+  - `lumafix_process_image` (RGBA8888 strided buffer processing)
+  - `lumafix_process_pipeline_rgba8888` (full multi-stage adjustment pipeline)
+  - `lumafix_process_pipeline_rgb888` (compact 3-channel buffer processing)
+  - `lumafix_apply_curves` (RGB and composite spline tone curves)
+  - `lumafix_apply_vignette` (radial intensity falloff)
 
 ## Platform Hardware & Operating System APIs
 
@@ -34,7 +34,7 @@ last_mapped_at: 2026-11-06
 
 ## Cloud & Remote Services
 
-- **Zero Cloud Dependencies:** AEVIQUE is strictly on-device and privacy-first.
+- **Zero Cloud Dependencies:** LumaFix is strictly on-device and privacy-first.
 - No network telemetry, analytics, cloud storage, or external authentication providers.
 - Typography: Local and cached Google Fonts with runtime asset fallbacks.
 

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/presets/preset_catalogue.dart';
 import '../../services/preset_repository.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_glass.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_glass.dart';
 
 /// Professional Presets panel with Built-in and Custom user presets tabs and Save action.
 class PresetsPanel extends StatefulWidget {
@@ -68,12 +68,12 @@ class _PresetsPanelState extends State<PresetsPanel> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: _selectedTab == 0
-                            ? AeviqueTheme.primaryBlue.withValues(alpha: 0.3)
+                            ? LumaTheme.primaryBlue.withValues(alpha: 0.3)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _selectedTab == 0
-                              ? AeviqueTheme.primaryBlueLight
+                              ? LumaTheme.primaryBlueLight
                               : Colors.transparent,
                           width: 1,
                         ),
@@ -100,12 +100,12 @@ class _PresetsPanelState extends State<PresetsPanel> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: _selectedTab == 1
-                            ? AeviqueTheme.primaryBlue.withValues(alpha: 0.3)
+                            ? LumaTheme.primaryBlue.withValues(alpha: 0.3)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _selectedTab == 1
-                              ? AeviqueTheme.primaryBlueLight
+                              ? LumaTheme.primaryBlueLight
                               : Colors.transparent,
                           width: 1,
                         ),
@@ -135,14 +135,14 @@ class _PresetsPanelState extends State<PresetsPanel> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AeviqueTheme.creativeOrangeSurface,
+                          color: LumaTheme.creativeOrangeSurface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AeviqueTheme.creativeOrange, width: 0.8),
+                          border: Border.all(color: LumaTheme.creativeOrange, width: 0.8),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.bookmark_add_outlined, size: 13, color: AeviqueTheme.creativeOrange),
+                            Icon(Icons.bookmark_add_outlined, size: 13, color: LumaTheme.creativeOrange),
                             SizedBox(width: 4),
                             Text(
                               'Save',
@@ -150,7 +150,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                                 fontFamily: 'Inter',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: AeviqueTheme.creativeOrange,
+                                color: LumaTheme.creativeOrange,
                               ),
                             ),
                           ],
@@ -170,7 +170,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                           fontFamily: 'Inter',
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
-                          color: AeviqueTheme.coralRedLight,
+                          color: LumaTheme.coralRedLight,
                         ),
                       ),
                     ),
@@ -201,7 +201,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                       },
                       child: SizedBox(
                         width: 110,
-                        child: AeviqueGlass(
+                        child: LumaGlass(
                           borderRadius: BorderRadius.circular(16),
                           showAmberAccent: isSelected,
                           padding: const EdgeInsets.all(10),
@@ -217,7 +217,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                                   fontFamily: 'Inter',
                                   fontSize: 12,
                                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                  color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+                                  color: isSelected ? Colors.white : LumaTheme.textSecondary,
                                 ),
                               ),
                               Text(
@@ -227,7 +227,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 10,
-                                  color: AeviqueTheme.textMuted,
+                                  color: LumaTheme.textMuted,
                                 ),
                               ),
                             ],
@@ -264,7 +264,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                           },
                           child: SizedBox(
                             width: 115,
-                            child: AeviqueGlass(
+                            child: LumaGlass(
                               borderRadius: BorderRadius.circular(16),
                               showAmberAccent: isSelected,
                               padding: const EdgeInsets.all(10),
@@ -284,7 +284,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                                             fontFamily: 'Inter',
                                             fontSize: 12,
                                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                            color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+                                            color: isSelected ? Colors.white : LumaTheme.textSecondary,
                                           ),
                                         ),
                                       ),
@@ -296,7 +296,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                                         child: const Icon(
                                           Icons.delete_outline_rounded,
                                           size: 13,
-                                          color: AeviqueTheme.coralRedLight,
+                                          color: LumaTheme.coralRedLight,
                                         ),
                                       ),
                                     ],
@@ -308,7 +308,7 @@ class _PresetsPanelState extends State<PresetsPanel> {
                                     style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 10,
-                                      color: AeviqueTheme.textMuted,
+                                      color: LumaTheme.textMuted,
                                     ),
                                   ),
                                 ],

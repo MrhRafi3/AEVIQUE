@@ -1,11 +1,11 @@
 {
-    "name": "lumaforge",
-    "short_name": "lumaforge",
+    "name": "LumaFix",
+    "short_name": "LumaFix",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#080A10",
+    "theme_color": "#3478F6",
+    "description": "LumaFix - Professional photo editing application with high-performance native C++ image processing engine.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

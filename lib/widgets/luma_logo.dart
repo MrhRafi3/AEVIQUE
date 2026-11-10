@@ -1,29 +1,29 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../theme/aevique_theme.dart';
+import '../theme/luma_theme.dart';
 
-/// Minimal aperture-inspired geometric "A" logo for AEVIQUE.
+/// Minimal aperture-inspired geometric "A" logo for LumaFix.
 ///
 /// Features precision geometric aperture blades in a clean modern aesthetic.
-class AeviqueLogo extends StatelessWidget {
+class LumaLogo extends StatelessWidget {
   final double size;
   final bool showGlow;
   final Color primaryColor;
   final Color accentColor;
 
-  const AeviqueLogo({
+  const LumaLogo({
     super.key,
     this.size = 64,
     this.showGlow = false,
-    this.primaryColor = AeviqueTheme.textPrimary,
-    this.accentColor = AeviqueTheme.accentAmber,
+    this.primaryColor = LumaTheme.textPrimary,
+    this.accentColor = LumaTheme.accentAmber,
   });
 
   @override
   Widget build(BuildContext context) {
     Widget logo = CustomPaint(
       size: Size(size, size),
-      painter: _AeviqueAperturePainter(
+      painter: _LumaAperturePainter(
         primaryColor: primaryColor,
         accentColor: accentColor,
       ),
@@ -49,11 +49,11 @@ class AeviqueLogo extends StatelessWidget {
   }
 }
 
-class _AeviqueAperturePainter extends CustomPainter {
+class _LumaAperturePainter extends CustomPainter {
   final Color primaryColor;
   final Color accentColor;
 
-  _AeviqueAperturePainter({
+  _LumaAperturePainter({
     required this.primaryColor,
     required this.accentColor,
   });
@@ -120,7 +120,7 @@ class _AeviqueAperturePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _AeviqueAperturePainter oldDelegate) =>
+  bool shouldRepaint(covariant _LumaAperturePainter oldDelegate) =>
       oldDelegate.primaryColor != primaryColor ||
       oldDelegate.accentColor != accentColor;
 }

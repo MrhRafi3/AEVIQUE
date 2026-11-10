@@ -5,15 +5,15 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>LumaForge requires photo library access to select and edit images.</string>
+	<string>LumaFix requires photo library access to select and edit images.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>LumaForge requires permission to save edited photos to your library.</string>
+	<string>LumaFix requires permission to save edited photos to your library.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>LumaForge requires camera access to capture photos for editing.</string>
+	<string>LumaFix requires camera access to capture photos for editing.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Lumaforge</string>
+	<string>LumaFix</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>lumaforge</string>
+	<string>lumafix</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

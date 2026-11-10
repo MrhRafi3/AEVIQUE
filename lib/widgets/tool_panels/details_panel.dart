@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_ui_components.dart';
 
 class DetailsPanel extends StatelessWidget {
   final DetailsAdjustments details;
@@ -34,13 +34,13 @@ class DetailsPanel extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
-                    color: AeviqueTheme.textMuted,
+                    color: LumaTheme.textMuted,
                   ),
                 ),
               ),
             ],
           ),
-          AeviquePrecisionSlider(
+          LumaPrecisionSlider(
             label: 'Sharpening',
             value: details.sharpening,
             min: 0.0,
@@ -48,7 +48,7 @@ class DetailsPanel extends StatelessWidget {
             onChanged: (v) => onChanged(details.copyWith(sharpening: v)),
             onReset: () => onChanged(details.copyWith(sharpening: 0.0)),
           ),
-          AeviquePrecisionSlider(
+          LumaPrecisionSlider(
             label: 'Structure',
             value: details.structure,
             min: 0.0,

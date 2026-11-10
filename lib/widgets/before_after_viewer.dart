@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../theme/aevique_theme.dart';
+import '../theme/luma_theme.dart';
 
 enum ComparisonMode {
   pressAndHold,
@@ -70,10 +70,10 @@ class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AeviqueTheme.accentAmber, width: 1.0),
+                    border: Border.all(color: LumaTheme.accentAmber, width: 1.0),
                     boxShadow: [
                       BoxShadow(
-                        color: AeviqueTheme.accentAmber.withValues(alpha: 0.25),
+                        color: LumaTheme.accentAmber.withValues(alpha: 0.25),
                         blurRadius: 14,
                       ),
                     ],
@@ -81,7 +81,7 @@ class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.compare_rounded, color: AeviqueTheme.accentAmberLight, size: 14),
+                      Icon(Icons.compare_rounded, color: LumaTheme.accentAmberLight, size: 14),
                       SizedBox(width: 6),
                       Text(
                         'ORIGINAL',
@@ -150,7 +150,7 @@ class _BeforeAfterViewerState extends State<BeforeAfterViewer> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: const Color(0xCC14141C),
-                    border: Border.all(color: AeviqueTheme.primaryBlueLight, width: 1.5),
+                    border: Border.all(color: LumaTheme.primaryBlueLight, width: 1.5),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.5),

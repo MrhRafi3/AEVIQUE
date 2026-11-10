@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/image_repository.dart';
 import '../services/recent_edits_repository.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
-import '../widgets/aevique_ui_components.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_glass.dart';
+import '../widgets/luma_ui_components.dart';
 import 'editor_screen.dart';
 
 class GalleryScreen extends StatefulWidget {
@@ -72,7 +72,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to load image: $e'),
-          backgroundColor: AeviqueTheme.error,
+          backgroundColor: LumaTheme.error,
         ),
       );
     } finally {
@@ -106,7 +106,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
           decoration: const BoxDecoration(
             borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
-          child: AeviqueGlass(
+          child: LumaGlass(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             hasGrabHandle: true,
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -155,7 +155,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 const SizedBox(height: 18),
 
                 // Sleek Glass Action Rows (Phone 2)
-                AeviqueGlassActionRow(
+                LumaGlassActionRow(
                   icon: Icons.edit_outlined,
                   title: 'Open in Studio Editor',
                   subtitle: item.title,
@@ -170,7 +170,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                AeviqueGlassActionRow(
+                LumaGlassActionRow(
                   icon: Icons.auto_fix_high_outlined,
                   title: 'Remove background',
                   subtitle: 'Neural portrait cutout',
@@ -185,7 +185,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                AeviqueGlassActionRow(
+                LumaGlassActionRow(
                   icon: Icons.link_outlined,
                   title: 'Create link in bio',
                   subtitle: 'Export social showcase',
@@ -199,7 +199,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                AeviqueGlassActionRow(
+                LumaGlassActionRow(
                   icon: Icons.movie_creation_outlined,
                   title: 'Edit video / motion',
                   subtitle: 'Cinematic crop presets',
@@ -232,7 +232,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         HapticFeedback.selectionClick();
         onTap();
       },
-      child: AeviqueGlass(
+      child: LumaGlass(
         borderRadius: BorderRadius.circular(16),
         showAmberAccent: isSelected,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -243,7 +243,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
               icon,
               size: 20,
               color: isSelected
-                  ? AeviqueTheme.primaryBlueLight
+                  ? LumaTheme.primaryBlueLight
                   : Colors.white70,
             ),
             const SizedBox(height: 6),
@@ -253,7 +253,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 fontFamily: 'Inter',
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+                color: isSelected ? Colors.white : LumaTheme.textSecondary,
               ),
             ),
           ],
@@ -297,12 +297,12 @@ class _GalleryScreenState extends State<GalleryScreen> {
     final showRecentOnly = _selectedCategory == 'Recent';
 
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepBlack,
+      backgroundColor: LumaTheme.deepBlack,
       body: SafeArea(
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(
-                  color: AeviqueTheme.primaryBlue,
+                  color: LumaTheme.primaryBlue,
                   strokeWidth: 2.0,
                 ),
               )
@@ -370,7 +370,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         itemBuilder: (context, index) {
                           final cat = _categories[index];
                           final isSelected = _selectedCategory == cat;
-                          return AeviquePillChip(
+                          return LumaPillChip(
                             label: cat,
                             isSelected: isSelected,
                             onTap: () =>
@@ -407,7 +407,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
-                color: AeviqueTheme.textMuted,
+                color: LumaTheme.textMuted,
               ),
             ),
           ),
@@ -486,14 +486,14 @@ class _GalleryScreenState extends State<GalleryScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
-                ? AeviqueTheme.primaryBlue
+                ? LumaTheme.primaryBlue
                 : Colors.white.withValues(alpha: 0.1),
             width: isSelected ? 1.8 : 0.8,
           ),
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: AeviqueTheme.primaryBlueGlow,
+                color: LumaTheme.primaryBlueGlow,
                 blurRadius: 16,
                 spreadRadius: 1,
               ),

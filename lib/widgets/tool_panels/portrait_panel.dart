@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_glass.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_glass.dart';
+import '../luma_ui_components.dart';
 
 enum PortraitSubTool { smooth, brighten, blemish }
 
@@ -100,7 +100,7 @@ class _PortraitPanelState extends State<PortraitPanel> {
             widget.onBlemishModeChanged(false);
           }
         },
-        child: AeviqueGlass(
+        child: LumaGlass(
           borderRadius: BorderRadius.circular(14),
           showAmberAccent: isSelected,
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -111,8 +111,8 @@ class _PortraitPanelState extends State<PortraitPanel> {
                 icon,
                 size: 16,
                 color: isSelected
-                    ? AeviqueTheme.primaryBlueLight
-                    : (isActive ? Colors.white : AeviqueTheme.textSecondary),
+                    ? LumaTheme.primaryBlueLight
+                    : (isActive ? Colors.white : LumaTheme.textSecondary),
               ),
               const SizedBox(height: 4),
               Text(
@@ -121,7 +121,7 @@ class _PortraitPanelState extends State<PortraitPanel> {
                   fontFamily: 'Inter',
                   fontSize: 11,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+                  color: isSelected ? Colors.white : LumaTheme.textSecondary,
                 ),
               ),
             ],
@@ -136,7 +136,7 @@ class _PortraitPanelState extends State<PortraitPanel> {
       case PortraitSubTool.smooth:
         return Column(
           children: [
-            AeviquePrecisionSlider(
+            LumaPrecisionSlider(
               label: 'Skin Smoothing',
               value: widget.portrait.skinSmooth,
               min: 0.0,
@@ -153,7 +153,7 @@ class _PortraitPanelState extends State<PortraitPanel> {
       case PortraitSubTool.brighten:
         return Column(
           children: [
-            AeviquePrecisionSlider(
+            LumaPrecisionSlider(
               label: 'Skin Tone Glow',
               value: widget.portrait.skinBrighten,
               min: -50.0,
@@ -170,7 +170,7 @@ class _PortraitPanelState extends State<PortraitPanel> {
       case PortraitSubTool.blemish:
         return Column(
           children: [
-            AeviquePrecisionSlider(
+            LumaPrecisionSlider(
               label: 'Heal Brush Radius',
               value: widget.blemishRadius * 1000.0,
               min: 10.0,

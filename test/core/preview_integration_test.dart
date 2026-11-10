@@ -4,21 +4,21 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/image_engine/image_pipeline.dart';
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/native_engine/aevique_ffi.dart';
+import 'package:lumafix/core/image_engine/image_pipeline.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/native_engine/lumafix_ffi.dart';
 
 void main() {
   setUpAll(() {
-    const dylibPath = 'native/aevique_core/build/libaevique_core.dylib';
+    const dylibPath = 'native/lumafix_core/build/liblumafix_core.dylib';
     if (File(dylibPath).existsSync()) {
-      AeviqueNativeEngine.tryLoad(customLibraryPath: dylibPath);
+      LumaFixNativeEngine.tryLoad(customLibraryPath: dylibPath);
     }
   });
 
   tearDown(() {
     // Reset engine mode to auto after each test
-    AeviqueNativeEngine.engineMode = EngineMode.auto;
+    LumaFixNativeEngine.engineMode = EngineMode.auto;
   });
 
   group('Phase 2 Preview Integration - Compatibility Gate', () {
@@ -122,7 +122,7 @@ void main() {
     test(
       'Renders native ui.Image when compatible and native engine is available',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) {
+        if (!LumaFixNativeEngine.isAvailable) {
           print(
             'Skipping native execution test: native library not loaded on this platform',
           );
@@ -157,7 +157,7 @@ void main() {
     test(
       'Seamlessly falls back to Dart pipeline when EngineMode.dartOnly is forced',
       () async {
-        AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
 
         final state = EditState.identity().copyWith(
           tune: const TuneAdjustments(
@@ -205,9 +205,9 @@ void main() {
     test(
       'EngineMode.nativeOnly succeeds on compatible state but throws on unsupported adjustments',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) return;
+        if (!LumaFixNativeEngine.isAvailable) return;
 
-        AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+        LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
 
         final compatibleState = EditState.identity().copyWith(
           tune: const TuneAdjustments(
@@ -235,9 +235,9 @@ void main() {
         expect(frame.uiImage, isNotNull);
         frame.dispose();
 
-        // Incompatible adjustment (bloom/sharpening) should throw UnsupportedError instead of falling back to Dart
+        // Incompatible adjustment (bloom/chromatic aberration) should throw UnsupportedError instead of falling back to Dart
         final incompatibleState = EditState.identity().copyWith(
-          details: const DetailsAdjustments(sharpening: 25.0),
+          effects: const EffectsAdjustments(bloom: 25.0),
         );
 
         expect(
@@ -307,7 +307,7 @@ void main() {
     test(
       'Alpha channel is strictly preserved through native preview rendering',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) return;
+        if (!LumaFixNativeEngine.isAvailable) return;
 
         // Create test image with non-opaque alpha
         final alphaImg = img.Image(width: 20, height: 20, numChannels: 4);
@@ -318,7 +318,7 @@ void main() {
         }
         final rawAlphaRgba = alphaImg.convert(numChannels: 4).toUint8List();
 
-        final engine = AeviqueNativeEngine.instance!;
+        final engine = LumaFixNativeEngine.instance!;
         final processed = engine.processRgba8(
           rgbaBytes: rawAlphaRgba,
           width: 20,
@@ -338,7 +338,7 @@ void main() {
     test(
       'Native preview output matches Dart reference calculation within 1 LSB',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) return;
+        if (!LumaFixNativeEngine.isAvailable) return;
 
         final testCases = [
           const TuneAdjustments(exposure: 15.0),
@@ -355,7 +355,7 @@ void main() {
           final state = EditState.identity().copyWith(tune: tune);
 
           // Native processed bytes
-          final nativeRgba = AeviqueNativeEngine.instance!.processRgba8(
+          final nativeRgba = LumaFixNativeEngine.instance!.processRgba8(
             rgbaBytes: rawRgbaBytes,
             width: 40,
             height: 30,
@@ -387,7 +387,7 @@ void main() {
     test(
       'Extreme adjustment parameters (+100/-100) are correctly clamped within [0, 255]',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) return;
+        if (!LumaFixNativeEngine.isAvailable) return;
 
         final extremeCases = [
           const TuneAdjustments(
@@ -432,10 +432,10 @@ void main() {
     test(
       'Gracefully falls back to Dart pipeline when native instance is null in EngineMode.auto',
       () async {
-        final cachedInstance = AeviqueNativeEngine.instance;
+        final cachedInstance = LumaFixNativeEngine.instance;
         try {
-          AeviqueNativeEngine.setInstance(null);
-          expect(AeviqueNativeEngine.isAvailable, isFalse);
+          LumaFixNativeEngine.setInstance(null);
+          expect(LumaFixNativeEngine.isAvailable, isFalse);
 
           final state = EditState.identity().copyWith(
             tune: const TuneAdjustments(exposure: 10.0, contrast: 15.0),
@@ -452,7 +452,7 @@ void main() {
           expect(frame.jpegBytes, isNotNull);
           expect(frame.jpegBytes!.length, greaterThan(0));
         } finally {
-          AeviqueNativeEngine.setInstance(cachedInstance);
+          LumaFixNativeEngine.setInstance(cachedInstance);
         }
       },
     );
@@ -460,7 +460,7 @@ void main() {
     test(
       'Repeated frame rendering lifecycle: 100 frames created and disposed without memory leaks',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) return;
+        if (!LumaFixNativeEngine.isAvailable) return;
 
         for (int i = 0; i < 100; i++) {
           final state = EditState.identity().copyWith(
@@ -524,7 +524,7 @@ void main() {
     test(
       'Tone curves, warmth, highlights, and combined tone parity with Dart reference within 1 LSB',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) return;
+        if (!LumaFixNativeEngine.isAvailable) return;
 
         final testCases = [
           // 1. Tone Curves (S-curve)
@@ -595,7 +595,7 @@ void main() {
           final state = testCases[tIdx];
 
           // Native processed bytes
-          final nativeRgba = AeviqueNativeEngine.instance!.processRgba8(
+          final nativeRgba = LumaFixNativeEngine.instance!.processRgba8(
             rgbaBytes: rawRgbaBytes,
             width: 40,
             height: 30,
@@ -636,7 +636,7 @@ void main() {
     test(
       'Phase 6: Vibrance, Clarity, Vignette, B&W, and Presets render natively in preview',
       () async {
-        if (!AeviqueNativeEngine.isAvailable) return;
+        if (!LumaFixNativeEngine.isAvailable) return;
 
         final nativeStates = [
           // 1. Vibrance
@@ -705,16 +705,16 @@ void main() {
     );
 
     test(
-      'Phase 6: Bloom, Sharpening, Geometry, and Portrait correctly route to Dart fallback',
+      'Phase 6: Bloom, Chromatic Aberration, Geometry, and Portrait correctly route to Dart fallback',
       () async {
         final fallbackStates = [
           // 1. Bloom
           EditState.identity().copyWith(
             effects: const EffectsAdjustments(bloom: 25.0),
           ),
-          // 2. Sharpening
+          // 2. Chromatic Aberration
           EditState.identity().copyWith(
-            details: const DetailsAdjustments(sharpening: 20.0),
+            effects: const EffectsAdjustments(chromaticAberration: 20.0),
           ),
           // 3. Geometry (rotation)
           EditState.identity().copyWith(

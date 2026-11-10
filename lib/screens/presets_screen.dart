@@ -5,8 +5,8 @@ import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
 import '../core/presets/filter_catalogue.dart';
 import '../services/image_repository.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_ui_components.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_ui_components.dart';
 import 'editor_screen.dart';
 
 class PresetsScreen extends StatefulWidget {
@@ -237,7 +237,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
     final isPresetActive = _selectedPresetId != 'original';
 
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepBlack,
+      backgroundColor: LumaTheme.deepBlack,
       body: SafeArea(
         child: Column(
           children: [
@@ -289,8 +289,8 @@ class _PresetsScreenState extends State<PresetsScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: _isUserPhoto
-                            ? AeviqueTheme.primaryBlue
-                            : AeviqueTheme.border,
+                            ? LumaTheme.primaryBlue
+                            : LumaTheme.border,
                         width: 0.8,
                       ),
                     ),
@@ -301,8 +301,8 @@ class _PresetsScreenState extends State<PresetsScreen> {
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: _isUserPhoto
-                            ? AeviqueTheme.primaryBlueLight
-                            : AeviqueTheme.textSecondary,
+                            ? LumaTheme.primaryBlueLight
+                            : LumaTheme.textSecondary,
                       ),
                     ),
                   ),
@@ -328,7 +328,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
                   horizontal: 20,
                   vertical: 4,
                 ),
-                child: AeviquePrecisionSlider(
+                child: LumaPrecisionSlider(
                   label: 'Intensity',
                   value: _presetIntensity,
                   min: 0.0,
@@ -374,14 +374,14 @@ class _PresetsScreenState extends State<PresetsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
-                                  ? AeviqueTheme.primaryBlue
+                                  ? LumaTheme.primaryBlue
                                   : Colors.white.withValues(alpha: 0.12),
                               width: isSelected ? 1.8 : 0.8,
                             ),
                             boxShadow: [
                               if (isSelected)
                                 BoxShadow(
-                                  color: AeviqueTheme.primaryBlueGlow,
+                                  color: LumaTheme.primaryBlueGlow,
                                   blurRadius: 12,
                                 ),
                             ],
@@ -416,7 +416,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
                                   : FontWeight.w500,
                               color: isSelected
                                   ? Colors.white
-                                  : AeviqueTheme.textMuted,
+                                  : LumaTheme.textMuted,
                             ),
                           ),
                         ),
@@ -433,7 +433,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: AeviqueButton.secondary(
+                    child: LumaButton.secondary(
                       icon: Icons.add_photo_alternate_outlined,
                       label: 'Try on My Photo',
                       onPressed: _handleTryOnMyPhoto,
@@ -441,7 +441,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: AeviqueButton(
+                    child: LumaButton(
                       icon: Icons.tune_rounded,
                       label: 'Edit Photo',
                       onPressed: _handleContinueEditing,
@@ -460,7 +460,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
     if (_isLoadingImage) {
       return const Center(
         child: CircularProgressIndicator(
-          color: AeviqueTheme.primaryBlue,
+          color: LumaTheme.primaryBlue,
           strokeWidth: 2.0,
         ),
       );
@@ -521,7 +521,7 @@ class _PresetsScreenState extends State<PresetsScreen> {
                         height: 10,
                         child: CircularProgressIndicator(
                           strokeWidth: 1.5,
-                          color: AeviqueTheme.primaryBlueLight,
+                          color: LumaTheme.primaryBlueLight,
                         ),
                       ),
                       SizedBox(width: 6),

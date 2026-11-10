@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/models/hsl_adjustments.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_ui_components.dart';
 
 /// Professional 8-channel HSL Color Mixer panel with Liquid Glass styling.
 class HslPanel extends StatefulWidget {
@@ -207,7 +207,7 @@ class _HslPanelState extends State<HslPanel> {
                           style: const TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 11,
-                            color: AeviqueTheme.primaryBlueLight,
+                            color: LumaTheme.primaryBlueLight,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -224,7 +224,7 @@ class _HslPanelState extends State<HslPanel> {
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 11,
-                            color: AeviqueTheme.coralRedLight,
+                            color: LumaTheme.coralRedLight,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -244,7 +244,7 @@ class _HslPanelState extends State<HslPanel> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Hue',
                 value: currentAdj.hue,
                 min: -100,
@@ -253,7 +253,7 @@ class _HslPanelState extends State<HslPanel> {
                 onReset: () => _onBandChanged(hue: 0.0),
                 activeColor: bandColor,
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Saturation',
                 value: currentAdj.saturation,
                 min: -100,
@@ -262,7 +262,7 @@ class _HslPanelState extends State<HslPanel> {
                 onReset: () => _onBandChanged(saturation: 0.0),
                 activeColor: bandColor,
               ),
-              AeviquePrecisionSlider(
+              LumaPrecisionSlider(
                 label: 'Luminance',
                 value: currentAdj.luminance,
                 min: -100,

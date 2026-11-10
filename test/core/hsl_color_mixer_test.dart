@@ -2,15 +2,15 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/image_engine/filter_kernels.dart';
-import 'package:lumaforge/core/native_engine/aevique_ffi.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/image_engine/filter_kernels.dart';
+import 'package:lumafix/core/native_engine/lumafix_ffi.dart';
 
 void main() {
   setUpAll(() {
-    final dylibPath = '${Directory.current.path}/native/aevique_core/build/libaevique_core.dylib';
+    final dylibPath = '${Directory.current.path}/native/lumafix_core/build/liblumafix_core.dylib';
     if (File(dylibPath).existsSync()) {
-      AeviqueNativeEngine.tryLoad(customLibraryPath: dylibPath);
+      LumaFixNativeEngine.tryLoad(customLibraryPath: dylibPath);
     }
   });
 
@@ -116,8 +116,8 @@ void main() {
     });
 
     test('C++ Native Pipeline HSL processing parity across all 8 bands', () {
-      if (!AeviqueNativeEngine.isAvailable) return;
-      final engine = AeviqueNativeEngine.instance!;
+      if (!LumaFixNativeEngine.isAvailable) return;
+      final engine = LumaFixNativeEngine.instance!;
 
       for (final entry in sampleBands.entries) {
         final band = entry.key;

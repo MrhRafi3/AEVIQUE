@@ -5,27 +5,27 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/image_engine/filter_kernels.dart';
-import 'package:lumaforge/core/image_engine/image_pipeline.dart';
-import 'package:lumaforge/core/image_engine/lut_generator.dart';
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/native_engine/aevique_ffi.dart';
+import 'package:lumafix/core/image_engine/filter_kernels.dart';
+import 'package:lumafix/core/image_engine/image_pipeline.dart';
+import 'package:lumafix/core/image_engine/lut_generator.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/native_engine/lumafix_ffi.dart';
 
 void main() {
-  late AeviqueNativeEngine engine;
+  late LumaFixNativeEngine engine;
   late String dylibPath;
 
   setUpAll(() {
-    dylibPath = 'native/aevique_core/build/libaevique_core.dylib';
+    dylibPath = 'native/lumafix_core/build/liblumafix_core.dylib';
     expect(
       File(dylibPath).existsSync(),
       isTrue,
       reason: 'Compiled native library must exist at $dylibPath',
     );
-    engine = AeviqueNativeEngine.load(customLibraryPath: dylibPath);
+    engine = LumaFixNativeEngine.load(customLibraryPath: dylibPath);
   });
 
-  group('AEVIQUE Native Engine FFI Integration', () {
+  group('LumaFix Native Engine FFI Integration', () {
     test('Library loads and reports version 1.2.0', () {
       final version = engine.getVersion();
       final major = (version >> 16) & 0xFF;
@@ -39,15 +39,15 @@ void main() {
 
     test('Status string mapping functions correctly', () {
       expect(
-        engine.getStatusString(AeviqueStatusCode.success),
+        engine.getStatusString(LumaFixStatusCode.success),
         equals('Success'),
       );
       expect(
-        engine.getStatusString(AeviqueStatusCode.errorNullPointer),
+        engine.getStatusString(LumaFixStatusCode.errorNullPointer),
         contains('Null pointer'),
       );
       expect(
-        engine.getStatusString(AeviqueStatusCode.errorInvalidDimensions),
+        engine.getStatusString(LumaFixStatusCode.errorInvalidDimensions),
         contains('Invalid image dimensions'),
       );
     });

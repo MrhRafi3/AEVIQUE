@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/image_repository.dart';
 import '../services/recent_edits_repository.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_glass.dart';
 import '../widgets/liquid_glass_components.dart';
 import '../widgets/motion/abstract_3d_graphics.dart';
 import 'camera_screen.dart';
@@ -12,7 +12,7 @@ import 'gallery_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 
-/// AEVIQUE Minimal Home Screen.
+/// LumaFix Minimal Home Screen.
 ///
 /// Features ONLY the four required main elements:
 /// 1. Start Editing (Primary Action — opens system image picker / gallery into Editor)
@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to load image: $e'),
-          backgroundColor: AeviqueTheme.coralRed,
+          backgroundColor: LumaTheme.coralRed,
         ),
       );
     } finally {
@@ -113,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepCanvas,
+      backgroundColor: LumaTheme.deepCanvas,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -129,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   radius: 1.15,
                   colors: [
                     Colors.transparent,
-                    AeviqueTheme.deepCanvas.withValues(alpha: 0.65),
+                    LumaTheme.deepCanvas.withValues(alpha: 0.65),
                   ],
                 ),
               ),
@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 LiquidGlassPanel(
                                   variant: LiquidGlassVariant.ultraClear,
                                   borderRadius: BorderRadius.circular(
-                                    AeviqueTheme.radiusFull,
+                                    LumaTheme.radiusFull,
                                   ),
                                   blur: 24.0,
                                   padding: const EdgeInsets.symmetric(
@@ -196,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 LiquidGlassPanel(
                                   variant: LiquidGlassVariant.ultraClear,
                                   borderRadius: BorderRadius.circular(
-                                    AeviqueTheme.radiusFull,
+                                    LumaTheme.radiusFull,
                                   ),
                                   blur: 24.0,
                                   padding: const EdgeInsets.symmetric(
@@ -230,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             const Spacer(flex: 2),
 
-                            // --- CENTER: Minimal AEVIQUE Branding ---
+                            // --- CENTER: Minimal LumaFix Branding ---
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 LiquidGlassPanel(
                                   variant: LiquidGlassVariant.ultraClear,
                                   borderRadius: BorderRadius.circular(
-                                    AeviqueTheme.radiusFull,
+                                    LumaTheme.radiusFull,
                                   ),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
@@ -252,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         height: 7,
                                         decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: AeviqueTheme.primaryBlueLight,
+                                          color: LumaTheme.primaryBlueLight,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -266,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             fontSize: 10.5,
                                             fontWeight: FontWeight.w700,
                                             letterSpacing: 1.2,
-                                            color: AeviqueTheme.textSecondary,
+                                            color: LumaTheme.textSecondary,
                                           ),
                                         ),
                                       ),
@@ -278,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                 // Primary Wordmark
                                 Text(
-                                  'AEVIQUE',
+                                  'LUMAFIX',
                                   style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontSize: 44,
@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         offset: const Offset(0, 4),
                                       ),
                                       Shadow(
-                                        color: AeviqueTheme.primaryBlueGlow,
+                                        color: LumaTheme.primaryBlueGlow,
                                         blurRadius: 32,
                                       ),
                                     ],
@@ -310,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     fontSize: 14,
                                     fontWeight: FontWeight.w400,
                                     letterSpacing: 0.2,
-                                    color: AeviqueTheme.textSecondary,
+                                    color: LumaTheme.textSecondary,
                                   ),
                                 ),
                               ],
@@ -322,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             LiquidGlassPanel(
                               variant: LiquidGlassVariant.standard,
                               borderRadius: BorderRadius.circular(
-                                AeviqueTheme.radiusXl,
+                                LumaTheme.radiusXl,
                               ),
                               blur: 28.0,
                               padding: const EdgeInsets.all(16.0),
@@ -361,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       LiquidGlassPanel(
                                         variant: LiquidGlassVariant.ultraClear,
                                         borderRadius: BorderRadius.circular(
-                                          AeviqueTheme.radiusLg,
+                                          LumaTheme.radiusLg,
                                         ),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16.0,

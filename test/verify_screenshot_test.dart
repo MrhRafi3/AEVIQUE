@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lumaforge/screens/home_screen.dart';
-import 'package:lumaforge/services/image_repository.dart';
-import 'package:lumaforge/theme/aevique_theme.dart';
+import 'package:lumafix/screens/home_screen.dart';
+import 'package:lumafix/services/image_repository.dart';
+import 'package:lumafix/theme/luma_theme.dart';
 
 class _MockImageRepo implements ImageRepository {
   final Uint8List bytes;
@@ -50,7 +50,7 @@ void main() {
         key: key,
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: HomeScreen(imageRepository: _MockImageRepo(Uint8List(0))),
         ),
       ),

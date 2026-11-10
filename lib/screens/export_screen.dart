@@ -5,9 +5,9 @@ import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
 import '../core/models/edit_state.dart';
 import '../services/export_service.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
-import '../widgets/aevique_ui_components.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_glass.dart';
+import '../widgets/luma_ui_components.dart';
 import '../widgets/photo_adaptive_background.dart';
 
 class ExportScreen extends StatefulWidget {
@@ -90,7 +90,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
     final success = await widget.exportService.saveToGallery(
       _exportedBytes!,
-      name: 'aevique_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'lumafix_${DateTime.now().millisecondsSinceEpoch}',
     );
 
     if (!mounted) return;
@@ -104,8 +104,8 @@ class _ExportScreenState extends State<ExportScreen> {
               : 'Failed to save photograph.',
         ),
         backgroundColor: success
-            ? AeviqueTheme.charcoalSurface
-            : AeviqueTheme.error,
+            ? LumaTheme.charcoalSurface
+            : LumaTheme.error,
       ),
     );
   }
@@ -115,7 +115,7 @@ class _ExportScreenState extends State<ExportScreen> {
     HapticFeedback.lightImpact();
     await widget.exportService.shareImage(
       _exportedBytes!,
-      name: 'aevique_${DateTime.now().millisecondsSinceEpoch}',
+      name: 'lumafix_${DateTime.now().millisecondsSinceEpoch}',
     );
   }
 
@@ -128,7 +128,7 @@ class _ExportScreenState extends State<ExportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepCanvas,
+      backgroundColor: LumaTheme.deepCanvas,
       body: PhotoAdaptiveBackground(
         imageBytes: widget.sourceBytes,
         child: SafeArea(
@@ -184,7 +184,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const CircularProgressIndicator(
-                                color: AeviqueTheme.primaryBlue,
+                                color: LumaTheme.primaryBlue,
                                 strokeWidth: 2.0,
                               ),
                               const SizedBox(height: 16),
@@ -192,7 +192,7 @@ class _ExportScreenState extends State<ExportScreen> {
                                 _statusMessage ?? 'Processing...',
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
-                                  color: AeviqueTheme.textSecondary,
+                                  color: LumaTheme.textSecondary,
                                   fontSize: 13,
                                 ),
                               ),
@@ -226,7 +226,7 @@ class _ExportScreenState extends State<ExportScreen> {
               ),
 
               // Translucent Control Sheet
-              AeviqueGlass(
+              LumaGlass(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(28),
                 ),
@@ -239,7 +239,7 @@ class _ExportScreenState extends State<ExportScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        AeviquePillChip(
+                        LumaPillChip(
                           label: 'JPEG',
                           isSelected: !_outputPng,
                           onTap: () {
@@ -250,7 +250,7 @@ class _ExportScreenState extends State<ExportScreen> {
                           },
                         ),
                         const SizedBox(width: 12),
-                        AeviquePillChip(
+                        LumaPillChip(
                           label: 'PNG',
                           isSelected: _outputPng,
                           onTap: () {
@@ -270,7 +270,7 @@ class _ExportScreenState extends State<ExportScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          AeviquePillChip(
+                          LumaPillChip(
                             label: '100%',
                             isSelected: _scaleFactor == 1.0,
                             onTap: () {
@@ -281,7 +281,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             },
                           ),
                           const SizedBox(width: 8),
-                          AeviquePillChip(
+                          LumaPillChip(
                             label: '75%',
                             isSelected: _scaleFactor == 0.75,
                             onTap: () {
@@ -292,7 +292,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             },
                           ),
                           const SizedBox(width: 8),
-                          AeviquePillChip(
+                          LumaPillChip(
                             label: '50%',
                             isSelected: _scaleFactor == 0.50,
                             onTap: () {
@@ -303,7 +303,7 @@ class _ExportScreenState extends State<ExportScreen> {
                             },
                           ),
                           const SizedBox(width: 8),
-                          AeviquePillChip(
+                          LumaPillChip(
                             label: '25%',
                             isSelected: _scaleFactor == 0.25,
                             onTap: () {
@@ -320,7 +320,7 @@ class _ExportScreenState extends State<ExportScreen> {
                     // Quality Slider (if JPEG)
                     if (!_outputPng) ...[
                       const SizedBox(height: 12),
-                      AeviquePrecisionSlider(
+                      LumaPrecisionSlider(
                         label: 'JPEG Quality',
                         value: _quality,
                         min: 50.0,
@@ -352,7 +352,7 @@ class _ExportScreenState extends State<ExportScreen> {
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 12,
-                                  color: AeviqueTheme.textSecondary,
+                                  color: LumaTheme.textSecondary,
                                 ),
                               ),
                             ),
@@ -364,7 +364,7 @@ class _ExportScreenState extends State<ExportScreen> {
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 12,
-                                  color: AeviqueTheme.textSecondary,
+                                  color: LumaTheme.textSecondary,
                                 ),
                               ),
                             ),
@@ -376,7 +376,7 @@ class _ExportScreenState extends State<ExportScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: AeviqueButton.secondary(
+                          child: LumaButton.secondary(
                             icon: Icons.share_outlined,
                             label: 'Share',
                             onPressed: _exportedBytes != null && !_isRendering
@@ -386,7 +386,7 @@ class _ExportScreenState extends State<ExportScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: AeviqueButton(
+                          child: LumaButton(
                             icon: Icons.download_rounded,
                             label: 'Save to Photos',
                             isLoading: _isSaving,

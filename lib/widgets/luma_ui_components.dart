@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../theme/aevique_theme.dart';
-import 'aevique_glass.dart';
+import '../theme/luma_theme.dart';
+import 'luma_glass.dart';
 
 /// Floating Action Button with luminous Liquid Glass gradient.
-class AeviqueAmberFab extends StatelessWidget {
+class LumaFab extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
   final double size;
@@ -13,7 +13,7 @@ class AeviqueAmberFab extends StatelessWidget {
   final String? tooltip;
   final bool isSecondary;
 
-  const AeviqueAmberFab({
+  const LumaFab({
     super.key,
     required this.icon,
     required this.onPressed,
@@ -29,14 +29,14 @@ class AeviqueAmberFab extends StatelessWidget {
         ? const Color(0xFFFFA663)
         : const Color(0xFF5E98FC);
     final midColor = isSecondary
-        ? AeviqueTheme.creativeOrange
-        : AeviqueTheme.primaryBlue;
+        ? LumaTheme.creativeOrange
+        : LumaTheme.primaryBlue;
     final endColor = isSecondary
         ? const Color(0xFFDF6B15)
         : const Color(0xFF1E5AD6);
     final glowColor = isSecondary
-        ? AeviqueTheme.creativeOrangeGlow
-        : AeviqueTheme.primaryBlueGlow;
+        ? LumaTheme.creativeOrangeGlow
+        : LumaTheme.primaryBlueGlow;
 
     return Container(
       width: size,
@@ -81,7 +81,7 @@ class AeviqueAmberFab extends StatelessWidget {
 }
 
 /// Liquid Glass Capsule Pill (Categories, Modes, Tags)
-class AeviquePillChip extends StatelessWidget {
+class LumaPillChip extends StatelessWidget {
   final String label;
   final IconData? icon;
   final bool isSelected;
@@ -89,7 +89,7 @@ class AeviquePillChip extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final bool useOrangeAccent;
 
-  const AeviquePillChip({
+  const LumaPillChip({
     super.key,
     required this.label,
     this.icon,
@@ -110,7 +110,7 @@ class AeviquePillChip extends StatelessWidget {
                 ? LiquidGlassVariant.accentOrange
                 : LiquidGlassVariant.accentBlue)
           : LiquidGlassVariant.ultraClear,
-      borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
+      borderRadius: BorderRadius.circular(LumaTheme.radiusFull),
       blur: 20.0,
       onTap: () {
         HapticFeedback.selectionClick();
@@ -127,9 +127,9 @@ class AeviquePillChip extends StatelessWidget {
                 size: 15,
                 color: isSelected
                     ? (useOrangeAccent
-                          ? AeviqueTheme.creativeOrangeLight
-                          : AeviqueTheme.primaryBlueLight)
-                    : AeviqueTheme.textSecondary,
+                          ? LumaTheme.creativeOrangeLight
+                          : LumaTheme.primaryBlueLight)
+                    : LumaTheme.textSecondary,
               ),
               const SizedBox(width: 6),
             ],
@@ -139,7 +139,7 @@ class AeviquePillChip extends StatelessWidget {
                 fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+                color: isSelected ? Colors.white : LumaTheme.textSecondary,
                 letterSpacing: 0.1,
               ),
             ),
@@ -151,12 +151,12 @@ class AeviquePillChip extends StatelessWidget {
 }
 
 /// Floating Island / Dock Navigation Capsule in Liquid Glass
-class AeviqueFloatingDock extends StatelessWidget {
+class LumaFloatingDock extends StatelessWidget {
   final List<Widget> children;
   final EdgeInsetsGeometry? padding;
   final double? width;
 
-  const AeviqueFloatingDock({
+  const LumaFloatingDock({
     super.key,
     required this.children,
     this.padding,
@@ -170,7 +170,7 @@ class AeviqueFloatingDock extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 24),
       child: LiquidGlassPanel(
         variant: LiquidGlassVariant.elevated,
-        borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
+        borderRadius: BorderRadius.circular(LumaTheme.radiusFull),
         blur: 28.0,
         padding:
             padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -185,14 +185,14 @@ class AeviqueFloatingDock extends StatelessWidget {
 }
 
 /// Liquid Glass Angle Rotation Ruler with Floating Badge
-class AeviqueRulerSlider extends StatefulWidget {
+class LumaRulerSlider extends StatefulWidget {
   final double value; // in degrees, e.g. -45 to +45
   final double min;
   final double max;
   final ValueChanged<double> onChanged;
   final VoidCallback? onReset;
 
-  const AeviqueRulerSlider({
+  const LumaRulerSlider({
     super.key,
     required this.value,
     this.min = -45.0,
@@ -202,10 +202,10 @@ class AeviqueRulerSlider extends StatefulWidget {
   });
 
   @override
-  State<AeviqueRulerSlider> createState() => _AeviqueRulerSliderState();
+  State<LumaRulerSlider> createState() => _LumaRulerSliderState();
 }
 
-class _AeviqueRulerSliderState extends State<AeviqueRulerSlider> {
+class _LumaRulerSliderState extends State<LumaRulerSlider> {
   double _dragStartValue = 0.0;
   double _dragStartX = 0.0;
 
@@ -240,7 +240,7 @@ class _AeviqueRulerSliderState extends State<AeviqueRulerSlider> {
                 fontFamily: 'Inter',
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isModified ? Colors.white : AeviqueTheme.textSecondary,
+                color: isModified ? Colors.white : LumaTheme.textSecondary,
               ),
             ),
           ),
@@ -298,7 +298,7 @@ class _RulerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final centerPaint = Paint()
-      ..color = AeviqueTheme.creativeOrange
+      ..color = LumaTheme.creativeOrange
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
@@ -330,7 +330,7 @@ class _RulerPainter extends CustomPainter {
 }
 
 /// Rotary Dial Knob with Perimeter Ticks and Liquid Glass Aesthetics
-class AeviqueCircularDial extends StatefulWidget {
+class LumaCircularDial extends StatefulWidget {
   final String label;
   final IconData icon;
   final double value;
@@ -339,7 +339,7 @@ class AeviqueCircularDial extends StatefulWidget {
   final ValueChanged<double> onChanged;
   final double size;
 
-  const AeviqueCircularDial({
+  const LumaCircularDial({
     super.key,
     required this.label,
     required this.icon,
@@ -351,10 +351,10 @@ class AeviqueCircularDial extends StatefulWidget {
   });
 
   @override
-  State<AeviqueCircularDial> createState() => _AeviqueCircularDialState();
+  State<LumaCircularDial> createState() => _LumaCircularDialState();
 }
 
-class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
+class _LumaCircularDialState extends State<LumaCircularDial> {
   double _currentAngle = 0.0;
 
   @override
@@ -364,7 +364,7 @@ class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
   }
 
   @override
-  void didUpdateWidget(covariant AeviqueCircularDial oldWidget) {
+  void didUpdateWidget(covariant LumaCircularDial oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value) {
       _currentAngle = _valueToAngle(widget.value);
@@ -428,7 +428,7 @@ class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
                 Icon(
                   widget.icon,
                   size: widget.size * 0.38,
-                  color: isModified ? Colors.white : AeviqueTheme.textSecondary,
+                  color: isModified ? Colors.white : LumaTheme.textSecondary,
                 ),
               ],
             ),
@@ -441,7 +441,7 @@ class _AeviqueCircularDialState extends State<AeviqueCircularDial> {
             fontFamily: 'Inter',
             fontSize: 11,
             fontWeight: isModified ? FontWeight.w600 : FontWeight.w500,
-            color: isModified ? Colors.white : AeviqueTheme.textMuted,
+            color: isModified ? Colors.white : LumaTheme.textMuted,
           ),
         ),
       ],
@@ -479,7 +479,7 @@ class _DialTicksPainter extends CustomPainter {
     }
 
     final thumbIndicator = Paint()
-      ..color = AeviqueTheme.primaryBlueLight
+      ..color = LumaTheme.primaryBlueLight
       ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
 
@@ -500,7 +500,7 @@ class _DialTicksPainter extends CustomPainter {
 }
 
 /// Precision Slider with Blue/Orange Glowing Thumb & Numeric Value
-class AeviquePrecisionSlider extends StatelessWidget {
+class LumaPrecisionSlider extends StatelessWidget {
   final String label;
   final double value;
   final double min;
@@ -510,7 +510,7 @@ class AeviquePrecisionSlider extends StatelessWidget {
   final String Function(double)? valueFormatter;
   final Color? activeColor;
 
-  const AeviquePrecisionSlider({
+  const LumaPrecisionSlider({
     super.key,
     required this.label,
     required this.value,
@@ -524,7 +524,7 @@ class AeviquePrecisionSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = activeColor ?? AeviqueTheme.primaryBlue;
+    final effectiveColor = activeColor ?? LumaTheme.primaryBlue;
     final isModified = value.abs() > 0.5;
     final formattedValue = valueFormatter != null
         ? valueFormatter!(value)
@@ -548,7 +548,7 @@ class AeviquePrecisionSlider extends StatelessWidget {
                     fontWeight: isModified ? FontWeight.w600 : FontWeight.w500,
                     color: isModified
                         ? Colors.white
-                        : AeviqueTheme.textSecondary,
+                        : LumaTheme.textSecondary,
                   ),
                 ),
               ),
@@ -569,8 +569,8 @@ class AeviquePrecisionSlider extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: isModified
-                        ? AeviqueTheme.primaryBlueLight
-                        : AeviqueTheme.textMuted,
+                        ? LumaTheme.primaryBlueLight
+                        : LumaTheme.textMuted,
                   ),
                 ),
               ),
@@ -598,8 +598,8 @@ class AeviquePrecisionSlider extends StatelessWidget {
   }
 }
 
-/// Backward-compatible adjustment slider wrapping [AeviquePrecisionSlider].
-class AeviqueSlider extends StatelessWidget {
+/// Backward-compatible adjustment slider wrapping [LumaPrecisionSlider].
+class LumaSlider extends StatelessWidget {
   final String title;
   final double value;
   final double min;
@@ -609,7 +609,7 @@ class AeviqueSlider extends StatelessWidget {
   final VoidCallback? onReset;
   final String unit;
 
-  const AeviqueSlider({
+  const LumaSlider({
     super.key,
     required this.title,
     required this.value,
@@ -623,7 +623,7 @@ class AeviqueSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AeviquePrecisionSlider(
+    return LumaPrecisionSlider(
       label: title,
       value: value,
       min: min,
@@ -642,7 +642,7 @@ class AeviqueSlider extends StatelessWidget {
 }
 
 /// Liquid Glass Action Button
-class AeviqueButton extends StatelessWidget {
+class LumaButton extends StatelessWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
@@ -653,7 +653,7 @@ class AeviqueButton extends StatelessWidget {
   final double height;
   final EdgeInsetsGeometry? padding;
 
-  const AeviqueButton({
+  const LumaButton({
     super.key,
     required this.label,
     this.icon,
@@ -666,7 +666,7 @@ class AeviqueButton extends StatelessWidget {
     this.padding,
   });
 
-  const AeviqueButton.secondary({
+  const LumaButton.secondary({
     super.key,
     required this.label,
     this.icon,
@@ -688,7 +688,7 @@ class AeviqueButton extends StatelessWidget {
 
     return LiquidGlassPanel(
       variant: variant,
-      borderRadius: BorderRadius.circular(AeviqueTheme.radiusFull),
+      borderRadius: BorderRadius.circular(LumaTheme.radiusFull),
       width: width,
       height: height,
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 20),
@@ -732,14 +732,14 @@ class AeviqueButton extends StatelessWidget {
 }
 
 /// Liquid Glass Action Row
-class AeviqueGlassActionRow extends StatelessWidget {
+class LumaGlassActionRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
   final Widget? trailing;
 
-  const AeviqueGlassActionRow({
+  const LumaGlassActionRow({
     super.key,
     required this.icon,
     required this.title,
@@ -790,7 +790,7 @@ class AeviqueGlassActionRow extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 11,
-                      color: AeviqueTheme.textMuted,
+                      color: LumaTheme.textMuted,
                     ),
                   ),
                 ],
@@ -801,7 +801,7 @@ class AeviqueGlassActionRow extends StatelessWidget {
               const Icon(
                 Icons.chevron_right,
                 size: 18,
-                color: AeviqueTheme.textMuted,
+                color: LumaTheme.textMuted,
               ),
         ],
       ),

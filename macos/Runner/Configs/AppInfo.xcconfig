@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = lumaforge
+PRODUCT_NAME = lumafix
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.lumaforge.lumaforge
+PRODUCT_BUNDLE_IDENTIFIER = com.lumafix.lumafix
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.lumaforge. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.lumafix. All rights reserved.

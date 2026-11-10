@@ -65,7 +65,7 @@ class PresetRepository {
 
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/aevique_custom_presets.json');
+      final file = File('${dir.path}/lumafix_custom_presets.json');
       if (await file.exists()) {
         final content = await file.readAsString();
         final List<dynamic> list = jsonDecode(content) as List<dynamic>;
@@ -117,7 +117,7 @@ class PresetRepository {
   static Future<void> _persist() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/aevique_custom_presets.json');
+      final file = File('${dir.path}/lumafix_custom_presets.json');
       final jsonStr = jsonEncode(_inMemoryCache.map((p) => p.toJson()).toList());
       await file.writeAsString(jsonStr, flush: true);
     } catch (e) {

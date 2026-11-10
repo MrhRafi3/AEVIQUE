@@ -7,11 +7,11 @@ import 'package:share_plus/share_plus.dart';
 abstract class ExportService {
   Future<bool> saveToGallery(
     Uint8List imageBytes, {
-    String name = 'lumaforge_edit',
+    String name = 'lumafix_edit',
   });
   Future<bool> shareImage(
     Uint8List imageBytes, {
-    String name = 'lumaforge_edit',
+    String name = 'lumafix_edit',
   });
 }
 
@@ -19,7 +19,7 @@ class DefaultExportService implements ExportService {
   @override
   Future<bool> saveToGallery(
     Uint8List imageBytes, {
-    String name = 'lumaforge_edit',
+    String name = 'lumafix_edit',
   }) async {
     try {
       final hasAccess = await Gal.hasAccess();
@@ -37,7 +37,7 @@ class DefaultExportService implements ExportService {
   @override
   Future<bool> shareImage(
     Uint8List imageBytes, {
-    String name = 'lumaforge_edit',
+    String name = 'lumafix_edit',
   }) async {
     try {
       final tempDir = await getTemporaryDirectory();
@@ -46,7 +46,7 @@ class DefaultExportService implements ExportService {
       await file.writeAsBytes(imageBytes);
 
       final result = await SharePlus.instance.share(
-        ShareParams(files: [XFile(filePath)], text: 'Edited with LumaForge'),
+        ShareParams(files: [XFile(filePath)], text: 'Edited with LumaFix'),
       );
       return result.status == ShareResultStatus.success ||
           result.status == ShareResultStatus.dismissed;

@@ -10,10 +10,10 @@ last_mapped_at: 2026-11-06
 
 **Primary:**
 - Dart 3.12.2 - Application UI, state management, preview render loop, and pipeline orchestration (`lib/`, `test/`)
-- C++17 - High-performance native image processing engine (`native/aevique_core/src/`, `native/aevique_core/include/`)
+- C++17 - High-performance native image processing engine (`native/lumafix_core/src/`, `native/lumafix_core/include/`)
 
 **Secondary:**
-- CMake 3.22+ - Native C++ core build definitions (`native/aevique_core/CMakeLists.txt`)
+- CMake 3.22+ - Native C++ core build definitions (`native/lumafix_core/CMakeLists.txt`)
 - Kotlin - Android native runner (`android/`)
 - Swift - macOS and iOS native application runners (`macos/Runner/`, `ios/Runner/`)
 
@@ -35,11 +35,11 @@ last_mapped_at: 2026-11-06
 
 **Testing:**
 - `flutter_test` - Widget, unit, and integration testing
-- CTest / Native unit test binary (`native/aevique_core/build/test_aevique_engine`)
+- CTest / Native unit test binary (`native/lumafix_core/build/test_lumafix_engine`)
 
 **Build & Dev:**
 - Flutter CLI / Gradle 8.x / Xcode 26.3
-- CMake & Clang/GCC for C++ shared library compilation (`libaevique_core.dylib` / `.so`)
+- CMake & Clang/GCC for C++ shared library compilation (`liblumafix_core.dylib` / `.so`)
 
 ## Key Dependencies
 

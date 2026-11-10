@@ -29,8 +29,8 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSCameraUsageDescription</key>
-	<string>AEVIQUE uses the camera to capture high-resolution photos for immediate on-device editing.</string>
+	<string>LumaFix uses the camera to capture high-resolution photos for immediate on-device editing.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>AEVIQUE requires access to your photo library to select photos for editing and export.</string>
+	<string>LumaFix requires access to your photo library to select photos for editing and export.</string>
 </dict>
 </plist>

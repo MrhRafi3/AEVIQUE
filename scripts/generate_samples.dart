@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:image/image.dart' as img;
 
 void main() {
-  print('Generating curated sample photographs for AEVIQUE...');
+  print('Generating curated sample photographs for LumaFix...');
 
   // 1. Sunset Landscape (800x600): Golden Hour sky, mountains, lake reflection
   final landscape = img.Image(width: 800, height: 600);

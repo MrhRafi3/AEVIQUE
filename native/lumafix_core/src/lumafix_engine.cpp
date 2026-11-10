@@ -1,4 +1,4 @@
-#include "aevique_engine.h"
+#include "lumafix_engine.h"
 
 #include <algorithm>
 #include <cmath>
@@ -24,7 +24,7 @@ static inline uint8_t clamp_u8(int val) {
     return static_cast<uint8_t>(val);
 }
 
-static bool is_identity_curve(const AeviqueCurvePoint* points, int32_t count) {
+static bool is_identity_curve(const LumaFixCurvePoint* points, int32_t count) {
     if (count == 0 || points == nullptr) return true;
     if (count != 2) return false;
     return (std::abs(points[0].x - 0.0f) < 1e-4f) &&
@@ -33,7 +33,7 @@ static bool is_identity_curve(const AeviqueCurvePoint* points, int32_t count) {
            (std::abs(points[1].y - 1.0f) < 1e-4f);
 }
 
-static void interpolate_curve_channel(const AeviqueCurveChannel* channel, uint8_t lut[256]) {
+static void interpolate_curve_channel(const LumaFixCurveChannel* channel, uint8_t lut[256]) {
     if (channel == nullptr || channel->point_count == 0 || channel->points == nullptr ||
         is_identity_curve(channel->points, channel->point_count)) {
         for (int i = 0; i < 256; i++) {
@@ -42,8 +42,8 @@ static void interpolate_curve_channel(const AeviqueCurveChannel* channel, uint8_
         return;
     }
 
-    std::vector<AeviqueCurvePoint> sorted(channel->points, channel->points + channel->point_count);
-    std::sort(sorted.begin(), sorted.end(), [](const AeviqueCurvePoint& a, const AeviqueCurvePoint& b) {
+    std::vector<LumaFixCurvePoint> sorted(channel->points, channel->points + channel->point_count);
+    std::sort(sorted.begin(), sorted.end(), [](const LumaFixCurvePoint& a, const LumaFixCurvePoint& b) {
         return a.x < b.x;
     });
 
@@ -149,9 +149,40 @@ static inline void hsl_to_rgb(float h, float s, float l, float& r, float& g, flo
     }
 }
 
-static inline bool is_hsl_neutral(const AeviqueHslParameters* hsl) {
+// Returns skin tone probability in [0.0f, 1.0f] for normalized RGB inputs
+static inline float compute_skin_probability(float r, float g, float b) {
+    if (r <= g || g <= b || r < 0.15f || r > 0.98f) {
+        return 0.0f;
+    }
+
+    float h, s, l;
+    rgb_to_hsl(r, g, b, h, s, l);
+
+    if (h < 10.0f || h > 50.0f) {
+        return 0.0f;
+    }
+    if (s < 0.12f || s > 0.72f) {
+        return 0.0f;
+    }
+    if (l < 0.15f || l > 0.92f) {
+        return 0.0f;
+    }
+
+    float hue_dist = std::abs(h - 28.0f);
+    float hue_weight = clamp_float(1.0f - (hue_dist / 22.0f), 0.0f, 1.0f);
+
+    float sat_dist = std::abs(s - 0.38f);
+    float sat_weight = clamp_float(1.0f - (sat_dist / 0.34f), 0.0f, 1.0f);
+
+    float lum_dist = std::abs(l - 0.55f);
+    float lum_weight = clamp_float(1.0f - (lum_dist / 0.40f), 0.0f, 1.0f);
+
+    return hue_weight * sat_weight * lum_weight;
+}
+
+static inline bool is_hsl_neutral(const LumaFixHslParameters* hsl) {
     if (hsl == nullptr) return true;
-    const AeviqueHslBand* bands[8] = {
+    const LumaFixHslBand* bands[8] = {
         &hsl->red, &hsl->orange, &hsl->yellow, &hsl->green,
         &hsl->aqua, &hsl->blue, &hsl->purple, &hsl->magenta
     };
@@ -167,7 +198,7 @@ static inline bool is_hsl_neutral(const AeviqueHslParameters* hsl) {
 
 static inline void apply_hsl_pixel(
     uint8_t& r_u8, uint8_t& g_u8, uint8_t& b_u8,
-    const AeviqueHslParameters& hsl
+    const LumaFixHslParameters& hsl
 ) {
     float r = static_cast<float>(r_u8) / 255.0f;
     float g = static_cast<float>(g_u8) / 255.0f;
@@ -202,7 +233,7 @@ static inline void apply_hsl_pixel(
         32.0f   // Magenta
     };
 
-    const AeviqueHslBand* bands[8] = {
+    const LumaFixHslBand* bands[8] = {
         &hsl.red, &hsl.orange, &hsl.yellow, &hsl.green,
         &hsl.aqua, &hsl.blue, &hsl.purple, &hsl.magenta
     };
@@ -379,77 +410,132 @@ static void apply_lens_blur_native(
     }
 }
 
-uint32_t aevique_get_version(void) {
-    return (AEVIQUE_VERSION_MAJOR << 16) | (AEVIQUE_VERSION_MINOR << 8) | AEVIQUE_VERSION_PATCH;
+static void apply_native_sharpening(
+    uint8_t* data, int32_t width, int32_t height, int32_t stride, int32_t channels,
+    float strength
+) {
+    if (strength <= 0.001f || width < 3 || height < 3) return;
+
+    // Map 0..100 to factor 0..0.75
+    const float factor = (strength / 100.0f) * 0.75f;
+    const size_t row_bytes = static_cast<size_t>(width * channels);
+
+    std::vector<uint8_t> prev_row(row_bytes);
+    std::vector<uint8_t> curr_row(row_bytes);
+
+    std::memcpy(curr_row.data(), data, row_bytes);
+
+    for (int32_t y = 1; y < height - 1; y++) {
+        std::memcpy(prev_row.data(), curr_row.data(), row_bytes);
+        uint8_t* actual_curr_row = data + static_cast<size_t>(y) * static_cast<size_t>(stride);
+        std::memcpy(curr_row.data(), actual_curr_row, row_bytes);
+        const uint8_t* next_row = data + static_cast<size_t>(y + 1) * static_cast<size_t>(stride);
+
+        for (int32_t x = 1; x < width - 1; x++) {
+            const uint8_t* center = curr_row.data() + x * channels;
+            const uint8_t* left = curr_row.data() + (x - 1) * channels;
+            const uint8_t* right = curr_row.data() + (x + 1) * channels;
+            const uint8_t* up = prev_row.data() + x * channels;
+            const uint8_t* down = next_row + x * channels;
+
+            uint8_t* out = actual_curr_row + x * channels;
+
+            // Skin protection: preserve smooth skin texture while sharpening edges
+            float skin_prob = 0.0f;
+            if (channels >= 3) {
+                skin_prob = compute_skin_probability(
+                    static_cast<float>(center[0]) / 255.0f,
+                    static_cast<float>(center[1]) / 255.0f,
+                    static_cast<float>(center[2]) / 255.0f
+                );
+            }
+            const float effective_factor = factor * (1.0f - 0.45f * skin_prob);
+
+            for (int32_t c = 0; c < 3; c++) {
+                int c_val = center[c];
+                int laplacian = (c_val * 4) - (left[c] + right[c] + up[c] + down[c]);
+                // Coring: ignore microscopic noise fluctuation
+                if (std::abs(laplacian) <= 2) {
+                    continue;
+                }
+                int sharpened = static_cast<int>(std::round(static_cast<float>(c_val) + static_cast<float>(laplacian) * effective_factor));
+                out[c] = clamp_u8(sharpened);
+            }
+        }
+    }
 }
 
-const char* aevique_status_to_string(AeviqueStatus status) {
+uint32_t lumafix_get_version(void) {
+    return (LUMAFIX_VERSION_MAJOR << 16) | (LUMAFIX_VERSION_MINOR << 8) | LUMAFIX_VERSION_PATCH;
+}
+
+const char* lumafix_status_to_string(LumaFixStatus status) {
     switch (status) {
-        case AEVIQUE_SUCCESS:
+        case LUMAFIX_SUCCESS:
             return "Success";
-        case AEVIQUE_ERROR_NULL_POINTER:
+        case LUMAFIX_ERROR_NULL_POINTER:
             return "Null pointer argument";
-        case AEVIQUE_ERROR_INVALID_DIMENSIONS:
+        case LUMAFIX_ERROR_INVALID_DIMENSIONS:
             return "Invalid image dimensions";
-        case AEVIQUE_ERROR_INVALID_STRIDE:
+        case LUMAFIX_ERROR_INVALID_STRIDE:
             return "Invalid row stride (must be >= width * channels)";
-        case AEVIQUE_ERROR_UNSUPPORTED_FORMAT:
+        case LUMAFIX_ERROR_UNSUPPORTED_FORMAT:
             return "Unsupported pixel format (only RGBA8888 and RGB888 supported)";
-        case AEVIQUE_ERROR_INVALID_PARAMETER:
+        case LUMAFIX_ERROR_INVALID_PARAMETER:
             return "Invalid adjustment parameter (must not be NaN or infinite)";
-        case AEVIQUE_ERROR_BUFFER_TOO_SMALL:
+        case LUMAFIX_ERROR_BUFFER_TOO_SMALL:
             return "Buffer capacity is smaller than required by dimensions and stride";
         default:
             return "Unknown error";
     }
 }
 
-AeviqueStatus aevique_process_pipeline_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviquePipelineParameters* params,
-    const AeviqueToneCurves* curves
+LumaFixStatus lumafix_process_pipeline_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixPipelineParameters* params,
+    const LumaFixToneCurves* curves
 ) {
     try {
         // 1. Validate pointers
         if (src == nullptr || dst == nullptr || params == nullptr) {
-            return AEVIQUE_ERROR_NULL_POINTER;
+            return LUMAFIX_ERROR_NULL_POINTER;
         }
         if (src->data == nullptr || dst->data == nullptr) {
-            return AEVIQUE_ERROR_NULL_POINTER;
+            return LUMAFIX_ERROR_NULL_POINTER;
         }
 
         // 2. Validate dimensions and guard against integer overflow
         if (src->width <= 0 || src->height <= 0 || dst->width <= 0 || dst->height <= 0 ||
             src->width > 65536 || src->height > 65536) {
-            return AEVIQUE_ERROR_INVALID_DIMENSIONS;
+            return LUMAFIX_ERROR_INVALID_DIMENSIONS;
         }
         if (src->width != dst->width || src->height != dst->height) {
-            return AEVIQUE_ERROR_INVALID_DIMENSIONS;
+            return LUMAFIX_ERROR_INVALID_DIMENSIONS;
         }
 
         // 3. Validate pixel formats
         if (src->format != dst->format) {
-            return AEVIQUE_ERROR_INVALID_DIMENSIONS;
+            return LUMAFIX_ERROR_INVALID_DIMENSIONS;
         }
-        if (src->format != AEVIQUE_PIXEL_FORMAT_RGBA8888 &&
-            src->format != AEVIQUE_PIXEL_FORMAT_RGB888) {
-            return AEVIQUE_ERROR_UNSUPPORTED_FORMAT;
+        if (src->format != LUMAFIX_PIXEL_FORMAT_RGBA8888 &&
+            src->format != LUMAFIX_PIXEL_FORMAT_RGB888) {
+            return LUMAFIX_ERROR_UNSUPPORTED_FORMAT;
         }
 
-        const int32_t bpp = (src->format == AEVIQUE_PIXEL_FORMAT_RGB888) ? 3 : 4;
+        const int32_t bpp = (src->format == LUMAFIX_PIXEL_FORMAT_RGB888) ? 3 : 4;
 
         // 4. Validate stride with 64-bit integer overflow protection
         int64_t min_stride_64 = static_cast<int64_t>(src->width) * static_cast<int64_t>(bpp);
         if (min_stride_64 > INT32_MAX ||
             static_cast<int64_t>(src->stride_bytes) < min_stride_64 ||
             static_cast<int64_t>(dst->stride_bytes) < min_stride_64) {
-            return AEVIQUE_ERROR_INVALID_STRIDE;
+            return LUMAFIX_ERROR_INVALID_STRIDE;
         }
         int32_t min_stride = static_cast<int32_t>(min_stride_64);
 
         // 5. Validate parameters for NaN or Infinity
-        const AeviqueAdvancedToneParameters* t = &params->tone;
+        const LumaFixAdvancedToneParameters* t = &params->tone;
         if (std::isnan(t->exposure) || std::isinf(t->exposure) ||
             std::isnan(t->contrast) || std::isinf(t->contrast) ||
             std::isnan(t->saturation) || std::isinf(t->saturation) ||
@@ -464,6 +550,7 @@ AeviqueStatus aevique_process_pipeline_rgba8(
             std::isnan(params->vibrance) || std::isinf(params->vibrance) ||
             std::isnan(params->clarity) || std::isinf(params->clarity) ||
             std::isnan(params->structure) || std::isinf(params->structure) ||
+            std::isnan(params->sharpening) || std::isinf(params->sharpening) ||
             std::isnan(params->effects.grain) || std::isinf(params->effects.grain) ||
             std::isnan(params->effects.vintage) || std::isinf(params->effects.vintage) ||
             std::isnan(params->effects.drama) || std::isinf(params->effects.drama) ||
@@ -476,11 +563,11 @@ AeviqueStatus aevique_process_pipeline_rgba8(
             std::isnan(params->vignette.feather) || std::isinf(params->vignette.feather) ||
             std::isnan(params->vignette.center_x) || std::isinf(params->vignette.center_x) ||
             std::isnan(params->vignette.center_y) || std::isinf(params->vignette.center_y)) {
-            return AEVIQUE_ERROR_INVALID_PARAMETER;
+            return LUMAFIX_ERROR_INVALID_PARAMETER;
         }
 
         // Validate HSL parameters for NaN or Inf
-        const AeviqueHslBand* hsl_bands_check[8] = {
+        const LumaFixHslBand* hsl_bands_check[8] = {
             &params->hsl.red, &params->hsl.orange, &params->hsl.yellow, &params->hsl.green,
             &params->hsl.aqua, &params->hsl.blue, &params->hsl.purple, &params->hsl.magenta
         };
@@ -488,19 +575,19 @@ AeviqueStatus aevique_process_pipeline_rgba8(
             if (std::isnan(hsl_bands_check[i]->hue) || std::isinf(hsl_bands_check[i]->hue) ||
                 std::isnan(hsl_bands_check[i]->saturation) || std::isinf(hsl_bands_check[i]->saturation) ||
                 std::isnan(hsl_bands_check[i]->luminance) || std::isinf(hsl_bands_check[i]->luminance)) {
-                return AEVIQUE_ERROR_INVALID_PARAMETER;
+                return LUMAFIX_ERROR_INVALID_PARAMETER;
             }
         }
 
         // Validate curve points for NaN or Inf if provided
         if (curves != nullptr) {
-            const AeviqueCurveChannel* channels[4] = {&curves->rgb, &curves->red, &curves->green, &curves->blue};
+            const LumaFixCurveChannel* channels[4] = {&curves->rgb, &curves->red, &curves->green, &curves->blue};
             for (int c = 0; c < 4; c++) {
                 if (channels[c] != nullptr && channels[c]->point_count > 0 && channels[c]->points != nullptr) {
                     for (int32_t p = 0; p < channels[c]->point_count; p++) {
                         if (std::isnan(channels[c]->points[p].x) || std::isinf(channels[c]->points[p].x) ||
                             std::isnan(channels[c]->points[p].y) || std::isinf(channels[c]->points[p].y)) {
-                            return AEVIQUE_ERROR_INVALID_PARAMETER;
+                            return LUMAFIX_ERROR_INVALID_PARAMETER;
                         }
                     }
                 }
@@ -527,6 +614,7 @@ AeviqueStatus aevique_process_pipeline_rgba8(
         const float vintage = clamp_float(params->effects.vintage, 0.0f, 100.0f);
         const float drama = clamp_float(params->effects.drama, 0.0f, 100.0f);
         const float structure = clamp_float(params->structure, 0.0f, 100.0f);
+        const float sharpening = clamp_float(params->sharpening, 0.0f, 100.0f);
 
         const float vig_amount_param = clamp_float(params->vignette.amount, -100.0f, 100.0f);
         const float vig_radius_param = clamp_float(params->vignette.radius, 0.0f, 100.0f);
@@ -571,7 +659,7 @@ AeviqueStatus aevique_process_pipeline_rgba8(
         double warmth_shift = warmth * 0.45;
         double tint_shift = tint * 0.45;
 
-        // Generate 3 composite 1D LUTs matching AEVIQUE Dart LutGenerator
+        // Generate 3 composite 1D LUTs matching LumaFix Dart LutGenerator
         uint8_t r_lut[256];
         uint8_t g_lut[256];
         uint8_t b_lut[256];
@@ -589,16 +677,20 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                 base += blacks * 0.5 * weight;
             }
 
-            // Highlights adjustment (values > 100)
+            // Highlights adjustment (values > 100) with smooth Hermite roll-off
             if (highlights != 0.0 && i > 100) {
-                double weight = clamp_double((static_cast<double>(i) - 100.0) / 155.0, 0.0, 1.0);
-                base += highlights * 0.6 * weight;
+                double t_h = (static_cast<double>(i) - 100.0) / 155.0;
+                double smooth_h = t_h * t_h * (3.0 - 2.0 * t_h);
+                base += highlights * 0.6 * smooth_h;
             }
 
-            // Shadows adjustment (values < 155)
+            // Shadows adjustment (values < 155) with black floor protection
             if (shadows != 0.0 && i < 155) {
-                double weight = clamp_double((155.0 - static_cast<double>(i)) / 155.0, 0.0, 1.0);
-                base += shadows * 0.6 * weight;
+                double t_s = (155.0 - static_cast<double>(i)) / 155.0;
+                double smooth_s = t_s * t_s * (3.0 - 2.0 * t_s);
+                double t_black = clamp_double(static_cast<double>(i) / 16.0, 0.0, 1.0);
+                double black_taper = t_black * t_black * (3.0 - 2.0 * t_black);
+                base += shadows * 0.6 * smooth_s * black_taper;
             }
 
             // Contrast and brightness
@@ -647,21 +739,22 @@ AeviqueStatus aevique_process_pipeline_rgba8(
         const bool is_neutral_lens_blur = (params->effects.lens_blur <= 0.001f);
         const bool is_neutral_vignette = (std::abs(vig_amount_param) < 1e-4f);
         const bool is_neutral_structure = (structure <= 0.001f);
+        const bool is_neutral_sharpening = (sharpening <= 0.001f);
 
         // Fast-path 0: completely neutral adjustment state
         if (is_neutral_lut && is_neutral_sat && is_neutral_vibrance && is_neutral_clarity &&
             is_neutral_hsl && is_neutral_vintage && is_neutral_drama && is_neutral_grain &&
             is_neutral_bloom && is_neutral_glow && is_neutral_chromatic && is_neutral_lens_blur &&
-            is_neutral_vignette && is_neutral_structure) {
+            is_neutral_vignette && is_neutral_structure && is_neutral_sharpening) {
             if (src->data == dst->data) {
-                return AEVIQUE_SUCCESS;
+                return LUMAFIX_SUCCESS;
             }
             for (int32_t y = 0; y < src->height; y++) {
                 const uint8_t* src_row = src->data + y * src->stride_bytes;
                 uint8_t* dst_row = dst->data + y * dst->stride_bytes;
                 std::memcpy(dst_row, src_row, static_cast<size_t>(min_stride));
             }
-            return AEVIQUE_SUCCESS;
+            return LUMAFIX_SUCCESS;
         }
 
         const int32_t width = src->width;
@@ -674,7 +767,7 @@ AeviqueStatus aevique_process_pipeline_rgba8(
         if (is_neutral_sat && is_neutral_vibrance && is_neutral_clarity && is_neutral_hsl &&
             is_neutral_vintage && is_neutral_drama && is_neutral_grain &&
             is_neutral_bloom && is_neutral_glow && is_neutral_chromatic && is_neutral_lens_blur &&
-            is_neutral_vignette && is_neutral_structure) {
+            is_neutral_vignette && is_neutral_structure && is_neutral_sharpening) {
             for (int32_t y = 0; y < height; y++) {
                 const uint8_t* src_row = src->data + y * src_stride;
                 uint8_t* dst_row = dst->data + y * dst_stride;
@@ -691,14 +784,14 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                     }
                 }
             }
-            return AEVIQUE_SUCCESS;
+            return LUMAFIX_SUCCESS;
         }
 
         // Fast-path 2: Tone + Saturation only (no other effects active)
         if (is_neutral_vibrance && is_neutral_clarity && is_neutral_hsl &&
             is_neutral_vintage && is_neutral_drama && is_neutral_grain &&
             is_neutral_bloom && is_neutral_glow && is_neutral_chromatic && is_neutral_lens_blur &&
-            is_neutral_vignette && is_neutral_structure) {
+            is_neutral_vignette && is_neutral_structure && is_neutral_sharpening) {
             const float sat_factor = bw_mode ? 0.0f : clamp_float((saturation + 100.0f) / 100.0f, 0.0f, 3.0f);
             for (int32_t y = 0; y < height; y++) {
                 const uint8_t* src_row = src->data + y * src_stride;
@@ -719,16 +812,25 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                         d[1] = gray;
                         d[2] = gray;
                     } else {
-                        d[0] = clamp_u8(static_cast<int>(std::round(lum + (r_tone - lum) * sat_factor)));
-                        d[1] = clamp_u8(static_cast<int>(std::round(lum + (g_tone - lum) * sat_factor)));
-                        d[2] = clamp_u8(static_cast<int>(std::round(lum + (b_tone - lum) * sat_factor)));
+                        float effective_sat = sat_factor;
+                        if (sat_factor > 1.0f) {
+                            float skin_prob = compute_skin_probability(
+                                static_cast<float>(r_tone) / 255.0f,
+                                static_cast<float>(g_tone) / 255.0f,
+                                static_cast<float>(b_tone) / 255.0f
+                            );
+                            effective_sat = 1.0f + (sat_factor - 1.0f) * (1.0f - 0.55f * skin_prob);
+                        }
+                        d[0] = clamp_u8(static_cast<int>(std::round(lum + (r_tone - lum) * effective_sat)));
+                        d[1] = clamp_u8(static_cast<int>(std::round(lum + (g_tone - lum) * effective_sat)));
+                        d[2] = clamp_u8(static_cast<int>(std::round(lum + (b_tone - lum) * effective_sat)));
                     }
                     if (channels == 4) {
                         d[3] = s[3]; // Preserve alpha
                     }
                 }
             }
-            return AEVIQUE_SUCCESS;
+            return LUMAFIX_SUCCESS;
         }
 
         // --- General Unified Native Pipeline (Pixel-level fused loop) ---
@@ -775,7 +877,11 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                     float min_val = std::min({r_f, g_f, b_f});
                     float sat = (max_val == 0.0f) ? 0.0f : (max_val - min_val) / max_val;
                     float sat_weight = clamp_float(1.0f - sat, 0.0f, 1.0f);
-                    float amt = vib_factor * sat_weight * 1.25f;
+
+                    float skin_prob = compute_skin_probability(r_f / 255.0f, g_f / 255.0f, b_f / 255.0f);
+                    float skin_protection = (vib_factor > 0.0f) ? (1.0f - 0.65f * skin_prob) : 1.0f;
+
+                    float amt = vib_factor * sat_weight * 1.25f * skin_protection;
                     float lum = 0.2126f * r_f + 0.7152f * g_f + 0.0722f * b_f;
                     r = clamp_u8(static_cast<int>(std::round(r_f + (r_f - lum) * amt)));
                     g = clamp_u8(static_cast<int>(std::round(g_f + (g_f - lum) * amt)));
@@ -812,9 +918,14 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                         g = gray;
                         b = gray;
                     } else {
-                        r = clamp_u8(static_cast<int>(std::round(lum + (r_f - lum) * sat_factor)));
-                        g = clamp_u8(static_cast<int>(std::round(lum + (g_f - lum) * sat_factor)));
-                        b = clamp_u8(static_cast<int>(std::round(lum + (b_f - lum) * sat_factor)));
+                        float effective_sat = sat_factor;
+                        if (sat_factor > 1.0f) {
+                            float skin_prob = compute_skin_probability(r_f / 255.0f, g_f / 255.0f, b_f / 255.0f);
+                            effective_sat = 1.0f + (sat_factor - 1.0f) * (1.0f - 0.55f * skin_prob);
+                        }
+                        r = clamp_u8(static_cast<int>(std::round(lum + (r_f - lum) * effective_sat)));
+                        g = clamp_u8(static_cast<int>(std::round(lum + (g_f - lum) * effective_sat)));
+                        b = clamp_u8(static_cast<int>(std::round(lum + (b_f - lum) * effective_sat)));
                     }
                 }
 
@@ -903,6 +1014,11 @@ AeviqueStatus aevique_process_pipeline_rgba8(
             }
         }
 
+        // Stage 9.5: Sharpening (edge-preserving high-frequency unsharp mask)
+        if (!is_neutral_sharpening && height > 2 && width > 2) {
+            apply_native_sharpening(dst->data, width, height, dst_stride, channels, sharpening);
+        }
+
         // Stage 10: Highlight Bloom
         if (!is_neutral_bloom) {
             apply_fast_diffusion(dst->data, width, height, dst_stride, channels,
@@ -927,24 +1043,24 @@ AeviqueStatus aevique_process_pipeline_rgba8(
                                    clamp_float(params->effects.lens_blur, 0.0f, 100.0f));
         }
 
-        return AEVIQUE_SUCCESS;
+        return LUMAFIX_SUCCESS;
     } catch (...) {
-        return AEVIQUE_ERROR_UNKNOWN;
+        return LUMAFIX_ERROR_UNKNOWN;
     }
 }
 
-AeviqueStatus aevique_process_advanced_tone_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueAdvancedToneParameters* params,
-    const AeviqueToneCurves* curves
+LumaFixStatus lumafix_process_advanced_tone_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixAdvancedToneParameters* params,
+    const LumaFixToneCurves* curves
 ) {
     if (params == nullptr) {
-        return AEVIQUE_ERROR_NULL_POINTER;
+        return LUMAFIX_ERROR_NULL_POINTER;
     }
 
-    AeviquePipelineParameters pipeline_params;
-    std::memset(&pipeline_params, 0, sizeof(AeviquePipelineParameters));
+    LumaFixPipelineParameters pipeline_params;
+    std::memset(&pipeline_params, 0, sizeof(LumaFixPipelineParameters));
     pipeline_params.tone = *params;
     pipeline_params.vibrance = 0.0f;
     pipeline_params.clarity = 0.0f;
@@ -958,112 +1074,113 @@ AeviqueStatus aevique_process_advanced_tone_rgba8(
     pipeline_params.vignette.center_x = 0.5f;
     pipeline_params.vignette.center_y = 0.5f;
     pipeline_params.structure = 0.0f;
+    pipeline_params.sharpening = 0.0f;
 
-    return aevique_process_pipeline_rgba8(src, dst, &pipeline_params, curves);
+    return lumafix_process_pipeline_rgba8(src, dst, &pipeline_params, curves);
 }
 
-AeviqueStatus aevique_process_curves_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueToneParameters* tone_params,
-    const AeviqueToneCurves* curves
+LumaFixStatus lumafix_process_curves_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixToneParameters* tone_params,
+    const LumaFixToneCurves* curves
 ) {
     if (tone_params == nullptr) {
-        return AEVIQUE_ERROR_NULL_POINTER;
+        return LUMAFIX_ERROR_NULL_POINTER;
     }
 
-    AeviqueAdvancedToneParameters adv_params;
-    std::memset(&adv_params, 0, sizeof(AeviqueAdvancedToneParameters));
+    LumaFixAdvancedToneParameters adv_params;
+    std::memset(&adv_params, 0, sizeof(LumaFixAdvancedToneParameters));
     adv_params.exposure = tone_params->exposure;
     adv_params.contrast = tone_params->contrast;
     adv_params.saturation = tone_params->saturation;
 
-    return aevique_process_advanced_tone_rgba8(src, dst, &adv_params, curves);
+    return lumafix_process_advanced_tone_rgba8(src, dst, &adv_params, curves);
 }
 
-AeviqueStatus aevique_process_tone_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueToneParameters* params
+LumaFixStatus lumafix_process_tone_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixToneParameters* params
 ) {
-    return aevique_process_curves_rgba8(src, dst, params, nullptr);
+    return lumafix_process_curves_rgba8(src, dst, params, nullptr);
 }
 
-AeviqueStatus aevique_process_vibrance_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
+LumaFixStatus lumafix_process_vibrance_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
     float vibrance
 ) {
-    AeviquePipelineParameters p;
-    std::memset(&p, 0, sizeof(AeviquePipelineParameters));
+    LumaFixPipelineParameters p;
+    std::memset(&p, 0, sizeof(LumaFixPipelineParameters));
     p.vibrance = vibrance;
     p.vignette.radius = 50.0f;
     p.vignette.feather = 50.0f;
     p.vignette.center_x = 0.5f;
     p.vignette.center_y = 0.5f;
-    return aevique_process_pipeline_rgba8(src, dst, &p, nullptr);
+    return lumafix_process_pipeline_rgba8(src, dst, &p, nullptr);
 }
 
-AeviqueStatus aevique_process_clarity_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
+LumaFixStatus lumafix_process_clarity_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
     float clarity
 ) {
-    AeviquePipelineParameters p;
-    std::memset(&p, 0, sizeof(AeviquePipelineParameters));
+    LumaFixPipelineParameters p;
+    std::memset(&p, 0, sizeof(LumaFixPipelineParameters));
     p.clarity = clarity;
     p.vignette.radius = 50.0f;
     p.vignette.feather = 50.0f;
     p.vignette.center_x = 0.5f;
     p.vignette.center_y = 0.5f;
-    return aevique_process_pipeline_rgba8(src, dst, &p, nullptr);
+    return lumafix_process_pipeline_rgba8(src, dst, &p, nullptr);
 }
 
-AeviqueStatus aevique_process_monochrome_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
+LumaFixStatus lumafix_process_monochrome_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
     float saturation,
     int32_t bw_mode
 ) {
-    AeviquePipelineParameters p;
-    std::memset(&p, 0, sizeof(AeviquePipelineParameters));
+    LumaFixPipelineParameters p;
+    std::memset(&p, 0, sizeof(LumaFixPipelineParameters));
     p.tone.saturation = saturation;
     p.effects.bw_mode = bw_mode;
     p.vignette.radius = 50.0f;
     p.vignette.feather = 50.0f;
     p.vignette.center_x = 0.5f;
     p.vignette.center_y = 0.5f;
-    return aevique_process_pipeline_rgba8(src, dst, &p, nullptr);
+    return lumafix_process_pipeline_rgba8(src, dst, &p, nullptr);
 }
 
-AeviqueStatus aevique_process_vignette_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueVignetteParameters* params
+LumaFixStatus lumafix_process_vignette_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixVignetteParameters* params
 ) {
     if (params == nullptr) {
-        return AEVIQUE_ERROR_NULL_POINTER;
+        return LUMAFIX_ERROR_NULL_POINTER;
     }
-    AeviquePipelineParameters p;
-    std::memset(&p, 0, sizeof(AeviquePipelineParameters));
+    LumaFixPipelineParameters p;
+    std::memset(&p, 0, sizeof(LumaFixPipelineParameters));
     p.vignette = *params;
-    return aevique_process_pipeline_rgba8(src, dst, &p, nullptr);
+    return lumafix_process_pipeline_rgba8(src, dst, &p, nullptr);
 }
 
-AeviqueStatus aevique_process_hsl_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueHslParameters* params
+LumaFixStatus lumafix_process_hsl_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixHslParameters* params
 ) {
     if (params == nullptr) {
-        return AEVIQUE_ERROR_NULL_POINTER;
+        return LUMAFIX_ERROR_NULL_POINTER;
     }
-    AeviquePipelineParameters p;
-    std::memset(&p, 0, sizeof(AeviquePipelineParameters));
+    LumaFixPipelineParameters p;
+    std::memset(&p, 0, sizeof(LumaFixPipelineParameters));
     p.hsl = *params;
     p.vignette.radius = 50.0f;
     p.vignette.feather = 50.0f;
     p.vignette.center_x = 0.5f;
     p.vignette.center_y = 0.5f;
-    return aevique_process_pipeline_rgba8(src, dst, &p, nullptr);
+    return lumafix_process_pipeline_rgba8(src, dst, &p, nullptr);
 }

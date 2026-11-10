@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import '../models/edit_state.dart';
-import '../native_engine/aevique_ffi.dart';
+import '../native_engine/lumafix_ffi.dart';
 import 'filter_kernels.dart';
 import 'lut_generator.dart';
 import 'mask_engine.dart';
@@ -74,8 +74,8 @@ class ImagePipeline {
     int jpegQuality = 92,
     bool outputPng = false,
   }) async {
-    if (AeviqueNativeEngine.engineMode == EngineMode.nativeOnly) {
-      if (!AeviqueNativeEngine.isAvailable) {
+    if (LumaFixNativeEngine.engineMode == EngineMode.nativeOnly) {
+      if (!LumaFixNativeEngine.isAvailable) {
         throw StateError(
           'EngineMode.nativeOnly requested but native library is unavailable or not loaded.',
         );
@@ -95,8 +95,8 @@ class ImagePipeline {
         maxDimension: maxDimension,
         jpegQuality: jpegQuality,
         outputPng: outputPng,
-        customLibraryPath: AeviqueNativeEngine.activeLibraryPath,
-        engineMode: AeviqueNativeEngine.engineMode,
+        customLibraryPath: LumaFixNativeEngine.activeLibraryPath,
+        engineMode: LumaFixNativeEngine.engineMode,
       ),
     );
   }
@@ -179,17 +179,16 @@ class ImagePipeline {
     if (!state.portrait.isIdentity) return false;
     if (state.effects.bloom != 0.0) return false;
     if (state.effects.chromaticAberration != 0.0) return false;
-    if (state.details.sharpening != 0.0) return false;
     if (state.masks.isNotEmpty) return false;
     return true;
   }
 
   /// Returns a human-readable diagnosis why an [EditState] or environment cannot use the native engine.
   static String getNativeIncompatibilityReason(EditState state) {
-    if (AeviqueNativeEngine.engineMode == EngineMode.dartOnly) {
+    if (LumaFixNativeEngine.engineMode == EngineMode.dartOnly) {
       return 'engineMode is dartOnly';
     }
-    if (!AeviqueNativeEngine.isAvailable) {
+    if (!LumaFixNativeEngine.isAvailable) {
       return 'native library is not loaded';
     }
     if (!state.geometry.isIdentity) {
@@ -197,9 +196,6 @@ class ImagePipeline {
     }
     if (!state.portrait.isIdentity) {
       return 'portrait active (skin smoothing, face adjustments)';
-    }
-    if (state.details.sharpening != 0.0) {
-      return 'sharpening active (${state.details.sharpening}, requires Dart unsharp mask)';
     }
     if (state.masks.isNotEmpty) {
       return 'selective masks active (${state.masks.length} masks)';
@@ -254,12 +250,12 @@ class ImagePipeline {
       _lastPreviewFallbackReason = fallbackReason;
       if (isNative) {
         debugPrint(
-          '[AEVIQUE-ENGINE] Preview rendered via NATIVE C++ '
+          '[LUMAFIX-ENGINE] Preview rendered via NATIVE C++ '
           '(${width}x$height RGBA, latency: ${latencyMs.toStringAsFixed(1)}ms)',
         );
       } else {
         debugPrint(
-          '[AEVIQUE-ENGINE] Preview rendered via DART FALLBACK '
+          '[LUMAFIX-ENGINE] Preview rendered via DART FALLBACK '
           '(reason: $fallbackReason, ${width}x$height JPEG, latency: ${latencyMs.toStringAsFixed(1)}ms)',
         );
       }
@@ -277,11 +273,11 @@ class ImagePipeline {
     final sw = Stopwatch()..start();
 
     // Check if eligible for native RGBA fast path
-    if (AeviqueNativeEngine.isAvailable &&
+    if (LumaFixNativeEngine.isAvailable &&
         rawPreviewRgba8 != null &&
         isNativeCompatible(state)) {
       try {
-        final engine = AeviqueNativeEngine.instance;
+        final engine = LumaFixNativeEngine.instance;
         if (engine != null) {
           final processedRgba = engine.processPipelineRgba8(
             rgbaBytes: rawPreviewRgba8,
@@ -310,20 +306,20 @@ class ImagePipeline {
           );
         }
       } catch (e) {
-        if (AeviqueNativeEngine.engineMode == EngineMode.nativeOnly) {
+        if (LumaFixNativeEngine.engineMode == EngineMode.nativeOnly) {
           rethrow;
         }
         if (kDebugMode) {
           debugPrint(
-            '[AEVIQUE-ENGINE] Native preview processing threw error, falling back to Dart: $e',
+            '[LUMAFIX-ENGINE] Native preview processing threw error, falling back to Dart: $e',
           );
         }
         // Fall back gracefully to Dart on any native error in auto mode
       }
     }
 
-    if (AeviqueNativeEngine.engineMode == EngineMode.nativeOnly) {
-      if (!AeviqueNativeEngine.isAvailable) {
+    if (LumaFixNativeEngine.engineMode == EngineMode.nativeOnly) {
+      if (!LumaFixNativeEngine.isAvailable) {
         throw StateError(
           'EngineMode.nativeOnly requested but native library is unavailable or not loaded.',
         );
@@ -660,10 +656,10 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
 
   // 1. Initialize native engine state in the background isolate
   if (task.engineMode != EngineMode.dartOnly) {
-    AeviqueNativeEngine.tryLoad(customLibraryPath: task.customLibraryPath);
-    AeviqueNativeEngine.engineMode = task.engineMode;
+    LumaFixNativeEngine.tryLoad(customLibraryPath: task.customLibraryPath);
+    LumaFixNativeEngine.engineMode = task.engineMode;
   } else {
-    AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+    LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
   }
 
   // 2. Decode the image
@@ -674,7 +670,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
 
   // 3. Strict nativeOnly validation
   if (task.engineMode == EngineMode.nativeOnly) {
-    if (!AeviqueNativeEngine.isAvailable) {
+    if (!LumaFixNativeEngine.isAvailable) {
       throw StateError(
         'EngineMode.nativeOnly requested but native library is unavailable or not loaded in export isolate.',
       );
@@ -687,10 +683,10 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
   }
 
   // 4. Native Full-Resolution Export Fast Path
-  if (AeviqueNativeEngine.isAvailable &&
+  if (LumaFixNativeEngine.isAvailable &&
       ImagePipeline.isNativeCompatible(task.state)) {
     try {
-      final engine = AeviqueNativeEngine.instance;
+      final engine = LumaFixNativeEngine.instance;
       if (engine != null) {
         var working = decoded;
 
@@ -759,7 +755,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
         totalSw.stop();
         if (kDebugMode) {
           debugPrint(
-            '[AEVIQUE-ENGINE] Full-resolution export processed via NATIVE C++ '
+            '[LUMAFIX-ENGINE] Full-resolution export processed via NATIVE C++ '
             '(${working.width}x${working.height}, channels: $numChannels, format: ${task.outputPng ? 'PNG' : 'JPEG'}, '
             'nativeTime: ${nativeSw.elapsedMilliseconds}ms, totalTime: ${totalSw.elapsedMilliseconds}ms)',
           );
@@ -772,7 +768,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
       }
       if (kDebugMode) {
         debugPrint(
-          '[AEVIQUE-ENGINE] Full-resolution native export threw error, falling back to Dart: $e',
+          '[LUMAFIX-ENGINE] Full-resolution native export threw error, falling back to Dart: $e',
         );
       }
       // In auto mode, fall through to Dart fallback
@@ -802,7 +798,7 @@ Uint8List _isolateProcessEntry(_PipelineTask task) {
   totalSw.stop();
   if (kDebugMode) {
     debugPrint(
-      '[AEVIQUE-ENGINE] Full-resolution export processed via DART FALLBACK '
+      '[LUMAFIX-ENGINE] Full-resolution export processed via DART FALLBACK '
       '(reason: $fallbackReason, ${decoded.width}x${decoded.height}, format: ${task.outputPng ? 'PNG' : 'JPEG'}, '
       'dartTime: ${dartSw.elapsedMilliseconds}ms, totalTime: ${totalSw.elapsedMilliseconds}ms)',
     );

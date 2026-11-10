@@ -1,4 +1,4 @@
-# Requirements: AEVIQUE Reference-Driven iOS 26 Glass Redesign
+# Requirements: LumaFix Reference-Driven iOS 26 Glass Redesign
 
 ## Core Requirements
 
@@ -13,7 +13,7 @@
 
 - **REQ-02: Reference-Matched Splash Screen**
   - Dark cinematic atmosphere with subtle ambient lighting.
-  - Minimal clean sans-serif AEVIQUE wordmark.
+  - Minimal clean sans-serif LumaFix wordmark.
   - Smooth glass fade transition to Home screen.
 
 - **REQ-03: Reference-Matched Home Screen (Phone 1)**

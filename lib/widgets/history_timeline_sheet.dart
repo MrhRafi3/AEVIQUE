@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/models/edit_state.dart';
 import '../core/models/history_manager.dart';
-import '../theme/aevique_theme.dart';
-import 'aevique_glass.dart';
+import '../theme/luma_theme.dart';
+import 'luma_glass.dart';
 
 /// Modal bottom sheet displaying the non-destructive history timeline
 /// with direct jump-to-step and clear history capabilities.
@@ -56,7 +56,7 @@ class HistoryTimelineSheet extends StatelessWidget {
     final list = history.history;
     final currentIdx = history.currentIndex;
 
-    return AeviqueGlass(
+    return LumaGlass(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: Column(
@@ -69,7 +69,7 @@ class HistoryTimelineSheet extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.history_rounded, size: 20, color: AeviqueTheme.primaryBlueLight),
+                  const Icon(Icons.history_rounded, size: 20, color: LumaTheme.primaryBlueLight),
                   const SizedBox(width: 8),
                   const Text(
                     'Editing History',
@@ -86,7 +86,7 @@ class HistoryTimelineSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: const Color(0x331E1E2A),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AeviqueTheme.borderSubtle, width: 0.8),
+                      border: Border.all(color: LumaTheme.borderSubtle, width: 0.8),
                     ),
                     child: Text(
                       '${list.length} steps',
@@ -116,7 +116,7 @@ class HistoryTimelineSheet extends StatelessWidget {
                             fontFamily: 'Inter',
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: AeviqueTheme.coralRedLight,
+                            color: LumaTheme.coralRedLight,
                           ),
                         ),
                       ),
@@ -160,9 +160,9 @@ class HistoryTimelineSheet extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: isCurrent
                         ? BoxDecoration(
-                            color: AeviqueTheme.primaryBlue.withValues(alpha: 0.2),
+                            color: LumaTheme.primaryBlue.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AeviqueTheme.primaryBlueLight, width: 1.0),
+                            border: Border.all(color: LumaTheme.primaryBlueLight, width: 1.0),
                           )
                         : null,
                     child: Row(
@@ -174,7 +174,7 @@ class HistoryTimelineSheet extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isCurrent
-                                ? AeviqueTheme.primaryBlue
+                                ? LumaTheme.primaryBlue
                                 : (isFuture ? const Color(0x334B5563) : const Color(0x3310B981)),
                             border: Border.all(
                               color: isCurrent
@@ -223,7 +223,7 @@ class HistoryTimelineSheet extends StatelessWidget {
                                   style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontSize: 10,
-                                    color: AeviqueTheme.textMuted,
+                                    color: LumaTheme.textMuted,
                                   ),
                                 ),
                             ],
@@ -234,7 +234,7 @@ class HistoryTimelineSheet extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AeviqueTheme.primaryBlue.withValues(alpha: 0.3),
+                              color: LumaTheme.primaryBlue.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -243,7 +243,7 @@ class HistoryTimelineSheet extends StatelessWidget {
                                 fontFamily: 'Inter',
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
-                                color: AeviqueTheme.primaryBlueLight,
+                                color: LumaTheme.primaryBlueLight,
                                 letterSpacing: 0.5,
                               ),
                             ),

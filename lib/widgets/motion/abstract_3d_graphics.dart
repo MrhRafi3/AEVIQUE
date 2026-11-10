@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../theme/aevique_theme.dart';
+import '../../theme/luma_theme.dart';
 
 /// Premium Apple-inspired Abstract 3D Motion Graphics.
 ///
@@ -360,8 +360,8 @@ class _Abstract3DPainter extends CustomPainter {
         endAngle: time * 0.3 + 2 * math.pi,
         colors: [
           Colors.transparent,
-          AeviqueTheme.primaryBlueLight.withValues(alpha: 0.3),
-          AeviqueTheme.creativeOrangeLight.withValues(alpha: 0.4),
+          LumaTheme.primaryBlueLight.withValues(alpha: 0.3),
+          LumaTheme.creativeOrangeLight.withValues(alpha: 0.4),
           Colors.transparent,
         ],
         stops: const [0.0, 0.4, 0.6, 1.0],

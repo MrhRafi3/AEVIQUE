@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../core/native_engine/aevique_ffi.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
-import '../widgets/aevique_logo.dart';
-import '../widgets/aevique_ui_components.dart';
+import '../core/native_engine/lumafix_ffi.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_glass.dart';
+import '../widgets/luma_logo.dart';
+import '../widgets/luma_ui_components.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -27,7 +27,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: const Color(0xFF14141C),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AeviqueTheme.borderLight, width: 0.8),
+          side: const BorderSide(color: LumaTheme.borderLight, width: 0.8),
         ),
         title: const Text(
           'Privacy & Image Data',
@@ -40,12 +40,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         content: const SingleChildScrollView(
           child: Text(
-            'AEVIQUE operates entirely on-device.\n\n'
+            'LumaFix operates entirely on-device.\n\n'
             'Your original photos never leave your device, are never uploaded to any remote server or cloud service, and are edited completely offline using local image-processing pipelines.\n\n'
             'We respect your privacy, your photographic work, and your creative ownership.',
             style: TextStyle(
               fontFamily: 'Inter',
-              color: AeviqueTheme.textSecondary,
+              color: LumaTheme.textSecondary,
               fontSize: 13,
               height: 1.5,
             ),
@@ -57,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text(
               'Understood',
               style: TextStyle(
-                color: AeviqueTheme.primaryBlueLight,
+                color: LumaTheme.primaryBlueLight,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -69,10 +69,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nativeLoaded = AeviqueNativeEngine.isAvailable;
+    final nativeLoaded = LumaFixNativeEngine.isAvailable;
 
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepBlack,
+      backgroundColor: LumaTheme.deepBlack,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -103,17 +103,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 1. About AEVIQUE Glass Card
-            AeviqueGlass(
+            // 1. About LumaFix Glass Card
+            LumaGlass(
               borderRadius: BorderRadius.circular(24),
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  const AeviqueLogo(size: 52),
+                  const LumaLogo(size: 52),
                   const SizedBox(height: 12),
                   Text(
-                    'AEVIQUE',
-                    style: AeviqueTheme.wordmarkStyle(
+                    'LUMAFIX',
+                    style: LumaTheme.wordmarkStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 4.0,
@@ -127,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontFamily: 'Inter',
                       fontStyle: FontStyle.italic,
                       fontSize: 12,
-                      color: AeviqueTheme.creativeOrangeLight,
+                      color: LumaTheme.creativeOrangeLight,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -138,10 +138,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AeviqueTheme.primaryBlueSurface,
+                      color: LumaTheme.primaryBlueSurface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AeviqueTheme.primaryBlue.withValues(alpha: 0.4),
+                        color: LumaTheme.primaryBlue.withValues(alpha: 0.4),
                         width: 0.8,
                       ),
                     ),
@@ -151,18 +151,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AeviqueTheme.primaryBlueLight,
+                        color: LumaTheme.primaryBlueLight,
                         letterSpacing: 0.6,
                       ),
                     ),
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    'AEVIQUE is a photo-editing experience built to help you refine colors, enhance details, and express your creative vision.',
+                    'LumaFix is a photo-editing experience built to help you refine colors, enhance details, and express your creative vision.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      color: AeviqueTheme.textSecondary,
+                      color: LumaTheme.textSecondary,
                       fontSize: 12,
                       height: 1.5,
                     ),
@@ -177,7 +177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: const Color(0x66181824),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AeviqueTheme.borderSubtle,
+                        color: LumaTheme.borderSubtle,
                         width: 0.8,
                       ),
                     ),
@@ -187,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Icon(
                           Icons.verified_user_rounded,
                           size: 14,
-                          color: AeviqueTheme.primaryBlueLight,
+                          color: LumaTheme.primaryBlueLight,
                         ),
                         SizedBox(width: 6),
                         Flexible(
@@ -219,12 +219,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontFamily: 'Inter',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: AeviqueTheme.textMuted,
+                color: LumaTheme.textMuted,
                 letterSpacing: 1.0,
               ),
             ),
             const SizedBox(height: 8),
-            AeviqueGlass(
+            LumaGlass(
               borderRadius: BorderRadius.circular(18),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Column(
@@ -248,7 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          AeviquePillChip(
+                          LumaPillChip(
                             label: 'JPEG',
                             isSelected: _defaultFormat == 'JPEG',
                             padding: const EdgeInsets.symmetric(
@@ -259,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 setState(() => _defaultFormat = 'JPEG'),
                           ),
                           const SizedBox(width: 6),
-                          AeviquePillChip(
+                          LumaPillChip(
                             label: 'PNG',
                             isSelected: _defaultFormat == 'PNG',
                             padding: const EdgeInsets.symmetric(
@@ -273,8 +273,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                   if (_defaultFormat == 'JPEG') ...[
-                    const Divider(color: AeviqueTheme.borderSubtle, height: 20),
-                    AeviquePrecisionSlider(
+                    const Divider(color: LumaTheme.borderSubtle, height: 20),
+                    LumaPrecisionSlider(
                       label: 'Default JPEG Quality',
                       value: _defaultQuality,
                       min: 50.0,
@@ -283,12 +283,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (val) => setState(() => _defaultQuality = val),
                     ),
                   ],
-                  const Divider(color: AeviqueTheme.borderSubtle, height: 16),
+                  const Divider(color: LumaTheme.borderSubtle, height: 16),
                   Material(
                     type: MaterialType.transparency,
                     child: SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AeviqueTheme.primaryBlue,
+                      activeThumbColor: LumaTheme.primaryBlue,
                       title: const Text(
                         'High-Precision Preview Cache',
                         style: TextStyle(
@@ -301,12 +301,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (val) => setState(() => _highResPreview = val),
                     ),
                   ),
-                  const Divider(color: AeviqueTheme.borderSubtle, height: 16),
+                  const Divider(color: LumaTheme.borderSubtle, height: 16),
                   Material(
                     type: MaterialType.transparency,
                     child: SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      activeThumbColor: AeviqueTheme.primaryBlue,
+                      activeThumbColor: LumaTheme.primaryBlue,
                       title: const Text(
                         'Haptic Feedback',
                         style: TextStyle(
@@ -335,12 +335,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontFamily: 'Inter',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: AeviqueTheme.textMuted,
+                color: LumaTheme.textMuted,
                 letterSpacing: 1.0,
               ),
             ),
             const SizedBox(height: 8),
-            AeviqueGlass(
+            LumaGlass(
               borderRadius: BorderRadius.circular(18),
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -350,13 +350,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     nativeLoaded ? 'v1.2.0 (Loaded)' : 'Dart Fallback',
                     isOk: nativeLoaded,
                   ),
-                  const Divider(color: AeviqueTheme.borderSubtle, height: 20),
+                  const Divider(color: LumaTheme.borderSubtle, height: 20),
                   _buildDiagnosticRow(
                     'FFI Pipeline ABI',
                     'Active (C++ SIMD)',
                     isOk: true,
                   ),
-                  const Divider(color: AeviqueTheme.borderSubtle, height: 20),
+                  const Divider(color: LumaTheme.borderSubtle, height: 20),
                   _buildDiagnosticRow(
                     'Color Formats',
                     'RGBA8888 • RGB888',
@@ -375,12 +375,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontFamily: 'Inter',
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: AeviqueTheme.textMuted,
+                color: LumaTheme.textMuted,
                 letterSpacing: 1.0,
               ),
             ),
             const SizedBox(height: 8),
-            AeviqueGlass(
+            LumaGlass(
               borderRadius: BorderRadius.circular(18),
               padding: const EdgeInsets.all(16),
               onTap: _showPrivacyDialog,
@@ -409,11 +409,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // 5. Version Subtitle
             const Center(
               child: Text(
-                'AEVIQUE Studio • iOS 26 Glass Edition',
+                'LumaFix Studio • iOS 26 Glass Edition',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 11,
-                  color: AeviqueTheme.textMuted,
+                  color: LumaTheme.textMuted,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -448,7 +448,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 6,
               height: 6,
               decoration: BoxDecoration(
-                color: isOk ? AeviqueTheme.success : AeviqueTheme.warning,
+                color: isOk ? LumaTheme.success : LumaTheme.warning,
                 shape: BoxShape.circle,
               ),
             ),
@@ -459,7 +459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontFamily: 'Inter',
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isOk ? Colors.white70 : AeviqueTheme.warning,
+                color: isOk ? Colors.white70 : LumaTheme.warning,
               ),
             ),
           ],

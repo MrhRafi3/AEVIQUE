@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_glass.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_glass.dart';
+import '../luma_ui_components.dart';
 
 class CropPanel extends StatefulWidget {
   final GeometryAdjustments geometry;
@@ -91,7 +91,7 @@ class _CropPanelState extends State<CropPanel> {
         // 1. Angle Ruler with Floating Degree Badge (Phone 3)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: AeviqueRulerSlider(
+          child: LumaRulerSlider(
             value: _angleDegrees,
             min: -45.0,
             max: 45.0,
@@ -162,7 +162,7 @@ class _CropPanelState extends State<CropPanel> {
 
   Widget _buildRatioChip(String name, double? ratio) {
     final isSelected = _selectedRatio == name;
-    return AeviquePillChip(
+    return LumaPillChip(
       label: name,
       isSelected: isSelected,
       onTap: () => _setAspectRatio(name, ratio),
@@ -175,7 +175,7 @@ class _CropPanelState extends State<CropPanel> {
     bool isActive = false,
     required VoidCallback onTap,
   }) {
-    return AeviqueGlass(
+    return LumaGlass(
       borderRadius: BorderRadius.circular(12),
       showAmberAccent: isActive,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -186,7 +186,7 @@ class _CropPanelState extends State<CropPanel> {
           Icon(
             icon,
             size: 16,
-            color: isActive ? AeviqueTheme.primaryBlueLight : Colors.white70,
+            color: isActive ? LumaTheme.primaryBlueLight : Colors.white70,
           ),
           const SizedBox(width: 6),
           Text(
@@ -195,7 +195,7 @@ class _CropPanelState extends State<CropPanel> {
               fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              color: isActive ? Colors.white : AeviqueTheme.textSecondary,
+              color: isActive ? Colors.white : LumaTheme.textSecondary,
             ),
           ),
         ],

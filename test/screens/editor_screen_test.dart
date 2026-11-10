@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/screens/editor_screen.dart';
-import 'package:lumaforge/screens/export_screen.dart';
-import 'package:lumaforge/theme/aevique_theme.dart';
-import 'package:lumaforge/theme/luma_theme.dart';
-import 'package:lumaforge/widgets/tool_panels/tune_panel.dart';
+import 'package:lumafix/screens/editor_screen.dart';
+import 'package:lumafix/screens/export_screen.dart';
+import 'package:lumafix/theme/luma_theme.dart';
+import 'package:lumafix/widgets/tool_panels/tune_panel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +25,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: EditorScreen(
             initialImageBytes: sampleBytes,
             imageName: 'Test Image',
@@ -39,8 +38,8 @@ void main() {
       });
       await tester.pump();
 
-      // Check initial neutral state pill and AEVIQUE brand
-      expect(find.text('AEVIQUE'), findsOneWidget);
+      // Check initial neutral state pill and LumaFix brand
+      expect(find.text('LUMAFIX'), findsOneWidget);
       expect(find.text('Original • No Filter'), findsOneWidget);
 
       expect(find.text('Export'), findsOneWidget);

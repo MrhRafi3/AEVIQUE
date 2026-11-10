@@ -1,14 +1,14 @@
-# Roadmap: AEVIQUE Reference-Driven iOS 26 Glass UI Redesign
+# Roadmap: LumaFix Reference-Driven iOS 26 Glass UI Redesign
 
 ## Overview
 
-Complete visual and interaction redesign of AEVIQUE to match the user-provided iOS 26 dark translucent layered glass reference image across all screens, controls, and platforms.
+Complete visual and interaction redesign of LumaFix to match the user-provided iOS 26 dark translucent layered glass reference image across all screens, controls, and platforms.
 
 ## Execution Phases
 
 - [x] **Phase 1: Glass Material System & Design Tokens**
-  - Implement neutral dark-glass palette in `aevique_theme.dart`.
-  - Build reference glass components in `aevique_glass.dart` and `aevique_ui_components.dart`: frosted glass capsules, specular borders, amber glowing FABs, category pills, precision dials, and rulers.
+  - Implement neutral dark-glass palette in `luma_theme.dart`.
+  - Build reference glass components in `luma_glass.dart` and `luma_ui_components.dart`: frosted glass capsules, specular borders, amber glowing FABs, category pills, precision dials, and rulers.
   - Eliminate all traces of legacy champagne/gold, ivory, and Playfair Display typography.
 
 - [x] **Phase 2: Screen Redesigns — Splash, Home, Gallery & Action Sheets**

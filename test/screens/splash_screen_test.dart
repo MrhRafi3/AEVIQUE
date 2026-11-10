@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumaforge/screens/splash_screen.dart';
-import 'package:lumaforge/theme/aevique_theme.dart';
-import 'package:lumaforge/widgets/aevique_logo.dart';
+import 'package:lumafix/screens/splash_screen.dart';
+import 'package:lumafix/theme/luma_theme.dart';
+import 'package:lumafix/widgets/luma_logo.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'SplashScreen renders AeviqueLogo, AEVIQUE, tagline, and exact developer credit',
+    'SplashScreen renders LumaLogo, LumaFix, tagline, and exact developer credit',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: const SplashScreen(
             displayDuration: Duration(seconds: 10),
             nextScreen: Scaffold(body: Text('Next Screen Placeholder')),
@@ -23,8 +23,8 @@ void main() {
       // Fast-forward animation to completion
       await tester.pump(const Duration(milliseconds: 1400));
 
-      expect(find.byType(AeviqueLogo), findsOneWidget);
-      expect(find.text('AEVIQUE'), findsOneWidget);
+      expect(find.byType(LumaLogo), findsOneWidget);
+      expect(find.text('LUMAFIX'), findsOneWidget);
       expect(find.text('See Beyond Ordinary.'), findsOneWidget);
       expect(find.text('Developed by Mrh Rafi'), findsOneWidget);
     },

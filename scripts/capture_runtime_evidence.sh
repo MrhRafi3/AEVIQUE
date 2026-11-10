@@ -25,7 +25,7 @@ get_window_id() {
 import Cocoa
 let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
 for w in windowList {
-    if let owner = w[kCGWindowOwnerName as String] as? String, owner.lowercased().contains("lumaforge") {
+    if let owner = w[kCGWindowOwnerName as String] as? String, owner.lowercased().contains("lumafix") {
         print("\(w[kCGWindowNumber as String] ?? 0)")
         break
     }
@@ -38,10 +38,10 @@ for item in "${SCREENS[@]}"; do
   OUTFILE="review_screenshots/${item##*:}"
   
   echo "Capturing screen: $SCREEN -> $OUTFILE"
-  killall lumaforge 2>/dev/null || true
+  killall lumafix 2>/dev/null || true
   sleep 1
   
-  open -n build/macos/Build/Products/Debug/lumaforge.app --args --screen="$SCREEN"
+  open -n build/macos/Build/Products/Debug/lumafix.app --args --screen="$SCREEN"
   sleep 3
   
   WID=$(get_window_id)
@@ -52,7 +52,7 @@ for item in "${SCREENS[@]}"; do
     echo "  Failed to find window for $SCREEN"
   fi
   
-  killall lumaforge 2>/dev/null || true
+  killall lumafix 2>/dev/null || true
   sleep 1
 done
 

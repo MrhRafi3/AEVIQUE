@@ -1,97 +1,97 @@
-#ifndef AEVIQUE_ENGINE_H
-#define AEVIQUE_ENGINE_H
+#ifndef LUMAFIX_ENGINE_H
+#define LUMAFIX_ENGINE_H
 
 #include <stdint.h>
 #include <stddef.h>
-#include "aevique_export.h"
+#include "lumafix_export.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define AEVIQUE_VERSION_MAJOR 1
-#define AEVIQUE_VERSION_MINOR 2
-#define AEVIQUE_VERSION_PATCH 0
+#define LUMAFIX_VERSION_MAJOR 1
+#define LUMAFIX_VERSION_MINOR 2
+#define LUMAFIX_VERSION_PATCH 0
 
 /**
- * Standard status codes returned by all AEVIQUE C ABI functions.
+ * Standard status codes returned by all LumaFix C ABI functions.
  */
-typedef enum AeviqueStatus {
-    AEVIQUE_SUCCESS                     =  0,
-    AEVIQUE_ERROR_NULL_POINTER          = -1,
-    AEVIQUE_ERROR_INVALID_DIMENSIONS    = -2,
-    AEVIQUE_ERROR_INVALID_STRIDE        = -3,
-    AEVIQUE_ERROR_UNSUPPORTED_FORMAT    = -4,
-    AEVIQUE_ERROR_INVALID_PARAMETER     = -5,
-    AEVIQUE_ERROR_BUFFER_TOO_SMALL      = -6,
-    AEVIQUE_ERROR_UNKNOWN               = -99,
-} AeviqueStatus;
+typedef enum LumaFixStatus {
+    LUMAFIX_SUCCESS                     =  0,
+    LUMAFIX_ERROR_NULL_POINTER          = -1,
+    LUMAFIX_ERROR_INVALID_DIMENSIONS    = -2,
+    LUMAFIX_ERROR_INVALID_STRIDE        = -3,
+    LUMAFIX_ERROR_UNSUPPORTED_FORMAT    = -4,
+    LUMAFIX_ERROR_INVALID_PARAMETER     = -5,
+    LUMAFIX_ERROR_BUFFER_TOO_SMALL      = -6,
+    LUMAFIX_ERROR_UNKNOWN               = -99,
+} LumaFixStatus;
 
 /**
- * Pixel formats supported by AEVIQUE buffers.
- * In Phase 1, AEVIQUE_PIXEL_FORMAT_RGBA8888 is the primary tested format.
+ * Pixel formats supported by LumaFix buffers.
+ * In Phase 1, LUMAFIX_PIXEL_FORMAT_RGBA8888 is the primary tested format.
  */
-typedef enum AeviquePixelFormat {
-    AEVIQUE_PIXEL_FORMAT_RGBA8888       = 0,
-    AEVIQUE_PIXEL_FORMAT_BGRA8888       = 1,
-    AEVIQUE_PIXEL_FORMAT_RGB888         = 2,
-} AeviquePixelFormat;
+typedef enum LumaFixPixelFormat {
+    LUMAFIX_PIXEL_FORMAT_RGBA8888       = 0,
+    LUMAFIX_PIXEL_FORMAT_BGRA8888       = 1,
+    LUMAFIX_PIXEL_FORMAT_RGB888         = 2,
+} LumaFixPixelFormat;
 
 /**
  * Image buffer descriptor with explicit stride for strided or padded memory layouts.
  *
- * Buffer ownership: Caller owns both `data` and the `AeviqueImageBuffer` struct.
+ * Buffer ownership: Caller owns both `data` and the `LumaFixImageBuffer` struct.
  * C++ functions read from `src->data` and write to `dst->data` without freeing or reallocating.
  */
-typedef struct AeviqueImageBuffer {
+typedef struct LumaFixImageBuffer {
     uint8_t* data;
     int32_t width;
     int32_t height;
     int32_t stride_bytes;      /* Stride in bytes per row (e.g. width * 4) */
-    int32_t format;            /* AeviquePixelFormat */
-} AeviqueImageBuffer;
+    int32_t format;            /* LumaFixPixelFormat */
+} LumaFixImageBuffer;
 
 /**
- * Tone adjustment parameters matching AEVIQUE EditState.tune semantics.
+ * Tone adjustment parameters matching LumaFix EditState.tune semantics.
  *
  * All values are expressed on the range [-100.0f, 100.0f], where 0.0f is neutral/identity.
  */
-typedef struct AeviqueToneParameters {
+typedef struct LumaFixToneParameters {
     float exposure;   /* -100.0f .. 100.0f (EV tone scaling factor) */
     float contrast;   /* -100.0f .. 100.0f (Midtone 128 expansion/compression) */
     float saturation; /* -100.0f .. 100.0f (Rec. 709 luminance saturation) */
-} AeviqueToneParameters;
+} LumaFixToneParameters;
 
 /**
  * Single control point on a 2D spline curve in normalized coordinates [0.0f .. 1.0f].
  */
-typedef struct AeviqueCurvePoint {
+typedef struct LumaFixCurvePoint {
     float x; /* Normalized input coordinate [0.0f .. 1.0f] */
     float y; /* Normalized output coordinate [0.0f .. 1.0f] */
-} AeviqueCurvePoint;
+} LumaFixCurvePoint;
 
 /**
  * Control point channel containing an array of points and point count.
  */
-typedef struct AeviqueCurveChannel {
-    const AeviqueCurvePoint* points;
+typedef struct LumaFixCurveChannel {
+    const LumaFixCurvePoint* points;
     int32_t point_count;
-} AeviqueCurveChannel;
+} LumaFixCurveChannel;
 
 /**
- * Quad-channel tone curve descriptor matching AEVIQUE ToneCurves model.
+ * Quad-channel tone curve descriptor matching LumaFix ToneCurves model.
  */
-typedef struct AeviqueToneCurves {
-    AeviqueCurveChannel rgb;
-    AeviqueCurveChannel red;
-    AeviqueCurveChannel green;
-    AeviqueCurveChannel blue;
-} AeviqueToneCurves;
+typedef struct LumaFixToneCurves {
+    LumaFixCurveChannel rgb;
+    LumaFixCurveChannel red;
+    LumaFixCurveChannel green;
+    LumaFixCurveChannel blue;
+} LumaFixToneCurves;
 
 /**
- * Advanced tone parameters matching AEVIQUE EditState.tune semantics.
+ * Advanced tone parameters matching LumaFix EditState.tune semantics.
  */
-typedef struct AeviqueAdvancedToneParameters {
+typedef struct LumaFixAdvancedToneParameters {
     float exposure;   /* -100.0f .. 100.0f (EV tone scaling factor) */
     float contrast;   /* -100.0f .. 100.0f (Midtone 128 expansion/compression) */
     float saturation; /* -100.0f .. 100.0f (Rec. 709 luminance saturation) */
@@ -103,46 +103,46 @@ typedef struct AeviqueAdvancedToneParameters {
     float whites;     /* -100.0f .. 100.0f (White point scaling for > 180) */
     float blacks;     /* -100.0f .. 100.0f (Black point scaling for < 75) */
     float ambiance;   /* -100.0f .. 100.0f (Midtone contrast and depth) */
-} AeviqueAdvancedToneParameters;
+} LumaFixAdvancedToneParameters;
 
 /**
- * Vignette adjustment parameters matching AEVIQUE EditState.vignette semantics.
+ * Vignette adjustment parameters matching LumaFix EditState.vignette semantics.
  */
-typedef struct AeviqueVignetteParameters {
+typedef struct LumaFixVignetteParameters {
     float amount;   /* -100.0f .. 100.0f (0 = neutral/identity; negative = dark edge, positive = bright) */
     float radius;   /* 0.0f .. 100.0f (default 50.0f) */
     float feather;  /* 0.0f .. 100.0f (default 50.0f) */
     float center_x; /* 0.0f .. 1.0f (normalized center X, default 0.5f) */
     float center_y; /* 0.0f .. 1.0f (normalized center Y, default 0.5f) */
-} AeviqueVignetteParameters;
+} LumaFixVignetteParameters;
 
 /**
- * Single color band HSL adjustments matching AEVIQUE HslAdjustments semantics.
+ * Single color band HSL adjustments matching LumaFix HslAdjustments semantics.
  */
-typedef struct AeviqueHslBand {
+typedef struct LumaFixHslBand {
     float hue;        /* -100.0f .. 100.0f (angular hue shift) */
     float saturation; /* -100.0f .. 100.0f (saturation multiplier) */
     float luminance;  /* -100.0f .. 100.0f (luminance offset) */
-} AeviqueHslBand;
+} LumaFixHslBand;
 
 /**
- * 8-channel HSL Color Mixer matching AEVIQUE HslAdjustments model.
+ * 8-channel HSL Color Mixer matching LumaFix HslAdjustments model.
  */
-typedef struct AeviqueHslParameters {
-    AeviqueHslBand red;
-    AeviqueHslBand orange;
-    AeviqueHslBand yellow;
-    AeviqueHslBand green;
-    AeviqueHslBand aqua;
-    AeviqueHslBand blue;
-    AeviqueHslBand purple;
-    AeviqueHslBand magenta;
-} AeviqueHslParameters;
+typedef struct LumaFixHslParameters {
+    LumaFixHslBand red;
+    LumaFixHslBand orange;
+    LumaFixHslBand yellow;
+    LumaFixHslBand green;
+    LumaFixHslBand aqua;
+    LumaFixHslBand blue;
+    LumaFixHslBand purple;
+    LumaFixHslBand magenta;
+} LumaFixHslParameters;
 
 /**
- * Photographic style effects parameters matching AEVIQUE EditState.effects semantics.
+ * Photographic style effects parameters matching LumaFix EditState.effects semantics.
  */
-typedef struct AeviqueEffectsParameters {
+typedef struct LumaFixEffectsParameters {
     int32_t bw_mode;             /* 0 = standard color, 1 = B&W monochrome conversion */
     float grain;                 /* 0.0f .. 100.0f (photographic film grain synthesis) */
     float vintage;               /* 0.0f .. 100.0f (vintage film tone and lifted blacks) */
@@ -151,7 +151,7 @@ typedef struct AeviqueEffectsParameters {
     float glow;                  /* 0.0f .. 100.0f (soft diffusion mist glow) */
     float chromatic_aberration;  /* 0.0f .. 100.0f (color fringing offset) */
     float lens_blur;             /* 0.0f .. 100.0f (optical bokeh / defocus blur) */
-} AeviqueEffectsParameters;
+} LumaFixEffectsParameters;
 
 /**
  * Unified image pipeline parameters executing multiple compatible operations in one pass.
@@ -159,26 +159,27 @@ typedef struct AeviqueEffectsParameters {
  * Sequence:
  *   Tone & Curves -> Vibrance -> Clarity -> HSL Mixer -> Saturation & B/W -> Vintage -> Drama -> Grain -> Bloom/Glow -> Vignette -> Structure -> Lens Blur
  */
-typedef struct AeviquePipelineParameters {
-    AeviqueAdvancedToneParameters tone;
+typedef struct LumaFixPipelineParameters {
+    LumaFixAdvancedToneParameters tone;
     float vibrance;                     /* -100.0f .. 100.0f (skin-tone preserving saturation) */
     float clarity;                      /* -100.0f .. 100.0f (local midtone contrast) */
-    AeviqueHslParameters hsl;
-    AeviqueEffectsParameters effects;
-    AeviqueVignetteParameters vignette;
+    LumaFixHslParameters hsl;
+    LumaFixEffectsParameters effects;
+    LumaFixVignetteParameters vignette;
     float structure;                    /* 0.0f .. 100.0f (local micro-contrast detail) */
-} AeviquePipelineParameters;
+    float sharpening;                   /* 0.0f .. 100.0f (edge-preserving high-frequency sharpening) */
+} LumaFixPipelineParameters;
 
 /**
  * Returns the version encoded as:
  * (major << 16) | (minor << 8) | patch
  */
-AEVIQUE_API uint32_t aevique_get_version(void);
+LUMAFIX_API uint32_t lumafix_get_version(void);
 
 /**
- * Returns a human-readable description for an AeviqueStatus code.
+ * Returns a human-readable description for an LumaFixStatus code.
  */
-AEVIQUE_API const char* aevique_status_to_string(AeviqueStatus status);
+LUMAFIX_API const char* lumafix_status_to_string(LumaFixStatus status);
 
 /**
  * Processes an RGBA8 image buffer with Exposure, Contrast, and Saturation adjustments.
@@ -196,12 +197,12 @@ AEVIQUE_API const char* aevique_status_to_string(AeviqueStatus status);
  * @param src Pointer to input image buffer (caller-owned).
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param params Pointer to tone adjustment parameters.
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_tone_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueToneParameters* params
+LUMAFIX_API LumaFixStatus lumafix_process_tone_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixToneParameters* params
 );
 
 /**
@@ -211,13 +212,13 @@ AEVIQUE_API AeviqueStatus aevique_process_tone_rgba8(
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param tone_params Pointer to exposure, contrast, saturation parameters.
  * @param curves Pointer to tone curves descriptor (may be NULL for identity curves).
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_curves_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueToneParameters* tone_params,
-    const AeviqueToneCurves* curves
+LUMAFIX_API LumaFixStatus lumafix_process_curves_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixToneParameters* tone_params,
+    const LumaFixToneCurves* curves
 );
 
 /**
@@ -228,13 +229,13 @@ AEVIQUE_API AeviqueStatus aevique_process_curves_rgba8(
  * @param params Pointer to advanced tone parameters (exposure, contrast, saturation,
  *               brightness, warmth, tint, highlights, shadows, whites, blacks, ambiance).
  * @param curves Pointer to tone curves descriptor (may be NULL for identity curves).
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_advanced_tone_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueAdvancedToneParameters* params,
-    const AeviqueToneCurves* curves
+LUMAFIX_API LumaFixStatus lumafix_process_advanced_tone_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixAdvancedToneParameters* params,
+    const LumaFixToneCurves* curves
 );
 
 /**
@@ -243,11 +244,11 @@ AEVIQUE_API AeviqueStatus aevique_process_advanced_tone_rgba8(
  * @param src Pointer to input image buffer (caller-owned).
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param vibrance Amount in range [-100.0f .. 100.0f].
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_vibrance_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
+LUMAFIX_API LumaFixStatus lumafix_process_vibrance_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
     float vibrance
 );
 
@@ -257,11 +258,11 @@ AEVIQUE_API AeviqueStatus aevique_process_vibrance_rgba8(
  * @param src Pointer to input image buffer (caller-owned).
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param clarity Amount in range [-100.0f .. 100.0f].
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_clarity_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
+LUMAFIX_API LumaFixStatus lumafix_process_clarity_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
     float clarity
 );
 
@@ -272,11 +273,11 @@ AEVIQUE_API AeviqueStatus aevique_process_clarity_rgba8(
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param saturation Amount in range [-100.0f .. 100.0f].
  * @param bw_mode 1 for monochrome conversion, 0 for standard saturation.
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_monochrome_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
+LUMAFIX_API LumaFixStatus lumafix_process_monochrome_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
     float saturation,
     int32_t bw_mode
 );
@@ -287,12 +288,12 @@ AEVIQUE_API AeviqueStatus aevique_process_monochrome_rgba8(
  * @param src Pointer to input image buffer (caller-owned).
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param params Pointer to vignette parameters.
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_vignette_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueVignetteParameters* params
+LUMAFIX_API LumaFixStatus lumafix_process_vignette_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixVignetteParameters* params
 );
 
 /**
@@ -301,12 +302,12 @@ AEVIQUE_API AeviqueStatus aevique_process_vignette_rgba8(
  * @param src Pointer to input image buffer (caller-owned).
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param params Pointer to HSL parameters.
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_hsl_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviqueHslParameters* params
+LUMAFIX_API LumaFixStatus lumafix_process_hsl_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixHslParameters* params
 );
 
 /**
@@ -320,18 +321,18 @@ AEVIQUE_API AeviqueStatus aevique_process_hsl_rgba8(
  * @param dst Pointer to output image buffer (caller-owned, may point to src).
  * @param params Pointer to unified pipeline parameters.
  * @param curves Pointer to quad-channel tone curves (may be NULL for identity).
- * @return AEVIQUE_SUCCESS on success, or a negative AeviqueStatus error code.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
  */
-AEVIQUE_API AeviqueStatus aevique_process_pipeline_rgba8(
-    const AeviqueImageBuffer* src,
-    AeviqueImageBuffer* dst,
-    const AeviquePipelineParameters* params,
-    const AeviqueToneCurves* curves
+LUMAFIX_API LumaFixStatus lumafix_process_pipeline_rgba8(
+    const LumaFixImageBuffer* src,
+    LumaFixImageBuffer* dst,
+    const LumaFixPipelineParameters* params,
+    const LumaFixToneCurves* curves
 );
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* AEVIQUE_ENGINE_H */
+#endif /* LUMAFIX_ENGINE_H */
 

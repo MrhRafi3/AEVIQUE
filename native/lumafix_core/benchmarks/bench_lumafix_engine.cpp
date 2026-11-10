@@ -6,7 +6,7 @@
 #include <numeric>
 #include <vector>
 
-#include "aevique_engine.h"
+#include "lumafix_engine.h"
 
 struct BenchmarkStats {
     double min_ms;
@@ -44,7 +44,7 @@ int main() {
     const int total_pixels = width * height;
 
     printf("========================================================================================\n");
-    printf("AEVIQUE Core Standalone Native Benchmark\n");
+    printf("LumaFix Core Standalone Native Benchmark\n");
     printf("========================================================================================\n");
     printf("Resolution:       %d x %d (%d pixels, %.2f MB RGBA8)\n",
            width, height, total_pixels, static_cast<double>(total_bytes) / (1024.0 * 1024.0));
@@ -68,19 +68,19 @@ int main() {
         }
     }
 
-    AeviqueImageBuffer src;
+    LumaFixImageBuffer src;
     src.data = src_mem.data();
     src.width = width;
     src.height = height;
     src.stride_bytes = stride;
-    src.format = AEVIQUE_PIXEL_FORMAT_RGBA8888;
+    src.format = LUMAFIX_PIXEL_FORMAT_RGBA8888;
 
-    AeviqueImageBuffer dst;
+    LumaFixImageBuffer dst;
     dst.data = dst_mem.data();
     dst.width = width;
     dst.height = height;
     dst.stride_bytes = stride;
-    dst.format = AEVIQUE_PIXEL_FORMAT_RGBA8888;
+    dst.format = LUMAFIX_PIXEL_FORMAT_RGBA8888;
 
     const int warm_up = 5;
     const int iterations = 50;
@@ -88,7 +88,7 @@ int main() {
     // Test cases
     struct TestCase {
         const char* name;
-        AeviqueToneParameters params;
+        LumaFixToneParameters params;
         bool in_place;
     };
 
@@ -104,11 +104,11 @@ int main() {
     };
 
     for (const auto& tc : cases) {
-        AeviqueImageBuffer* target_dst = tc.in_place ? &src : &dst;
+        LumaFixImageBuffer* target_dst = tc.in_place ? &src : &dst;
 
         // Warm-up
         for (int i = 0; i < warm_up; i++) {
-            aevique_process_tone_rgba8(&src, target_dst, &tc.params);
+            lumafix_process_tone_rgba8(&src, target_dst, &tc.params);
         }
 
         // Measure
@@ -117,7 +117,7 @@ int main() {
 
         for (int i = 0; i < iterations; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_tone_rgba8(&src, target_dst, &tc.params);
+            lumafix_process_tone_rgba8(&src, target_dst, &tc.params);
             auto end = std::chrono::high_resolution_clock::now();
 
             std::chrono::duration<double, std::milli> elapsed = end - start;
@@ -130,7 +130,7 @@ int main() {
 
     // Phase 3: Advanced Tone Engine Benchmark (1200x670)
     printf("\n--- Phase 3 Advanced Tone Engine (1200x670) ---\n");
-    AeviqueAdvancedToneParameters adv_params{};
+    LumaFixAdvancedToneParameters adv_params{};
     adv_params.exposure = 20.0f;
     adv_params.contrast = 15.0f;
     adv_params.saturation = 25.0f;
@@ -141,20 +141,20 @@ int main() {
     adv_params.warmth = 20.0f;
     adv_params.tint = -10.0f;
 
-    AeviqueCurvePoint rgb_pts[] = {{0.0f, 0.0f}, {0.25f, 0.20f}, {0.75f, 0.85f}, {1.0f, 1.0f}};
-    AeviqueToneCurves curves{};
+    LumaFixCurvePoint rgb_pts[] = {{0.0f, 0.0f}, {0.25f, 0.20f}, {0.75f, 0.85f}, {1.0f, 1.0f}};
+    LumaFixToneCurves curves{};
     curves.rgb.points = rgb_pts;
     curves.rgb.point_count = 4;
 
     {
         for (int i = 0; i < warm_up; i++) {
-            aevique_process_advanced_tone_rgba8(&src, &dst, &adv_params, &curves);
+            lumafix_process_advanced_tone_rgba8(&src, &dst, &adv_params, &curves);
         }
         std::vector<double> times;
         times.reserve(iterations);
         for (int i = 0; i < iterations; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_advanced_tone_rgba8(&src, &dst, &adv_params, &curves);
+            lumafix_process_advanced_tone_rgba8(&src, &dst, &adv_params, &curves);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> elapsed = end - start;
             times.push_back(elapsed.count());
@@ -169,10 +169,10 @@ int main() {
         // 1. Vibrance Standalone
         std::vector<double> times;
         times.reserve(iterations);
-        for (int i = 0; i < warm_up; i++) aevique_process_vibrance_rgba8(&src, &dst, 35.0f);
+        for (int i = 0; i < warm_up; i++) lumafix_process_vibrance_rgba8(&src, &dst, 35.0f);
         for (int i = 0; i < iterations; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_vibrance_rgba8(&src, &dst, 35.0f);
+            lumafix_process_vibrance_rgba8(&src, &dst, 35.0f);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> el = end - start;
             times.push_back(el.count());
@@ -183,10 +183,10 @@ int main() {
         // 2. Clarity Standalone
         std::vector<double> times;
         times.reserve(iterations);
-        for (int i = 0; i < warm_up; i++) aevique_process_clarity_rgba8(&src, &dst, 30.0f);
+        for (int i = 0; i < warm_up; i++) lumafix_process_clarity_rgba8(&src, &dst, 30.0f);
         for (int i = 0; i < iterations; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_clarity_rgba8(&src, &dst, 30.0f);
+            lumafix_process_clarity_rgba8(&src, &dst, 30.0f);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> el = end - start;
             times.push_back(el.count());
@@ -195,7 +195,7 @@ int main() {
     }
     {
         // 3. Vignette Standalone
-        AeviqueVignetteParameters v{};
+        LumaFixVignetteParameters v{};
         v.amount = -45.0f;
         v.radius = 45.0f;
         v.feather = 35.0f;
@@ -204,10 +204,10 @@ int main() {
 
         std::vector<double> times;
         times.reserve(iterations);
-        for (int i = 0; i < warm_up; i++) aevique_process_vignette_rgba8(&src, &dst, &v);
+        for (int i = 0; i < warm_up; i++) lumafix_process_vignette_rgba8(&src, &dst, &v);
         for (int i = 0; i < iterations; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_vignette_rgba8(&src, &dst, &v);
+            lumafix_process_vignette_rgba8(&src, &dst, &v);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> el = end - start;
             times.push_back(el.count());
@@ -216,7 +216,7 @@ int main() {
     }
     {
         // 4. Unified Full Pipeline (Tone + Curves + Vibrance + Clarity + Effects + Vignette + Structure)
-        AeviquePipelineParameters pipe_params{};
+        LumaFixPipelineParameters pipe_params{};
         pipe_params.tone = adv_params;
         pipe_params.vibrance = 25.0f;
         pipe_params.clarity = 20.0f;
@@ -232,10 +232,10 @@ int main() {
 
         std::vector<double> times;
         times.reserve(iterations);
-        for (int i = 0; i < warm_up; i++) aevique_process_pipeline_rgba8(&src, &dst, &pipe_params, &curves);
+        for (int i = 0; i < warm_up; i++) lumafix_process_pipeline_rgba8(&src, &dst, &pipe_params, &curves);
         for (int i = 0; i < iterations; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_pipeline_rgba8(&src, &dst, &pipe_params, &curves);
+            lumafix_process_pipeline_rgba8(&src, &dst, &pipe_params, &curves);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> el = end - start;
             times.push_back(el.count());
@@ -253,29 +253,29 @@ int main() {
     std::vector<uint8_t> full_src_mem(full_bytes, 128);
     std::vector<uint8_t> full_dst_mem(full_bytes, 0);
 
-    AeviqueImageBuffer full_src;
+    LumaFixImageBuffer full_src;
     full_src.data = full_src_mem.data();
     full_src.width = full_w;
     full_src.height = full_h;
     full_src.stride_bytes = full_stride;
-    full_src.format = AEVIQUE_PIXEL_FORMAT_RGBA8888;
+    full_src.format = LUMAFIX_PIXEL_FORMAT_RGBA8888;
 
-    AeviqueImageBuffer full_dst;
+    LumaFixImageBuffer full_dst;
     full_dst.data = full_dst_mem.data();
     full_dst.width = full_w;
     full_dst.height = full_h;
     full_dst.stride_bytes = full_stride;
-    full_dst.format = AEVIQUE_PIXEL_FORMAT_RGBA8888;
+    full_dst.format = LUMAFIX_PIXEL_FORMAT_RGBA8888;
 
     {
         for (int i = 0; i < 3; i++) {
-            aevique_process_advanced_tone_rgba8(&full_src, &full_dst, &adv_params, &curves);
+            lumafix_process_advanced_tone_rgba8(&full_src, &full_dst, &adv_params, &curves);
         }
         std::vector<double> times;
         times.reserve(15);
         for (int i = 0; i < 15; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_advanced_tone_rgba8(&full_src, &full_dst, &adv_params, &curves);
+            lumafix_process_advanced_tone_rgba8(&full_src, &full_dst, &adv_params, &curves);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> elapsed = end - start;
             times.push_back(elapsed.count());
@@ -285,7 +285,7 @@ int main() {
     }
 
     {
-        AeviquePipelineParameters pipe_params{};
+        LumaFixPipelineParameters pipe_params{};
         pipe_params.tone = adv_params;
         pipe_params.vibrance = 25.0f;
         pipe_params.clarity = 20.0f;
@@ -300,13 +300,13 @@ int main() {
         pipe_params.structure = 15.0f;
 
         for (int i = 0; i < 3; i++) {
-            aevique_process_pipeline_rgba8(&full_src, &full_dst, &pipe_params, &curves);
+            lumafix_process_pipeline_rgba8(&full_src, &full_dst, &pipe_params, &curves);
         }
         std::vector<double> times;
         times.reserve(15);
         for (int i = 0; i < 15; i++) {
             auto start = std::chrono::high_resolution_clock::now();
-            aevique_process_pipeline_rgba8(&full_src, &full_dst, &pipe_params, &curves);
+            lumafix_process_pipeline_rgba8(&full_src, &full_dst, &pipe_params, &curves);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> elapsed = end - start;
             times.push_back(elapsed.count());

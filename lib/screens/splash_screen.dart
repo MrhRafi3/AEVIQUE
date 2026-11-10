@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_logo.dart';
-import 'home_screen.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_logo.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   final Duration displayDuration;
@@ -78,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen>
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            widget.nextScreen ?? HomeScreen(),
+            widget.nextScreen ?? const LoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -96,7 +96,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AeviqueTheme.deepCanvas,
+      backgroundColor: LumaTheme.deepCanvas,
       body: Stack(
         children: [
           // Ambient 3-color atmospheric light diffusion
@@ -112,8 +112,8 @@ class _SplashScreenState extends State<SplashScreen>
                     center: const Alignment(0.0, -0.2),
                     radius: 1.2,
                     colors: [
-                      AeviqueTheme.primaryBlue.withValues(alpha: 0.15),
-                      AeviqueTheme.creativeOrange.withValues(alpha: 0.08),
+                      LumaTheme.primaryBlue.withValues(alpha: 0.15),
+                      LumaTheme.creativeOrange.withValues(alpha: 0.08),
                       Colors.transparent,
                     ],
                   ),
@@ -131,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                   opacity: _logoFade,
                   child: ScaleTransition(
                     scale: _logoScale,
-                    child: const AeviqueLogo(size: 80, showGlow: true),
+                    child: const LumaLogo(size: 80, showGlow: true),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -141,8 +141,8 @@ class _SplashScreenState extends State<SplashScreen>
                     animation: _wordmarkSpacing,
                     builder: (context, child) {
                       return Text(
-                        'AEVIQUE',
-                        style: AeviqueTheme.wordmarkStyle(
+                        'LUMAFIX',
+                        style: LumaTheme.wordmarkStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w600,
                           letterSpacing: _wordmarkSpacing.value,
@@ -162,7 +162,7 @@ class _SplashScreenState extends State<SplashScreen>
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                       letterSpacing: 2.0,
-                      color: AeviqueTheme.textMuted,
+                      color: LumaTheme.textMuted,
                     ),
                   ),
                 ),

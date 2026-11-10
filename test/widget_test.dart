@@ -2,9 +2,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lumaforge/main.dart';
-import 'package:lumaforge/screens/home_screen.dart';
-import 'package:lumaforge/services/image_repository.dart';
+import 'package:lumafix/main.dart';
+import 'package:lumafix/screens/home_screen.dart';
+import 'package:lumafix/services/image_repository.dart';
 
 class MockImageRepository implements ImageRepository {
   @override
@@ -21,7 +21,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  testWidgets('AeviqueApp launches and displays minimal Home Screen', (
+  testWidgets('LumaFixApp launches and displays minimal Home Screen', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -32,11 +32,11 @@ void main() {
     });
 
     await tester.pumpWidget(
-      AeviqueApp(home: HomeScreen(imageRepository: MockImageRepository())),
+      LumaFixApp(home: HomeScreen(imageRepository: MockImageRepository())),
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('AEVIQUE'), findsOneWidget);
+    expect(find.text('LUMAFIX'), findsOneWidget);
     expect(find.text('Start Editing'), findsOneWidget);
     expect(find.text('Open Camera'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);

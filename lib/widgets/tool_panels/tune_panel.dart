@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/models/edit_state.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_ui_components.dart';
 import '../curve_editor_widget.dart';
 
 enum TuneMode { all, light, color, detail }
@@ -63,7 +63,7 @@ class _TunePanelState extends State<TunePanel> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              AeviqueCircularDial(
+              LumaCircularDial(
                 label: 'Exposure',
                 icon: Icons.wb_sunny_outlined,
                 value: widget.tune.exposure,
@@ -72,7 +72,7 @@ class _TunePanelState extends State<TunePanel> {
                 onChanged: (v) =>
                     widget.onChanged(widget.tune.copyWith(exposure: v)),
               ),
-              AeviqueCircularDial(
+              LumaCircularDial(
                 label: 'Contrast',
                 icon: Icons.contrast_rounded,
                 value: widget.tune.contrast,
@@ -81,7 +81,7 @@ class _TunePanelState extends State<TunePanel> {
                 onChanged: (v) =>
                     widget.onChanged(widget.tune.copyWith(contrast: v)),
               ),
-              AeviqueCircularDial(
+              LumaCircularDial(
                 label: 'Grain',
                 icon: Icons.grain_rounded,
                 value: _grainValue,
@@ -109,7 +109,7 @@ class _TunePanelState extends State<TunePanel> {
                   child: ListView(
                     padding: EdgeInsets.zero,
                     children: [
-                      AeviquePrecisionSlider(
+                      LumaPrecisionSlider(
                         label: 'Brightness',
                         value: widget.tune.brightness,
                         onChanged: (v) => widget.onChanged(
@@ -119,7 +119,7 @@ class _TunePanelState extends State<TunePanel> {
                           widget.tune.copyWith(brightness: 0.0),
                         ),
                       ),
-                      AeviquePrecisionSlider(
+                      LumaPrecisionSlider(
                         label: 'Contrast',
                         value: widget.tune.contrast,
                         onChanged: (v) =>
@@ -128,7 +128,7 @@ class _TunePanelState extends State<TunePanel> {
                           widget.tune.copyWith(contrast: 0.0),
                         ),
                       ),
-                      AeviquePrecisionSlider(
+                      LumaPrecisionSlider(
                         label: 'Saturation',
                         value: widget.tune.saturation,
                         onChanged: (v) => widget.onChanged(
@@ -138,7 +138,7 @@ class _TunePanelState extends State<TunePanel> {
                           widget.tune.copyWith(saturation: 0.0),
                         ),
                       ),
-                      AeviquePrecisionSlider(
+                      LumaPrecisionSlider(
                         label: 'Warmth',
                         value: widget.tune.warmth,
                         onChanged: (v) =>
@@ -146,7 +146,7 @@ class _TunePanelState extends State<TunePanel> {
                         onReset: () =>
                             widget.onChanged(widget.tune.copyWith(warmth: 0.0)),
                       ),
-                      AeviquePrecisionSlider(
+                      LumaPrecisionSlider(
                         label: 'Highlights',
                         value: widget.tune.highlights,
                         onChanged: (v) => widget.onChanged(
@@ -156,7 +156,7 @@ class _TunePanelState extends State<TunePanel> {
                           widget.tune.copyWith(highlights: 0.0),
                         ),
                       ),
-                      AeviquePrecisionSlider(
+                      LumaPrecisionSlider(
                         label: 'Shadows',
                         value: widget.tune.shadows,
                         onChanged: (v) =>
@@ -210,7 +210,7 @@ class _TunePanelState extends State<TunePanel> {
                       Icon(
                         Icons.auto_awesome,
                         size: 14,
-                        color: AeviqueTheme.primaryBlueLight,
+                        color: LumaTheme.primaryBlueLight,
                       ),
                       SizedBox(width: 6),
                       Text(
@@ -234,7 +234,7 @@ class _TunePanelState extends State<TunePanel> {
                     fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AeviqueTheme.textMuted,
+                    color: LumaTheme.textMuted,
                   ),
                 ),
               ),

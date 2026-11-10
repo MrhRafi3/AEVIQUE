@@ -2,10 +2,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/screens/export_screen.dart';
-import 'package:lumaforge/services/export_service.dart';
-import 'package:lumaforge/theme/luma_theme.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/screens/export_screen.dart';
+import 'package:lumafix/services/export_service.dart';
+import 'package:lumafix/theme/luma_theme.dart';
 
 class MockExportService implements ExportService {
   bool saveCalled = false;
@@ -14,7 +14,7 @@ class MockExportService implements ExportService {
   @override
   Future<bool> saveToGallery(
     Uint8List imageBytes, {
-    String name = 'lumaforge_edit',
+    String name = 'lumafix_edit',
   }) async {
     saveCalled = true;
     return true;
@@ -23,7 +23,7 @@ class MockExportService implements ExportService {
   @override
   Future<bool> shareImage(
     Uint8List imageBytes, {
-    String name = 'lumaforge_edit',
+    String name = 'lumafix_edit',
   }) async {
     shareCalled = true;
     return true;

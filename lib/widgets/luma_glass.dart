@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../theme/aevique_theme.dart';
+import '../theme/luma_theme.dart';
 
 /// Style variants for Liquid Glass surfaces.
 enum LiquidGlassVariant {
@@ -72,7 +72,7 @@ class LiquidGlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveRadius =
-        borderRadius ?? BorderRadius.circular(AeviqueTheme.radiusLg);
+        borderRadius ?? BorderRadius.circular(LumaTheme.radiusLg);
 
     // Transparency & blur determined by variant
     double effectiveBlur;
@@ -152,7 +152,7 @@ class LiquidGlassPanel extends StatelessWidget {
       case LiquidGlassVariant.accentBlue:
         effectiveBlur = blur ?? 24.0;
         baseGlassFill = customBackgroundColor ?? const Color(0x333478F6);
-        activeGlow = AeviqueTheme.primaryBlueGlow;
+        activeGlow = LumaTheme.primaryBlueGlow;
         borderGradient = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -168,7 +168,7 @@ class LiquidGlassPanel extends StatelessWidget {
       case LiquidGlassVariant.accentOrange:
         effectiveBlur = blur ?? 24.0;
         baseGlassFill = customBackgroundColor ?? const Color(0x33FF8A32);
-        activeGlow = AeviqueTheme.creativeOrangeGlow;
+        activeGlow = LumaTheme.creativeOrangeGlow;
         borderGradient = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -184,7 +184,7 @@ class LiquidGlassPanel extends StatelessWidget {
       case LiquidGlassVariant.accentRed:
         effectiveBlur = blur ?? 24.0;
         baseGlassFill = customBackgroundColor ?? const Color(0x33F04452);
-        activeGlow = AeviqueTheme.coralRedGlow;
+        activeGlow = LumaTheme.coralRedGlow;
         borderGradient = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -344,8 +344,8 @@ class _LiquidGlassBorderPainter extends CustomPainter {
   }
 }
 
-/// Backward compatibility class for existing code referencing `AeviqueGlass`
-class AeviqueGlass extends StatelessWidget {
+/// Backward compatibility class for existing code referencing `LumaGlass`
+class LumaGlass extends StatelessWidget {
   final Widget child;
   final double blur;
   final Color? backgroundColor;
@@ -359,7 +359,7 @@ class AeviqueGlass extends StatelessWidget {
   final bool hasGrabHandle;
   final VoidCallback? onTap;
 
-  const AeviqueGlass({
+  const LumaGlass({
     super.key,
     required this.child,
     this.blur = 20.0,

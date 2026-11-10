@@ -1,78 +1,76 @@
- <div align="center">
+<div align="center">
 
-# AEVIQUE
+# LUMAFIX
 
-### Create Beyond the Ordinary.
+### Professional On-Device Photo Editing Studio
 
-**A Creative Editing Experience, Crafted with Flutter.**
+**LumaFix is a professional Flutter-powered photo editing application with a high-performance native C++ image processing engine.**
 
-A modern photo and video editing application focused on creative expression, refined visuals, and an elegant mobile experience.
-
-<br>
-
-[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev/)
-[![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Mobile-black?style=for-the-badge&logo=android)](https://github.com/MrhRafi3/AEVIQUE)
+Crafted for photographers, visual artists, and enthusiasts who demand non-destructive pixel precision, tactile feedback, and instantaneous rendering.
 
 <br>
 
-**[Explore Repository](https://github.com/MrhRafi3/AEVIQUE)**
+[![Flutter](https://img.shields.io/badge/Flutter-3.44+-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-3.12+-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev/)
+[![C++](https://img.shields.io/badge/C++-17-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://isocpp.org/)
+[![Platform](https://img.shields.io/badge/Platforms-Android%20%7C%20iOS%20%7C%20macOS-black?style=for-the-badge)](https://github.com/MrhRafi3/LumaFix)
+
+<br>
+
+**[Explore Repository](https://github.com/MrhRafi3/LumaFix)**
 
 </div>
 
 ---
 
-## ✦ About AEVIQUE
+## ✦ About LumaFix
 
-**AEVIQUE** is a creative editing app built with Flutter, designed around a sleek visual identity and an intuitive editing experience.
+**LumaFix** is an on-device, privacy-first photo editing experience combining a fluid Flutter interface with a high-performance native C++ image processing engine (`lumafix_core`).
 
-The project explores how thoughtful interface design, smooth interactions, and creative tools can come together to make mobile editing feel more personal and enjoyable.
+Operating with zero cloud dependencies, LumaFix provides immediate interactive feedback via a real-time preview pipeline while executing export-grade processing via hardware-optimized native C++ algorithms.
 
-From discovering creative possibilities to managing recent edits, AEVIQUE aims to bring a polished editing experience into one elegant application.
+## ✨ Core Capabilities
 
-## ✨ Highlights
+- ⚡ **Dual-Tier Hybrid Architecture** — Real-time reactive preview pipeline connected to a native C++ engine via Dart FFI with seamless pure Dart fallbacks.
+- 🎨 **Complete Tone & Color Grading** — Exposure, contrast, saturation, brightness, color temperature (warmth/tint), highlights, shadows, whites, blacks, and midtone ambiance.
+- 📈 **Quad-Channel Tone Curves** — Interactive cubic spline curve adjustments for Master RGB, Red, Green, and Blue channels.
+- 🎯 **8-Band HSL Color Mixer** — Surgical hue, saturation, and luminance adjustments across Red, Orange, Yellow, Green, Aqua, Blue, Purple, and Magenta with skin-tone protection.
+- 🪄 **Photographic Effects Engine** — Film grain synthesis, vintage film tone, chiaroscuro drama, highlight bloom, soft diffusion mist, chromatic aberration, and lens blur bokeh.
+- 🔄 **Non-Destructive History** — Instant undo/redo stack, visual history timeline, and real-time before/after comparison viewers.
+- 📦 **Studio Presets** — Curated aesthetic profiles (Tokyo Neon, Muted Editorial, Warm Vintage, Moody Dark, High Contrast B&W) and custom preset persistence.
+- 💾 **Full-Resolution Native Export** — Fast high-resolution export pipeline with hardware-accelerated JPEG compression and direct gallery saving.
 
-- 🎨 **Creative Editing** — A dedicated space for exploring and creating visual content.
-- 🖤 **Premium Visual Identity** — An elegant aesthetic inspired by ivory, champagne gold, and deep black.
-- 🪄 **Presets & Creativity** — A foundation for discovering and applying creative styles.
-- 🖼️ **Editing Workflow** — Designed around an organized, user-friendly editing experience.
-- 🕘 **Recent Edits** — A dedicated area for accessing recent editing sessions.
-- 📱 **Flutter-Powered UI** — A mobile-first experience built with Flutter.
+## 🛠️ Architecture & Tech Stack
 
-*Feature availability depends on the current implementation of the project.*
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-|---|---|
-| Flutter | Cross-platform UI development |
-| Dart | Application logic |
-| Git & GitHub | Version control |
-| VS Code | Development environment |
+| Component | Technology | Description |
+|---|---|---|
+| **UI & Framework** | Flutter 3.44+ / Dart 3.12+ | Liquid Glass design language, custom gestures, tactile haptics |
+| **Native Core** | C++17 (`lumafix_core`) | Fused image pipeline, zero-allocation pixel loops, SIMD-friendly layout |
+| **Bridge Layer** | Dart FFI (`dart:ffi`) | Low-overhead C ABI bindings with automatic memory management |
+| **Build System** | CMake 3.15+ & Gradle | Multiplatform build configuration for Android, macOS, iOS, Windows, Linux |
 
 ## 🚀 Getting Started
 
-Run AEVIQUE locally by following these steps.
-
 ### Prerequisites
 
-- Flutter SDK
-- Dart SDK
-- Visual Studio Code or Android Studio
-- Android emulator or compatible physical device
+- Flutter SDK (v3.44.0 or newer)
+- Dart SDK (v3.12.0 or newer)
+- C++17 compatible compiler (Clang / AppleClang / GCC / MSVC)
+- CMake (v3.15 or newer)
+- Android Studio or Xcode for target platform builds
 
 ### Installation
 
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/MrhRafi3/AEVIQUE.git
+git clone https://github.com/MrhRafi3/LumaFix.git
 ```
 
 **2. Open the project directory**
 
 ```bash
-cd AEVIQUE
+cd LumaFix
 ```
 
 **3. Install dependencies**
@@ -81,36 +79,63 @@ cd AEVIQUE
 flutter pub get
 ```
 
-**4. Run the application**
+**4. Build the native C++ engine (macOS / Host)**
+
+```bash
+mkdir -p native/lumafix_core/build
+cd native/lumafix_core/build
+cmake ..
+cmake --build .
+cd ../../..
+```
+
+**5. Run the application**
 
 ```bash
 flutter run
 ```
 
+## 🧪 Testing & Verification
+
+LumaFix enforces thorough verification across both Flutter and native C++ subsystems:
+
+```bash
+# Run complete Flutter test suite (155+ unit & widget tests)
+flutter test
+
+# Run C++ native unit tests (27 comprehensive parity & numerical tests)
+./native/lumafix_core/build/test_lumafix_engine
+
+# Run static analysis
+flutter analyze
+```
+
 ## 📁 Project Structure
 
 ```text
-AEVIQUE/
-├── android/
-├── ios/
+lumafix/
+├── android/                    # Android host project & Gradle configuration
+├── ios/                        # iOS host project & Xcode configuration
+├── macos/                      # macOS desktop runner & project files
+├── native/
+│   └── lumafix_core/           # High-performance C++17 processing core
+│       ├── include/            # C ABI public headers (lumafix_engine.h)
+│       ├── src/                # Kernel algorithms & fused pipeline
+│       ├── tests/              # Native unit test suite
+│       └── benchmarks/         # Micro-benchmarks
 ├── lib/
-│   ├── main.dart
-│   └── ...
-├── assets/
-├── test/
-├── pubspec.yaml
-└── README.md
+│   ├── core/
+│   │   ├── image_engine/       # Preview pipeline, filter kernels & LUT generators
+│   │   ├── models/             # Immutable EditState & HistoryManager
+│   │   ├── native_engine/      # Dart FFI bindings & native engine wrapper
+│   │   └── presets/            # Preset definitions & filter catalogues
+│   ├── screens/                # Studio screens (Editor, Home, Gallery, Export, etc.)
+│   ├── services/               # Image loading, preset persistence & export services
+│   ├── theme/                  # LumaTheme Liquid Glass design tokens
+│   └── widgets/                # Precision dials, sliders, docks & glass panels
+├── assets/                     # Curated high-res samples, fonts & icons
+└── test/                       # Comprehensive Flutter test suite
 ```
-
-*Illustrative structure; the actual directories may differ.*
-
-## 🧭 Development Goals
-
-- [ ] Refine the editing experience and visual consistency.
-- [ ] Improve transitions and micro-interactions.
-- [ ] Enhance the presets and editing workflow.
-- [ ] Continue improving performance and maintainability.
-- [ ] Expand creative capabilities as development progresses.
 
 ## 👨‍💻 Developer
 
@@ -123,18 +148,16 @@ Flutter App Developer · Mobile UI Engineer
 [![GitHub](https://img.shields.io/badge/GitHub-MrhRafi3-181717?style=for-the-badge&logo=github)](https://github.com/MrhRafi3)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-mrhrafi-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/mrhrafi)
 
+**Developed by Mrh Rafi**
+
 </div>
-
-## 📄 License
-
-A license has not yet been specified. Please check the repository for licensing terms before using or redistributing this project.
 
 ---
 
 <div align="center">
 
-**AEVIQUE — Your Vision. Your Aesthetic.**
+**LUMAFIX — Precision Photo Studio.**
 
-*Crafted with Flutter and a passion for creative experiences.*
+*Crafted with Flutter, modern C++, and a passion for creative precision.*
 
 </div>

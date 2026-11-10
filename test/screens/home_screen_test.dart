@@ -2,13 +2,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lumaforge/screens/camera_screen.dart';
-import 'package:lumaforge/screens/home_screen.dart';
-import 'package:lumaforge/screens/profile_screen.dart';
-import 'package:lumaforge/screens/settings_screen.dart';
-import 'package:lumaforge/services/image_repository.dart';
-import 'package:lumaforge/theme/aevique_theme.dart';
-import 'package:lumaforge/widgets/motion/abstract_3d_graphics.dart';
+import 'package:lumafix/screens/camera_screen.dart';
+import 'package:lumafix/screens/home_screen.dart';
+import 'package:lumafix/screens/profile_screen.dart';
+import 'package:lumafix/screens/settings_screen.dart';
+import 'package:lumafix/services/image_repository.dart';
+import 'package:lumafix/theme/luma_theme.dart';
+import 'package:lumafix/widgets/motion/abstract_3d_graphics.dart';
 
 class MockImageRepository implements ImageRepository {
   @override
@@ -57,7 +57,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: HomeScreen(imageRepository: mockRepo),
         ),
       );
@@ -66,8 +66,8 @@ void main() {
       // 1. Verify 3D Motion Graphics background is present
       expect(find.byType(Abstract3DMotionGraphics), findsOneWidget);
 
-      // 2. Verify Minimal AEVIQUE Branding
-      expect(find.text('AEVIQUE'), findsOneWidget);
+      // 2. Verify Minimal LumaFix Branding
+      expect(find.text('LUMAFIX'), findsOneWidget);
       expect(find.text('CREATIVE PHOTO ENGINE'), findsOneWidget);
 
       // 3. Verify The 4 Main Elements:

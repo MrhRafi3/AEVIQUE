@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../theme/aevique_theme.dart';
-import 'aevique_glass.dart';
+import '../theme/luma_theme.dart';
+import 'luma_glass.dart';
 
 /// Button variant for [LiquidGlassButton]
 enum LiquidGlassButtonVariant {
@@ -32,7 +32,7 @@ class LiquidGlassButton extends StatelessWidget {
     this.isLoading = false,
     this.height = 50.0,
     this.width,
-    this.borderRadius = AeviqueTheme.radiusLg,
+    this.borderRadius = LumaTheme.radiusLg,
     this.padding,
   });
 
@@ -45,17 +45,17 @@ class LiquidGlassButton extends StatelessWidget {
 
     switch (variant) {
       case LiquidGlassButtonVariant.primaryBlue:
-        glowColor = AeviqueTheme.primaryBlueGlow;
+        glowColor = LumaTheme.primaryBlueGlow;
         gradientStart = const Color(0xE63478F6);
         gradientEnd = const Color(0xCC1E5AD6);
         break;
       case LiquidGlassButtonVariant.creativeOrange:
-        glowColor = AeviqueTheme.creativeOrangeGlow;
+        glowColor = LumaTheme.creativeOrangeGlow;
         gradientStart = const Color(0xE6FF8A32);
         gradientEnd = const Color(0xCCDF6B15);
         break;
       case LiquidGlassButtonVariant.destructiveRed:
-        glowColor = AeviqueTheme.coralRedGlow;
+        glowColor = LumaTheme.coralRedGlow;
         gradientStart = const Color(0xE6F04452);
         gradientEnd = const Color(0xCCD32635);
         break;
@@ -63,7 +63,7 @@ class LiquidGlassButton extends StatelessWidget {
         glowColor = Colors.white.withValues(alpha: 0.12);
         gradientStart = const Color(0x33FFFFFF);
         gradientEnd = const Color(0x14FFFFFF);
-        textColor = AeviqueTheme.textPrimary;
+        textColor = LumaTheme.textPrimary;
         break;
     }
 
@@ -176,7 +176,7 @@ class LiquidGlassToolbar extends StatelessWidget {
     required this.children,
     this.padding,
     this.height = 56.0,
-    this.borderRadius = AeviqueTheme.radiusFull,
+    this.borderRadius = LumaTheme.radiusFull,
   });
 
   @override
@@ -227,7 +227,7 @@ class LiquidGlassSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = activeColor ?? AeviqueTheme.primaryBlue;
+    final effectiveColor = activeColor ?? LumaTheme.primaryBlue;
     final isNonZero = value.abs() > 0.001;
 
     return Column(
@@ -249,7 +249,7 @@ class LiquidGlassSlider extends StatelessWidget {
                         fontFamily: 'Inter',
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
-                        color: AeviqueTheme.textSecondary,
+                        color: LumaTheme.textSecondary,
                       ),
                     ),
                     if (isNonZero && onReset != null) ...[
@@ -275,7 +275,7 @@ class LiquidGlassSlider extends StatelessWidget {
                   fontFamily: 'Inter',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: isNonZero ? effectiveColor : AeviqueTheme.textMuted,
+                  color: isNonZero ? effectiveColor : LumaTheme.textMuted,
                 ),
               ),
             ],
@@ -337,7 +337,7 @@ class LiquidGlassDialog extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: LiquidGlassPanel(
           variant: LiquidGlassVariant.modal,
-          borderRadius: BorderRadius.circular(AeviqueTheme.radiusXl),
+          borderRadius: BorderRadius.circular(LumaTheme.radiusXl),
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,

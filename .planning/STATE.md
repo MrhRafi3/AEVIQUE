@@ -9,7 +9,7 @@ progress:
   percent: 100
 ---
 
-# Project State: AEVIQUE Total UI/UX Replacement
+# Project State: LumaFix Total UI/UX Replacement
 
 ## Reference Design Specification
 - **Visual Spec:** Primary reference image `media_1793957422727_c4da5a91.jpg` (iOS 26 dark glass interface, translucent smoked surfaces, genuine `BackdropFilter` sigma 20, neutral black `#09090C`, warm golden amber accent `#E5A125`, clean modern sans-serif).
@@ -17,7 +17,7 @@ progress:
 - **Developer Credit:** Mrh Rafi.
 
 ## Verification Outcomes
-1. **Native Engine C++ Test Suite:** 23/23 tests passed (`./native/aevique_core/build/test_aevique_engine`).
+1. **Native Engine C++ Test Suite:** 23/23 tests passed (`./native/lumafix_core/build/test_lumafix_engine`).
 2. **Flutter Test Suite:** 102/102 tests passed (`flutter test`).
 3. **Static Analysis:** 0 issues found (`flutter analyze`).
 4. **Android Build Verification:** Debug APK built successfully (`build/app/outputs/flutter-apk/app-debug.apk`, 15.9s). `adb devices` confirmed 0 attached devices on host (honestly documented limitation).

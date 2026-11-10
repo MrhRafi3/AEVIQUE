@@ -1,4 +1,4 @@
-package com.lumaforge.lumaforge
+package com.lumafix.lumafix
 
 import io.flutter.embedding.android.FlutterActivity
 

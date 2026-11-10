@@ -23,12 +23,12 @@ last_mapped_at: 2026-11-06
 │   ├── main.dart              # Application entry point
 │   ├── screens/               # Screen widgets (Splash, Home, Editor, Presets, Export, Settings)
 │   ├── services/              # Platform services (ImageRepository, ExportService)
-│   ├── theme/                 # AeviqueTheme design tokens & Google Fonts
+│   ├── theme/                 # LumaFixTheme design tokens & Google Fonts
 │   └── widgets/               # Reusable UI components & individual tool panels
 │       └── tool_panels/       # Panels (tune, curves, details, effects, portrait, crop, filters)
 ├── macos/                     # macOS native runner & Xcode project
 ├── native/                    # High-performance C++ native engine
-│   └── aevique_core/          # CMake project (include/, src/, tests/, benchmarks/)
+│   └── lumafix_core/          # CMake project (include/, src/, tests/, benchmarks/)
 └── test/                      # Comprehensive test suite (100+ tests)
     ├── benchmark/             # Performance benchmarks
     ├── core/                  # Pipeline and state unit tests
@@ -40,12 +40,12 @@ last_mapped_at: 2026-11-06
 ## Key File Locations
 
 - **Entry Point:** `lib/main.dart`
-- **Design Tokens:** `lib/theme/aevique_theme.dart`
-- **UI Components:** `lib/widgets/aevique_ui_components.dart`, `lib/widgets/aevique_glass.dart`
+- **Design Tokens:** `lib/theme/luma_theme.dart`
+- **UI Components:** `lib/widgets/luma_ui_components.dart`, `lib/widgets/luma_glass.dart`
 - **Editor Canvas:** `lib/screens/editor_screen.dart`
 - **Processing Engine:** `lib/core/image_engine/image_pipeline.dart`
-- **Native FFI Bridge:** `lib/core/native_engine/aevique_ffi.dart`
-- **Native C++ Engine:** `native/aevique_core/src/aevique_engine.cpp`
+- **Native FFI Bridge:** `lib/core/native_engine/lumafix_ffi.dart`
+- **Native C++ Engine:** `native/lumafix_core/src/lumafix_engine.cpp`
 - **Export Controller:** `lib/screens/export_screen.dart`
 
 ---

@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:image/image.dart' as img;
 
 void main() {
-  print('Generating AEVIQUE brand assets and Android launcher icons...');
+  print('Generating LumaFix brand assets and Android launcher icons...');
 
   final sizes = {
-    'assets/images/aevique_logo.png': 512,
+    'assets/images/lumafix_logo.png': 512,
     'android/app/src/main/res/mipmap-mdpi/ic_launcher.png': 48,
     'android/app/src/main/res/mipmap-hdpi/ic_launcher.png': 72,
     'android/app/src/main/res/mipmap-xhdpi/ic_launcher.png': 96,
@@ -18,7 +18,7 @@ void main() {
     final path = entry.key;
     final size = entry.value;
 
-    final image = _renderAeviqueIcon(size);
+    final image = _renderLumaFixIcon(size);
     final pngBytes = img.encodePng(image);
 
     final file = File(path);
@@ -30,7 +30,7 @@ void main() {
   print('Asset generation complete.');
 }
 
-img.Image _renderAeviqueIcon(int size) {
+img.Image _renderLumaFixIcon(int size) {
   final image = img.Image(width: size, height: size);
 
   // Deep Black background: #0B0B0D

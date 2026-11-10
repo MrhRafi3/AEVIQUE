@@ -2,8 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/screens/editor_screen.dart';
-import 'package:lumaforge/theme/aevique_theme.dart';
+import 'package:lumafix/screens/editor_screen.dart';
+import 'package:lumafix/theme/luma_theme.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +37,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: EditorScreen(
             initialImageBytes: testImageBytes,
             imageName: 'Narrow Test',

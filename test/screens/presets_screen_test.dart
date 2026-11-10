@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/screens/editor_screen.dart';
-import 'package:lumaforge/screens/presets_screen.dart';
-import 'package:lumaforge/services/image_repository.dart';
-import 'package:lumaforge/theme/aevique_theme.dart';
+import 'package:lumafix/screens/editor_screen.dart';
+import 'package:lumafix/screens/presets_screen.dart';
+import 'package:lumafix/services/image_repository.dart';
+import 'package:lumafix/theme/luma_theme.dart';
 
 class MockPresetsImageRepository implements ImageRepository {
   final Uint8List sampleBytes;
@@ -52,7 +52,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: PresetsScreen(imageRepository: mockRepo),
         ),
       );

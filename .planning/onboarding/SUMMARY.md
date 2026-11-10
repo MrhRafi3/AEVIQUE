@@ -16,4 +16,4 @@
 - Existing ADR/PRD/SPEC/RFC candidates: 3 (ingested and synthesized into PROJECT.md and REQUIREMENTS.md)
 
 ## Recommended Next Step
-- Execute AEVIQUE Complete Application UI Redesign Phases 1 through 5.
+- Execute LumaFix Complete Application UI Redesign Phases 1 through 5.

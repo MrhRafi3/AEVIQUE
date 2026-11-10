@@ -4,22 +4,22 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/image_engine/image_pipeline.dart';
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/native_engine/aevique_ffi.dart';
+import 'package:lumafix/core/image_engine/image_pipeline.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/native_engine/lumafix_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    const dylibPath = 'native/aevique_core/build/libaevique_core.dylib';
+    const dylibPath = 'native/lumafix_core/build/liblumafix_core.dylib';
     if (File(dylibPath).existsSync()) {
-      AeviqueNativeEngine.tryLoad(customLibraryPath: dylibPath);
+      LumaFixNativeEngine.tryLoad(customLibraryPath: dylibPath);
     }
   });
 
   tearDown(() {
-    AeviqueNativeEngine.engineMode = EngineMode.auto;
+    LumaFixNativeEngine.engineMode = EngineMode.auto;
   });
 
   double median(List<double> list) {
@@ -43,7 +43,7 @@ void main() {
       print(
         '\n================================================================',
       );
-      print('AEVIQUE FULL-RESOLUTION EXPORT BENCHMARK (1200x670 Photo)');
+      print('LumaFix FULL-RESOLUTION EXPORT BENCHMARK (1200x670 Photo)');
       print('================================================================');
 
       final testImage = img.Image(width: w, height: h);
@@ -84,7 +84,7 @@ void main() {
       );
 
       // Baseline Pure Dart Export
-      AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+      LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
       for (int i = 0; i < warmup; i++) {
         await ImagePipeline.processImage(
           sourceJpg,
@@ -105,7 +105,7 @@ void main() {
       }
 
       // Native C++ Export
-      AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+      LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
       for (int i = 0; i < warmup; i++) {
         await ImagePipeline.processImage(
           sourceJpg,
@@ -160,7 +160,7 @@ void main() {
         '\n================================================================',
       );
       print(
-        'AEVIQUE PHASE 6 EXPORT BENCHMARK (Tone+Vibrance+Clarity+Vignette)',
+        'LumaFix PHASE 6 EXPORT BENCHMARK (Tone+Vibrance+Clarity+Vignette)',
       );
       print('================================================================');
 
@@ -207,7 +207,7 @@ void main() {
       );
 
       // Baseline Pure Dart Export
-      AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+      LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
       for (int i = 0; i < warmup; i++) {
         await ImagePipeline.processImage(
           sourceJpg,
@@ -228,7 +228,7 @@ void main() {
       }
 
       // Native C++ Export (Phase 6 Unified Pipeline)
-      AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+      LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
       for (int i = 0; i < warmup; i++) {
         await ImagePipeline.processImage(
           sourceJpg,
@@ -278,7 +278,7 @@ void main() {
     const iterations = 5;
 
     print('\n================================================================');
-    print('AEVIQUE 12-MEGAPIXEL FULL-RESOLUTION EXPORT (4000x3000 Photo)');
+    print('LumaFix 12-MEGAPIXEL FULL-RESOLUTION EXPORT (4000x3000 Photo)');
     print('================================================================');
     print(
       'Raw uncompressed RGBA8 buffer: ${(totalPixels * 4 / (1024 * 1024)).toStringAsFixed(1)} MB',
@@ -318,7 +318,7 @@ void main() {
     final dartKernelMs = dartSw.elapsedMicroseconds / 1000.0;
 
     // Native C++ kernel
-    final engine = AeviqueNativeEngine.instance!;
+    final engine = LumaFixNativeEngine.instance!;
     final nativeSw = Stopwatch()..start();
     engine.processRgba8(
       rgbaBytes: rawRgba,
@@ -352,7 +352,7 @@ void main() {
 
     // 2. Measure end-to-end export turnaround (Decode -> Process -> JPEG Encode)
     final List<double> dartEndToEnd = [];
-    AeviqueNativeEngine.engineMode = EngineMode.dartOnly;
+    LumaFixNativeEngine.engineMode = EngineMode.dartOnly;
     for (int i = 0; i < iterations; i++) {
       final sw = Stopwatch()..start();
       await ImagePipeline.processImage(sourceJpg, exportState, jpegQuality: 90);
@@ -361,7 +361,7 @@ void main() {
     }
 
     final List<double> nativeEndToEnd = [];
-    AeviqueNativeEngine.engineMode = EngineMode.nativeOnly;
+    LumaFixNativeEngine.engineMode = EngineMode.nativeOnly;
     for (int i = 0; i < iterations; i++) {
       final sw = Stopwatch()..start();
       await ImagePipeline.processImage(sourceJpg, exportState, jpegQuality: 90);

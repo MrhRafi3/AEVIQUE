@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/models/edit_state.dart';
-import '../theme/aevique_theme.dart';
-import 'aevique_glass.dart';
+import '../theme/luma_theme.dart';
+import 'luma_glass.dart';
 
 enum CurveChannel { rgb, red, green, blue }
 
@@ -42,13 +42,13 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
   Color get _activeColor {
     switch (_selectedChannel) {
       case CurveChannel.rgb:
-        return AeviqueTheme.primaryBlueLight;
+        return LumaTheme.primaryBlueLight;
       case CurveChannel.red:
-        return AeviqueTheme.coralRed;
+        return LumaTheme.coralRed;
       case CurveChannel.green:
         return const Color(0xFF10B981);
       case CurveChannel.blue:
-        return AeviqueTheme.primaryBlue;
+        return LumaTheme.primaryBlue;
     }
   }
 
@@ -176,7 +176,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
     if (widget.compactMode) {
       return AspectRatio(
         aspectRatio: 1.0,
-        child: AeviqueGlass(
+        child: LumaGlass(
           borderRadius: BorderRadius.circular(16),
           padding: const EdgeInsets.all(8),
           child: LayoutBuilder(
@@ -215,7 +215,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                   _buildChannelTab(
                     CurveChannel.rgb,
                     'RGB',
-                    AeviqueTheme.primaryBlueLight,
+                    LumaTheme.primaryBlueLight,
                   ),
                   const SizedBox(width: 8),
                   _buildChannelTab(
@@ -247,7 +247,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                       icon: const Icon(
                         Icons.delete_outline_rounded,
                         size: 18,
-                        color: AeviqueTheme.coralRedLight,
+                        color: LumaTheme.coralRedLight,
                       ),
                       tooltip: 'Delete Point',
                       onPressed: _deleteSelectedPoint,
@@ -266,7 +266,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                       icon: const Icon(
                         Icons.restart_alt_rounded,
                         size: 18,
-                        color: AeviqueTheme.coralRedLight,
+                        color: LumaTheme.coralRedLight,
                       ),
                       tooltip: 'Reset All Channels',
                       onPressed: _resetAllChannels,
@@ -282,7 +282,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
           child: AspectRatio(
             aspectRatio: 1.0,
-            child: AeviqueGlass(
+            child: LumaGlass(
               borderRadius: BorderRadius.circular(20),
               padding: const EdgeInsets.all(12),
               child: LayoutBuilder(
@@ -330,7 +330,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
               : const Color(0x401E1E26),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : AeviqueTheme.border,
+            color: isSelected ? color : LumaTheme.border,
             width: isSelected ? 1.2 : 0.8,
           ),
         ),
@@ -340,7 +340,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
             fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? Colors.white : AeviqueTheme.textSecondary,
+            color: isSelected ? Colors.white : LumaTheme.textSecondary,
           ),
         ),
       ),

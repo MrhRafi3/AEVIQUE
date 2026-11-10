@@ -2,12 +2,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import '../theme/aevique_theme.dart';
-import '../widgets/aevique_glass.dart';
+import '../theme/luma_theme.dart';
+import '../widgets/luma_glass.dart';
 import '../widgets/liquid_glass_components.dart';
 import 'editor_screen.dart';
 
-/// Real Camera Screen for AEVIQUE.
+/// Real Camera Screen for LumaFix.
 ///
 /// Features:
 /// - Real camera viewfinder preview via [CameraController].
@@ -184,7 +184,7 @@ class _CameraScreenState extends State<CameraScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to capture photo: $e'),
-          backgroundColor: AeviqueTheme.coralRed,
+          backgroundColor: LumaTheme.coralRed,
         ),
       );
     }
@@ -239,7 +239,7 @@ class _CameraScreenState extends State<CameraScreen>
           else if (_isInitializing)
             const Center(
               child: CircularProgressIndicator(
-                color: AeviqueTheme.primaryBlue,
+                color: LumaTheme.primaryBlue,
                 strokeWidth: 2.5,
               ),
             )
@@ -263,7 +263,7 @@ class _CameraScreenState extends State<CameraScreen>
                     LiquidGlassPanel(
                       variant: LiquidGlassVariant.ultraClear,
                       borderRadius: BorderRadius.circular(
-                        AeviqueTheme.radiusFull,
+                        LumaTheme.radiusFull,
                       ),
                       blur: 20.0,
                       onTap: () => Navigator.of(context).pop(),
@@ -280,7 +280,7 @@ class _CameraScreenState extends State<CameraScreen>
                           LiquidGlassPanel(
                             variant: LiquidGlassVariant.ultraClear,
                             borderRadius: BorderRadius.circular(
-                              AeviqueTheme.radiusFull,
+                              LumaTheme.radiusFull,
                             ),
                             blur: 20.0,
                             onTap: _toggleFlash,
@@ -288,7 +288,7 @@ class _CameraScreenState extends State<CameraScreen>
                             child: Icon(
                               _getFlashIcon(),
                               color: _currentFlashMode != FlashMode.off
-                                  ? AeviqueTheme.creativeOrange
+                                  ? LumaTheme.creativeOrange
                                   : Colors.white70,
                               size: 22,
                             ),
@@ -298,7 +298,7 @@ class _CameraScreenState extends State<CameraScreen>
                             LiquidGlassPanel(
                               variant: LiquidGlassVariant.ultraClear,
                               borderRadius: BorderRadius.circular(
-                                AeviqueTheme.radiusFull,
+                                LumaTheme.radiusFull,
                               ),
                               blur: 20.0,
                               onTap: _switchCamera,
@@ -342,7 +342,7 @@ class _CameraScreenState extends State<CameraScreen>
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.45),
                         borderRadius: BorderRadius.circular(
-                          AeviqueTheme.radiusFull,
+                          LumaTheme.radiusFull,
                         ),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.15),
@@ -356,7 +356,7 @@ class _CameraScreenState extends State<CameraScreen>
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1.5,
-                          color: AeviqueTheme.creativeOrange,
+                          color: LumaTheme.creativeOrange,
                         ),
                       ),
                     ),
@@ -381,7 +381,7 @@ class _CameraScreenState extends State<CameraScreen>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AeviqueTheme.primaryBlueGlow,
+                                  color: LumaTheme.primaryBlueGlow,
                                   blurRadius: 28,
                                   spreadRadius: 2,
                                 ),
@@ -438,7 +438,7 @@ class _CameraScreenState extends State<CameraScreen>
         padding: const EdgeInsets.all(32.0),
         child: LiquidGlassPanel(
           variant: LiquidGlassVariant.modal,
-          borderRadius: BorderRadius.circular(AeviqueTheme.radiusXl),
+          borderRadius: BorderRadius.circular(LumaTheme.radiusXl),
           padding: const EdgeInsets.all(28.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -452,7 +452,7 @@ class _CameraScreenState extends State<CameraScreen>
                 ),
                 child: const Icon(
                   Icons.camera_alt_outlined,
-                  color: AeviqueTheme.primaryBlueLight,
+                  color: LumaTheme.primaryBlueLight,
                   size: 32,
                 ),
               ),
@@ -474,7 +474,7 @@ class _CameraScreenState extends State<CameraScreen>
                 style: const TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
-                  color: AeviqueTheme.textSecondary,
+                  color: LumaTheme.textSecondary,
                   height: 1.5,
                 ),
               ),

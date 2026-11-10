@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/models/mask_model.dart';
-import '../../theme/aevique_theme.dart';
-import '../aevique_ui_components.dart';
+import '../../theme/luma_theme.dart';
+import '../luma_ui_components.dart';
 
 /// Professional Selective Masking tool panel supporting Brush, Linear, and Radial masks.
 class MaskPanel extends StatefulWidget {
@@ -110,7 +110,7 @@ class _MaskPanelState extends State<MaskPanel> {
                 color: const Color(0xFF1E1E2A),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AeviqueTheme.borderLight, width: 0.8),
+                  side: const BorderSide(color: LumaTheme.borderLight, width: 0.8),
                 ),
                 onSelected: _addNewMask,
                 itemBuilder: (context) => [
@@ -118,7 +118,7 @@ class _MaskPanelState extends State<MaskPanel> {
                     value: MaskType.brush,
                     child: Row(
                       children: [
-                        Icon(Icons.brush_rounded, size: 18, color: AeviqueTheme.primaryBlueLight),
+                        Icon(Icons.brush_rounded, size: 18, color: LumaTheme.primaryBlueLight),
                         SizedBox(width: 10),
                         Text('Brush Mask', style: TextStyle(color: Colors.white, fontSize: 13)),
                       ],
@@ -128,7 +128,7 @@ class _MaskPanelState extends State<MaskPanel> {
                     value: MaskType.linearGradient,
                     child: Row(
                       children: [
-                        Icon(Icons.linear_scale_rounded, size: 18, color: AeviqueTheme.creativeOrangeLight),
+                        Icon(Icons.linear_scale_rounded, size: 18, color: LumaTheme.creativeOrangeLight),
                         SizedBox(width: 10),
                         Text('Linear Gradient Mask', style: TextStyle(color: Colors.white, fontSize: 13)),
                       ],
@@ -138,7 +138,7 @@ class _MaskPanelState extends State<MaskPanel> {
                     value: MaskType.radialGradient,
                     child: Row(
                       children: [
-                        Icon(Icons.radio_button_checked_rounded, size: 18, color: AeviqueTheme.coralRedLight),
+                        Icon(Icons.radio_button_checked_rounded, size: 18, color: LumaTheme.coralRedLight),
                         SizedBox(width: 10),
                         Text('Radial Gradient Mask', style: TextStyle(color: Colors.white, fontSize: 13)),
                       ],
@@ -148,9 +148,9 @@ class _MaskPanelState extends State<MaskPanel> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AeviqueTheme.primaryBlue.withValues(alpha: 0.25),
+                    color: LumaTheme.primaryBlue.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AeviqueTheme.primaryBlueLight, width: 1.0),
+                    border: Border.all(color: LumaTheme.primaryBlueLight, width: 1.0),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -186,8 +186,8 @@ class _MaskPanelState extends State<MaskPanel> {
                   const SizedBox(width: 6),
                   Switch(
                     value: widget.showMaskOverlay,
-                    activeThumbColor: AeviqueTheme.coralRedLight,
-                    activeTrackColor: AeviqueTheme.coralRed.withValues(alpha: 0.35),
+                    activeThumbColor: LumaTheme.coralRedLight,
+                    activeTrackColor: LumaTheme.coralRed.withValues(alpha: 0.35),
                     inactiveThumbColor: Colors.white60,
                     inactiveTrackColor: Colors.white12,
                     onChanged: (val) {
@@ -235,11 +235,11 @@ class _MaskPanelState extends State<MaskPanel> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AeviqueTheme.primaryBlue.withValues(alpha: 0.3)
+                              ? LumaTheme.primaryBlue.withValues(alpha: 0.3)
                               : const Color(0x331E1E2A),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isSelected ? AeviqueTheme.primaryBlueLight : AeviqueTheme.border,
+                            color: isSelected ? LumaTheme.primaryBlueLight : LumaTheme.border,
                             width: isSelected ? 1.2 : 0.8,
                           ),
                         ),
@@ -263,7 +263,7 @@ class _MaskPanelState extends State<MaskPanel> {
                               child: const Icon(
                                 Icons.close_rounded,
                                 size: 13,
-                                color: AeviqueTheme.coralRedLight,
+                                color: LumaTheme.coralRedLight,
                               ),
                             ),
                           ],
@@ -304,7 +304,7 @@ class _MaskPanelState extends State<MaskPanel> {
                       icon: Icon(
                         activeMask.inverted ? Icons.invert_colors_rounded : Icons.invert_colors_off_rounded,
                         size: 20,
-                        color: activeMask.inverted ? AeviqueTheme.creativeOrange : Colors.white60,
+                        color: activeMask.inverted ? LumaTheme.creativeOrange : Colors.white60,
                       ),
                       tooltip: 'Invert Mask',
                       onPressed: () {
@@ -337,7 +337,7 @@ class _MaskPanelState extends State<MaskPanel> {
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 11,
-                          color: AeviqueTheme.coralRedLight,
+                          color: LumaTheme.coralRedLight,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -352,7 +352,7 @@ class _MaskPanelState extends State<MaskPanel> {
             child: Column(
               children: [
                 // Mask Opacity Slider
-                AeviquePrecisionSlider(
+                LumaPrecisionSlider(
                   label: 'Mask Opacity',
                   value: activeMask.opacity * 100.0,
                   min: 0.0,
@@ -362,7 +362,7 @@ class _MaskPanelState extends State<MaskPanel> {
                 ),
 
                 // Local Adjustments inside Mask
-                AeviquePrecisionSlider(
+                LumaPrecisionSlider(
                   label: 'Mask Exposure',
                   value: activeMask.adjustments.exposure,
                   min: -100.0,
@@ -378,7 +378,7 @@ class _MaskPanelState extends State<MaskPanel> {
                     ),
                   ),
                 ),
-                AeviquePrecisionSlider(
+                LumaPrecisionSlider(
                   label: 'Mask Contrast',
                   value: activeMask.adjustments.contrast,
                   min: -100.0,
@@ -394,7 +394,7 @@ class _MaskPanelState extends State<MaskPanel> {
                     ),
                   ),
                 ),
-                AeviquePrecisionSlider(
+                LumaPrecisionSlider(
                   label: 'Mask Saturation',
                   value: activeMask.adjustments.saturation,
                   min: -100.0,
@@ -410,7 +410,7 @@ class _MaskPanelState extends State<MaskPanel> {
                     ),
                   ),
                 ),
-                AeviquePrecisionSlider(
+                LumaPrecisionSlider(
                   label: 'Mask Warmth',
                   value: activeMask.adjustments.warmth,
                   min: -100.0,

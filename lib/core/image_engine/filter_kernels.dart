@@ -3,6 +3,43 @@ import 'package:image/image.dart' as img;
 import '../models/edit_state.dart';
 
 class FilterKernels {
+  /// Computes human skin-tone probability in [0.0, 1.0] from normalized RGB
+  static double computeSkinProbability(double r, double g, double b) {
+    if (r <= g || g <= b || r < 0.15 || r > 0.98) return 0.0;
+
+    final maxC = math.max(r, math.max(g, b));
+    final minC = math.min(r, math.min(g, b));
+    final delta = maxC - minC;
+    final l = (maxC + minC) * 0.5;
+    if (delta < 1e-5) return 0.0;
+
+    final s = (l > 0.5) ? (delta / (2.0 - maxC - minC)) : (delta / (maxC + minC));
+    double h;
+    if (maxC == r) {
+      h = (g - b) / delta + (g < b ? 6.0 : 0.0);
+    } else if (maxC == g) {
+      h = (b - r) / delta + 2.0;
+    } else {
+      h = (r - g) / delta + 4.0;
+    }
+    h *= 60.0;
+
+    if (h < 10.0 || h > 50.0) return 0.0;
+    if (s < 0.12 || s > 0.72) return 0.0;
+    if (l < 0.15 || l > 0.92) return 0.0;
+
+    final hueDist = (h - 28.0).abs();
+    final hueWeight = (1.0 - (hueDist / 22.0)).clamp(0.0, 1.0);
+
+    final satDist = (s - 0.38).abs();
+    final satWeight = (1.0 - (satDist / 0.34)).clamp(0.0, 1.0);
+
+    final lumDist = (l - 0.55).abs();
+    final lumWeight = (1.0 - (lumDist / 0.40)).clamp(0.0, 1.0);
+
+    return hueWeight * satWeight * lumWeight;
+  }
+
   /// Adjusts image saturation and applies B&W monochrome conversion
   static void applySaturationAndBw(
     img.Image image,
@@ -29,9 +66,14 @@ class FilterKernels {
         pixel.g = gray;
         pixel.b = gray;
       } else {
-        pixel.r = (lum + (r - lum) * satFactor).round().clamp(0, 255);
-        pixel.g = (lum + (g - lum) * satFactor).round().clamp(0, 255);
-        pixel.b = (lum + (b - lum) * satFactor).round().clamp(0, 255);
+        var effectiveSat = satFactor;
+        if (satFactor > 1.0) {
+          final skinProb = computeSkinProbability(r / 255.0, g / 255.0, b / 255.0);
+          effectiveSat = 1.0 + (satFactor - 1.0) * (1.0 - 0.55 * skinProb);
+        }
+        pixel.r = (lum + (r - lum) * effectiveSat).round().clamp(0, 255);
+        pixel.g = (lum + (g - lum) * effectiveSat).round().clamp(0, 255);
+        pixel.b = (lum + (b - lum) * effectiveSat).round().clamp(0, 255);
       }
     }
   }
@@ -53,7 +95,9 @@ class FilterKernels {
 
       // Higher weight for lower saturation
       final satWeight = (1.0 - sat).clamp(0.0, 1.0);
-      final amt = factor * satWeight * 1.25;
+      final skinProb = computeSkinProbability(r / 255.0, g / 255.0, b / 255.0);
+      final skinProtection = factor > 0.0 ? (1.0 - 0.65 * skinProb) : 1.0;
+      final amt = factor * satWeight * 1.25 * skinProtection;
 
       final lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       pixel.r = (r + (r - lum) * amt).round().clamp(0, 255);
@@ -83,44 +127,59 @@ class FilterKernels {
     }
   }
 
-  /// Applies unsharp mask sharpening
+  /// Applies edge-preserving 3x3 Laplacian sharpening with coring and skin protection
   static void applySharpening(img.Image image, double strength) {
-    if (strength <= 0.0) return;
+    if (strength <= 0.0 || image.width < 3 || image.height < 3) return;
 
-    final factor = (strength / 100.0) * 1.5;
-    // Create copy for blurred reference
-    final blurred = img.copyResize(
-      image,
-      width: math.max(16, image.width ~/ 2),
-      height: math.max(16, image.height ~/ 2),
-    );
-    final upscaled = img.copyResize(
-      blurred,
-      width: image.width,
-      height: image.height,
-    );
+    final factor = (strength / 100.0) * 0.75;
+    final w = image.width;
+    final h = image.height;
 
-    for (var y = 0; y < image.height; y++) {
-      for (var x = 0; x < image.width; x++) {
-        final orig = image.getPixel(x, y);
-        final blurPix = upscaled.getPixel(x, y);
+    // Rolling line buffer storing R, G, B components
+    final prevRow = List<int>.filled(w * 3, 0);
+    final currRow = List<int>.filled(w * 3, 0);
 
-        final newR = (orig.r + (orig.r - blurPix.r) * factor).round().clamp(
-          0,
-          255,
-        );
-        final newG = (orig.g + (orig.g - blurPix.g) * factor).round().clamp(
-          0,
-          255,
-        );
-        final newB = (orig.b + (orig.b - blurPix.b) * factor).round().clamp(
-          0,
-          255,
-        );
+    for (var x = 0; x < w; x++) {
+      final p = image.getPixel(x, 0);
+      currRow[x * 3] = p.r.toInt();
+      currRow[x * 3 + 1] = p.g.toInt();
+      currRow[x * 3 + 2] = p.b.toInt();
+    }
 
-        orig.r = newR;
-        orig.g = newG;
-        orig.b = newB;
+    for (var y = 1; y < h - 1; y++) {
+      prevRow.setRange(0, w * 3, currRow);
+      for (var x = 0; x < w; x++) {
+        final p = image.getPixel(x, y);
+        currRow[x * 3] = p.r.toInt();
+        currRow[x * 3 + 1] = p.g.toInt();
+        currRow[x * 3 + 2] = p.b.toInt();
+      }
+
+      for (var x = 1; x < w - 1; x++) {
+        final cR = currRow[x * 3];
+        final cG = currRow[x * 3 + 1];
+        final cB = currRow[x * 3 + 2];
+
+        final skinProb = computeSkinProbability(cR / 255.0, cG / 255.0, cB / 255.0);
+        final effectiveFactor = factor * (1.0 - 0.45 * skinProb);
+
+        final pDown = image.getPixel(x, y + 1);
+        final neighbors = [
+          [currRow[(x - 1) * 3], currRow[(x + 1) * 3], prevRow[x * 3], pDown.r.toInt()],
+          [currRow[(x - 1) * 3 + 1], currRow[(x + 1) * 3 + 1], prevRow[x * 3 + 1], pDown.g.toInt()],
+          [currRow[(x - 1) * 3 + 2], currRow[(x + 1) * 3 + 2], prevRow[x * 3 + 2], pDown.b.toInt()],
+        ];
+
+        final targetPixel = image.getPixel(x, y);
+        final channels = [cR, cG, cB];
+        for (var c = 0; c < 3; c++) {
+          final laplacian = (channels[c] * 4) - (neighbors[c][0] + neighbors[c][1] + neighbors[c][2] + neighbors[c][3]);
+          if (laplacian.abs() <= 2) continue;
+          final val = (channels[c] + laplacian * effectiveFactor).round().clamp(0, 255);
+          if (c == 0) targetPixel.r = val;
+          if (c == 1) targetPixel.g = val;
+          if (c == 2) targetPixel.b = val;
+        }
       }
     }
   }

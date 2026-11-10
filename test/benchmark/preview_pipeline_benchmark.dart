@@ -9,17 +9,17 @@ import 'dart:ui' as ui;
 import 'package:ffi/ffi.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:lumaforge/core/image_engine/image_pipeline.dart';
-import 'package:lumaforge/core/models/edit_state.dart';
-import 'package:lumaforge/core/native_engine/aevique_ffi.dart';
+import 'package:lumafix/core/image_engine/image_pipeline.dart';
+import 'package:lumafix/core/models/edit_state.dart';
+import 'package:lumafix/core/native_engine/lumafix_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    const dylibPath = 'native/aevique_core/build/libaevique_core.dylib';
+    const dylibPath = 'native/lumafix_core/build/liblumafix_core.dylib';
     if (File(dylibPath).existsSync()) {
-      AeviqueNativeEngine.tryLoad(customLibraryPath: dylibPath);
+      LumaFixNativeEngine.tryLoad(customLibraryPath: dylibPath);
     }
   });
 
@@ -34,12 +34,12 @@ void main() {
       print(
         '\n================================================================',
       );
-      print('AEVIQUE PREVIEW PIPELINE END-TO-END BENCHMARK (1200x670 RGBA8)');
+      print('LumaFix PREVIEW PIPELINE END-TO-END BENCHMARK (1200x670 RGBA8)');
       print('================================================================');
       print(
         'Platform: ${Platform.operatingSystem} (${Platform.version.split(' ').first})',
       );
-      print('Native Engine Loaded: ${AeviqueNativeEngine.isAvailable}');
+      print('Native Engine Loaded: ${LumaFixNativeEngine.isAvailable}');
       print(
         'Preview Dimensions: ${width}x$height (${(width * height * 4 / (1024 * 1024)).toStringAsFixed(2)} MB raw RGBA)',
       );
@@ -123,28 +123,28 @@ void main() {
       final List<double> copyTimes = [];
       final List<double> nativeGpuUploadTimes = [];
 
-      if (AeviqueNativeEngine.isAvailable) {
-        final engine = AeviqueNativeEngine.instance!;
+      if (LumaFixNativeEngine.isAvailable) {
+        final engine = LumaFixNativeEngine.instance!;
 
         // Pre-allocate native buffers to measure pure C++ execution separately
         final totalBytes = width * height * 4;
         final srcPtr = calloc<ffi.Uint8>(totalBytes);
         final dstPtr = calloc<ffi.Uint8>(totalBytes);
-        final srcBuf = calloc<AeviqueImageBuffer>();
-        final dstBuf = calloc<AeviqueImageBuffer>();
-        final toneParams = calloc<AeviqueToneParameters>();
+        final srcBuf = calloc<LumaFixImageBuffer>();
+        final dstBuf = calloc<LumaFixImageBuffer>();
+        final toneParams = calloc<LumaFixToneParameters>();
 
         srcBuf.ref.data = srcPtr;
         srcBuf.ref.width = width;
         srcBuf.ref.height = height;
         srcBuf.ref.strideBytes = width * 4;
-        srcBuf.ref.format = AeviquePixelFormat.rgba8888;
+        srcBuf.ref.format = LumaFixPixelFormat.rgba8888;
 
         dstBuf.ref.data = dstPtr;
         dstBuf.ref.width = width;
         dstBuf.ref.height = height;
         dstBuf.ref.strideBytes = width * 4;
-        dstBuf.ref.format = AeviquePixelFormat.rgba8888;
+        dstBuf.ref.format = LumaFixPixelFormat.rgba8888;
 
         toneParams.ref.exposure = 20.0;
         toneParams.ref.contrast = 15.0;
@@ -261,7 +261,7 @@ void main() {
         '    [min: ${baseTotalMin.toStringAsFixed(2)} ms, mean: ${baseTotalMean.toStringAsFixed(2)} ms, p95: ${baseTotalP95.toStringAsFixed(2)} ms, max: ${baseTotalMax.toStringAsFixed(2)} ms]',
       );
 
-      if (AeviqueNativeEngine.isAvailable) {
+      if (LumaFixNativeEngine.isAvailable) {
         final natTotalMed = calcMedian(nativeTotalTimes);
         final natTotalMean = calcMean(nativeTotalTimes);
         final natTotalP95 = calcP95(nativeTotalTimes);
@@ -317,7 +317,7 @@ void main() {
   test(
     'Benchmark Phase 3 Advanced Tone Pipeline: Curves + Warmth + Tone (1200x670)',
     () async {
-      if (!AeviqueNativeEngine.isAvailable) return;
+      if (!LumaFixNativeEngine.isAvailable) return;
 
       const width = 1200;
       const height = 670;
@@ -327,7 +327,7 @@ void main() {
       print(
         '\n================================================================',
       );
-      print('AEVIQUE PHASE 3 ADVANCED TONE BENCHMARK (1200x670 RGBA8)');
+      print('LumaFix PHASE 3 ADVANCED TONE BENCHMARK (1200x670 RGBA8)');
       print('================================================================');
 
       final previewBase = img.Image(width: width, height: height);
@@ -451,7 +451,7 @@ void main() {
   test(
     'Benchmark Phase 6 Unified Native Pipeline: Tone + Curves + Vibrance + Clarity + Vignette (1200x670)',
     () async {
-      if (!AeviqueNativeEngine.isAvailable) return;
+      if (!LumaFixNativeEngine.isAvailable) return;
 
       const width = 1200;
       const height = 670;
@@ -461,7 +461,7 @@ void main() {
       print(
         '\n================================================================',
       );
-      print('AEVIQUE PHASE 6 UNIFIED PIPELINE BENCHMARK (1200x670 RGBA8)');
+      print('LumaFix PHASE 6 UNIFIED PIPELINE BENCHMARK (1200x670 RGBA8)');
       print('================================================================');
 
       final previewBase = img.Image(width: width, height: height);
@@ -589,7 +589,7 @@ void main() {
   );
 
   test('Benchmark Full-Resolution (4000x3000 / 12 MP) Tone Processing', () async {
-    if (!AeviqueNativeEngine.isAvailable) return;
+    if (!LumaFixNativeEngine.isAvailable) return;
 
     const width = 4000;
     const height = 3000;
@@ -601,7 +601,7 @@ void main() {
     print('FULL-RESOLUTION 12 MP (4000x3000 RGBA8) ENGINE BENCHMARK');
     print('================================================================');
 
-    final engine = AeviqueNativeEngine.instance!;
+    final engine = LumaFixNativeEngine.instance!;
     final testCurves = ToneCurves(
       rgb: [
         const CurvePoint(0.0, 0.0),

@@ -61,16 +61,20 @@ class LutGenerator {
         base += tune.blacks * 0.5 * weight;
       }
 
-      // Highlights adjustment (values > 100)
+      // Highlights adjustment (values > 100) with smooth Hermite roll-off
       if (tune.highlights != 0.0 && i > 100) {
-        final weight = ((i - 100) / 155.0).clamp(0.0, 1.0);
-        base += tune.highlights * 0.6 * weight;
+        final tH = (i - 100.0) / 155.0;
+        final smoothH = tH * tH * (3.0 - 2.0 * tH);
+        base += tune.highlights * 0.6 * smoothH;
       }
 
-      // Shadows adjustment (values < 155)
+      // Shadows adjustment (values < 155) with black floor protection
       if (tune.shadows != 0.0 && i < 155) {
-        final weight = ((155 - i) / 155.0).clamp(0.0, 1.0);
-        base += tune.shadows * 0.6 * weight;
+        final tS = (155.0 - i) / 155.0;
+        final smoothS = tS * tS * (3.0 - 2.0 * tS);
+        final tBlack = (i / 16.0).clamp(0.0, 1.0);
+        final blackTaper = tBlack * tBlack * (3.0 - 2.0 * tBlack);
+        base += tune.shadows * 0.6 * smoothS * blackTaper;
       }
 
       // Contrast and brightness

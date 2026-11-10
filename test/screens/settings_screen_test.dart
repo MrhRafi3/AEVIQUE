@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumaforge/screens/settings_screen.dart';
-import 'package:lumaforge/screens/splash_screen.dart';
-import 'package:lumaforge/theme/aevique_theme.dart';
+import 'package:lumafix/screens/settings_screen.dart';
+import 'package:lumafix/screens/splash_screen.dart';
+import 'package:lumafix/theme/luma_theme.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SettingsScreen Tests', () {
-    testWidgets('Displays AEVIQUE branding and Developer credit Mrh Rafi', (
+    testWidgets('Displays LumaFix branding and Developer credit Mrh Rafi', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(1080, 2400);
@@ -20,14 +20,14 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: const SettingsScreen(),
         ),
       );
       await tester.pumpAndSettle();
 
       // Verify Brand Name and Tagline
-      expect(find.text('AEVIQUE'), findsWidgets);
+      expect(find.text('LUMAFIX'), findsWidgets);
       expect(find.text('See Beyond Ordinary.'), findsOneWidget);
       expect(find.text('Professional Photo Editor'), findsOneWidget);
 
@@ -37,7 +37,7 @@ void main() {
       // Verify Description text
       expect(
         find.text(
-          'AEVIQUE is a photo-editing experience built to help you refine colors, enhance details, and express your creative vision.',
+          'LumaFix is a photo-editing experience built to help you refine colors, enhance details, and express your creative vision.',
         ),
         findsOneWidget,
       );
@@ -58,7 +58,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: const SettingsScreen(),
         ),
       );
@@ -76,17 +76,17 @@ void main() {
   });
 
   group('SplashScreen Tests', () {
-    testWidgets('Renders AEVIQUE logo, wordmark, tagline and credit', (
+    testWidgets('Renders LumaFix logo, wordmark, tagline and credit', (
       tester,
     ) async {
       await tester.pumpWidget(
         MaterialApp(
-          theme: AeviqueTheme.darkTheme,
+          theme: LumaTheme.darkTheme,
           home: const SplashScreen(displayDuration: Duration(seconds: 10)),
         ),
       );
 
-      expect(find.text('AEVIQUE'), findsOneWidget);
+      expect(find.text('LUMAFIX'), findsOneWidget);
       expect(find.text('See Beyond Ordinary.'), findsOneWidget);
       expect(find.text('Developed by Mrh Rafi'), findsOneWidget);
     });

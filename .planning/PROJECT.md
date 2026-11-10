@@ -1,8 +1,8 @@
-# AEVIQUE — iOS 26 Reference-Driven Glass Interface Redesign
+# LumaFix — iOS 26 Reference-Driven Glass Interface Redesign
 
 ## What This Is
 
-AEVIQUE is a commercial-grade, premium photo editing application for macOS and Android powered by an on-device high-performance native C++ image processing engine (v1.2.0).
+LumaFix is a commercial-grade, premium photo editing application for macOS and Android powered by an on-device high-performance native C++ image processing engine (v1.2.0).
 
 This milestone completely replaces the entire legacy visual identity with an **iOS 26-inspired dark translucent layered glass UI**, exactly derived from the user's provided visual reference.
 

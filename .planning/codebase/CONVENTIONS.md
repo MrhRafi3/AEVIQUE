@@ -23,17 +23,17 @@ last_mapped_at: 2026-11-06
 ## Design System Usage
 
 - Never hardcode raw hex colors or magic spacing in screens or widgets.
-- Colors must reference `AeviqueTheme` tokens:
-  - Background: `AeviqueTheme.deepBlack` (`#0B0B0D`)
-  - Typography: `AeviqueTheme.ivory` (`#F8F6F0`)
-  - Accent: `AeviqueTheme.champagneGold` (`#D4AF7C`)
-  - Surface: `AeviqueTheme.charcoalSurface` (`#141418`)
-  - Elevated: `AeviqueTheme.elevatedCharcoal` (`#1E1E26`)
-  - Border: `AeviqueTheme.border` (`#282834`)
+- Colors must reference `LumaFixTheme` tokens:
+  - Background: `LumaFixTheme.deepBlack` (`#0B0B0D`)
+  - Typography: `LumaFixTheme.ivory` (`#F8F6F0`)
+  - Accent: `LumaFixTheme.champagneGold` (`#D4AF7C`)
+  - Surface: `LumaFixTheme.charcoalSurface` (`#141418`)
+  - Elevated: `LumaFixTheme.elevatedCharcoal` (`#1E1E26`)
+  - Border: `LumaFixTheme.border` (`#282834`)
 
 ## Native C++ Engine Conventions
 
-- C ABI exported functions prefixed with `aevique_`
+- C ABI exported functions prefixed with `lumafix_`
 - Safe pointer validation and bounds checking on every exported API
 - Zero dynamic memory allocations inside inner pixel transformation loops
 - OpenMP / vectorized compiler optimizations where supported

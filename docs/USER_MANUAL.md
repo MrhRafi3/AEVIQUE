@@ -1,14 +1,14 @@
-# AEVIQUE — Professional Mobile Photo Editor
+# LumaFix — Professional Mobile Photo Editor
 
-**AEVIQUE** is a high-performance, minimal, photography-first mobile photo editing application built with Flutter, Dart, and an ultra-fast native C++ image processing engine (`aevique_core`). It delivers professional non-destructive image adjustments, high-fidelity real pixel processing, tactile controls, and high-resolution export.
+**LumaFix** is a high-performance, minimal, photography-first mobile photo editing application built with Flutter, Dart, and an ultra-fast native C++ image processing engine (`lumafix_core`). It delivers professional non-destructive image adjustments, high-fidelity real pixel processing, tactile controls, and high-resolution export.
 
 ---
 
 ## 1. Key Features & Architecture
 
 ### Photography-First Design System
-- **Dark Studio Canvas:** `#0C0E12` backdrop with neutral tones (`#14181F` surfaces) and refined amber (`#E5A93C`) and cyan accents, keeping photos as the focal point.
-- **Tactile Sliders:** Precision `LumaSlider` with center-zero detents, double-tap reset, and monospace numeric readouts (`-100` to `+100`).
+- **Transparent Liquid Glass Studio:** Modern Apple-inspired dark studio surface (`#080A10` deep canvas, `#0E131E` studio surface) with specular border highlights and balanced Cobalt Blue (`#3478F6`), Creative Orange (`#FF8A32`), and Coral Red (`#F04452`) accents.
+- **Tactile Sliders:** Precision `LumaSlider` and `LumaPrecisionSlider` with center-zero detents, double-tap reset, and monospace numeric readouts (`-100` to `+100`).
 - **Instant Before/After:** Seamless `BeforeAfterViewer` allowing press-and-hold to compare current edits with the unedited original.
 
 ### Non-Destructive Editing & History Stack
@@ -18,17 +18,17 @@
 
 ---
 
-## 2. Native C++ Image Processing Engine (`aevique_core` v1.2.0)
+## 2. Native C++ Image Processing Engine (`lumafix_core` v1.2.0)
 
-AEVIQUE features a dedicated native C++ engine (`libaevique_core.so` on Android, `libaevique_core.dylib` on macOS) integrated via Dart FFI.
+LumaFix features a dedicated native C++ engine (`liblumafix_core.so` on Android, `liblumafix_core.dylib` on macOS) integrated via Dart FFI.
 
 ### C ABI Architecture (v1.2.0)
-- **Version Query:** `aevique_get_version_major()`, `aevique_get_version_minor()`, `aevique_get_version_patch()`.
-- **Pixel Formats:** `RGBA8888` (4 bytes per pixel) and `RGB888` (3 bytes per pixel).
-- **Buffer Interface:** `AeviqueImageBuffer` with explicit row stride, width, height, and format validation.
+- **Version Query:** `lumafix_get_version()`.
+- **Pixel Formats:** `LumaFixPixelFormat::RGBA8888` (4 bytes per pixel) and `RGB888` (3 bytes per pixel).
+- **Buffer Interface:** `LumaFixImageBuffer` with explicit row stride, width, height, and format validation.
 
-### Unified Native Processing Pipeline (`aevique_process_pipeline_rgba8`)
-Rather than performing multiple successive FFI calls and intermediate buffer allocations, the Phase 6 Unified Pipeline executes all compatible operations in a single cache-efficient pixel pass:
+### Unified Native Processing Pipeline (`lumafix_process_pipeline_rgba8`)
+Rather than performing multiple successive FFI calls and intermediate buffer allocations, the Unified Pipeline executes all compatible operations in a single cache-efficient pixel pass:
 1. **Tone & Curves:** 3-channel 256-entry lookup tables for Exposure, Contrast, Highlights, Shadows, Whites, Blacks, Warmth, Tint, and Spline Tone Curves.
 2. **Adaptive Vibrance:** Selective saturation boost that protects skin tones and already-saturated colors.
 3. **Local Clarity:** Midtone-weighted local contrast enhancement.
@@ -75,7 +75,7 @@ Operations with multi-scale down/upscale or geometry requirements are preserved 
 
 ## 4. Project Structure
 
-```
+```text
 lib/
 ├── core/
 │   ├── image_engine/
@@ -86,20 +86,20 @@ lib/
 │   │   ├── edit_state.dart       # Immutable, serializable edit state domain models
 │   │   └── history_manager.dart  # Discrete undo/redo state stack
 │   ├── native_engine/
-│   │   └── aevique_ffi.dart      # Dart FFI bindings and C ABI v1.2.0 integration
+│   │   └── lumafix_ffi.dart      # Dart FFI bindings and C ABI v1.2.0 integration
 │   └── presets/
 │       └── preset_catalogue.dart # Curated aesthetic presets
 native/
-└── aevique_core/
+└── lumafix_core/
     ├── CMakeLists.txt            # CMake build configuration for native core
     ├── include/
-    │   └── aevique_engine.h      # C ABI header (v1.2.0)
+    │   └── lumafix_engine.h      # C ABI header (v1.2.0)
     ├── src/
-    │   └── aevique_engine.cpp    # Vectorized C++ image processing kernels
+    │   └── lumafix_engine.cpp    # Vectorized C++ image processing kernels
     ├── tests/
-    │   └── test_aevique_engine.cpp # 23 native C++ unit tests
+    │   └── test_lumafix_engine.cpp # 27 native C++ unit tests
     └── benchmarks/
-        └── bench_aevique_engine.cpp # Native C++ microbenchmarks
+        └── bench_lumafix_engine.cpp # Native C++ microbenchmarks
 ```
 
 ---
@@ -114,9 +114,9 @@ flutter test
 
 Execute the native C++ unit tests:
 ```bash
-cmake -B native/aevique_core/build -S native/aevique_core
-cmake --build native/aevique_core/build
-./native/aevique_core/build/test_aevique_core
+cmake -B native/lumafix_core/build -S native/lumafix_core
+cmake --build native/lumafix_core/build
+./native/lumafix_core/build/test_lumafix_engine
 ```
 
 ### Static Analysis & Formatting
@@ -133,9 +133,9 @@ flutter test test/benchmark/native_export_benchmark.dart
 ```
 
 ### Building for Android
-Build a debug APK packaging `libaevique_core.so` for `arm64-v8a`, `armeabi-v7a`, and `x86_64`:
+Build a debug APK packaging `liblumafix_core.so`:
 ```bash
-./android/gradlew -p android assembleDebug
+flutter build apk --debug
 ```
 Output APK location:
-`build/app/outputs/apk/debug/app-debug.apk`
+`build/app/outputs/flutter-apk/app-debug.apk`
