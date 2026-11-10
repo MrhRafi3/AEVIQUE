@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'hsl_adjustments.dart';
 
 enum MaskType {
   brush,
+  subject,
   linearGradient,
   radialGradient,
 }
@@ -202,71 +205,120 @@ class RadialGradientData {
 /// Tone adjustments applied specifically within a mask area.
 @immutable
 class MaskToneAdjustments {
+  // Light
   final double exposure; // -100 .. 100
   final double brightness; // -100 .. 100
   final double contrast; // -100 .. 100
-  final double saturation; // -100 .. 100
-  final double warmth; // -100 .. 100
-  final double tint; // -100 .. 100
   final double highlights; // -100 .. 100
   final double shadows; // -100 .. 100
+  final double whites; // -100 .. 100
+  final double blacks; // -100 .. 100
+
+  // Color
+  final double warmth; // -100 .. 100
+  final double tint; // -100 .. 100
+  final double saturation; // -100 .. 100
+  final double vibrance; // -100 .. 100
+
+  // HSL Mixer
+  final HslAdjustments hsl;
+
+  // Effects / Details
   final double clarity; // -100 .. 100
+  final double texture; // -100 .. 100
+  final double dehaze; // -100 .. 100
+  final double sharpness; // 0 .. 100
 
   const MaskToneAdjustments({
     this.exposure = 0.0,
     this.brightness = 0.0,
     this.contrast = 0.0,
-    this.saturation = 0.0,
-    this.warmth = 0.0,
-    this.tint = 0.0,
     this.highlights = 0.0,
     this.shadows = 0.0,
+    this.whites = 0.0,
+    this.blacks = 0.0,
+    this.warmth = 0.0,
+    this.tint = 0.0,
+    this.saturation = 0.0,
+    this.vibrance = 0.0,
+    this.hsl = const HslAdjustments(),
     this.clarity = 0.0,
+    this.texture = 0.0,
+    this.dehaze = 0.0,
+    this.sharpness = 0.0,
   });
 
   bool get isIdentity =>
       exposure == 0.0 &&
       brightness == 0.0 &&
       contrast == 0.0 &&
-      saturation == 0.0 &&
-      warmth == 0.0 &&
-      tint == 0.0 &&
       highlights == 0.0 &&
       shadows == 0.0 &&
-      clarity == 0.0;
+      whites == 0.0 &&
+      blacks == 0.0 &&
+      warmth == 0.0 &&
+      tint == 0.0 &&
+      saturation == 0.0 &&
+      vibrance == 0.0 &&
+      hsl.isIdentity &&
+      clarity == 0.0 &&
+      texture == 0.0 &&
+      dehaze == 0.0 &&
+      sharpness == 0.0;
 
   MaskToneAdjustments copyWith({
     double? exposure,
     double? brightness,
     double? contrast,
-    double? saturation,
-    double? warmth,
-    double? tint,
     double? highlights,
     double? shadows,
+    double? whites,
+    double? blacks,
+    double? warmth,
+    double? tint,
+    double? saturation,
+    double? vibrance,
+    HslAdjustments? hsl,
     double? clarity,
+    double? texture,
+    double? dehaze,
+    double? sharpness,
   }) => MaskToneAdjustments(
     exposure: exposure ?? this.exposure,
     brightness: brightness ?? this.brightness,
     contrast: contrast ?? this.contrast,
-    saturation: saturation ?? this.saturation,
-    warmth: warmth ?? this.warmth,
-    tint: tint ?? this.tint,
     highlights: highlights ?? this.highlights,
     shadows: shadows ?? this.shadows,
+    whites: whites ?? this.whites,
+    blacks: blacks ?? this.blacks,
+    warmth: warmth ?? this.warmth,
+    tint: tint ?? this.tint,
+    saturation: saturation ?? this.saturation,
+    vibrance: vibrance ?? this.vibrance,
+    hsl: hsl ?? this.hsl,
     clarity: clarity ?? this.clarity,
+    texture: texture ?? this.texture,
+    dehaze: dehaze ?? this.dehaze,
+    sharpness: sharpness ?? this.sharpness,
   );
 
   Map<String, dynamic> toJson() => {
     'exposure': exposure,
     'brightness': brightness,
     'contrast': contrast,
-    'saturation': saturation,
-    'warmth': warmth,
-    'tint': tint,
     'highlights': highlights,
     'shadows': shadows,
+    'whites': whites,
+    'blacks': blacks,
+    'warmth': warmth,
+    'tint': tint,
+    'saturation': saturation,
+    'vibrance': vibrance,
+    'hsl': hsl.toJson(),
     'clarity': clarity,
+    'texture': texture,
+    'dehaze': dehaze,
+    'sharpness': sharpness,
   };
 
   factory MaskToneAdjustments.fromJson(Map<String, dynamic> json) =>
@@ -274,12 +326,21 @@ class MaskToneAdjustments {
         exposure: (json['exposure'] as num?)?.toDouble() ?? 0.0,
         brightness: (json['brightness'] as num?)?.toDouble() ?? 0.0,
         contrast: (json['contrast'] as num?)?.toDouble() ?? 0.0,
-        saturation: (json['saturation'] as num?)?.toDouble() ?? 0.0,
-        warmth: (json['warmth'] as num?)?.toDouble() ?? 0.0,
-        tint: (json['tint'] as num?)?.toDouble() ?? 0.0,
         highlights: (json['highlights'] as num?)?.toDouble() ?? 0.0,
         shadows: (json['shadows'] as num?)?.toDouble() ?? 0.0,
+        whites: (json['whites'] as num?)?.toDouble() ?? 0.0,
+        blacks: (json['blacks'] as num?)?.toDouble() ?? 0.0,
+        warmth: (json['warmth'] as num?)?.toDouble() ?? 0.0,
+        tint: (json['tint'] as num?)?.toDouble() ?? 0.0,
+        saturation: (json['saturation'] as num?)?.toDouble() ?? 0.0,
+        vibrance: (json['vibrance'] as num?)?.toDouble() ?? 0.0,
+        hsl: json['hsl'] != null
+            ? HslAdjustments.fromJson(Map<String, dynamic>.from(json['hsl'] as Map))
+            : const HslAdjustments(),
         clarity: (json['clarity'] as num?)?.toDouble() ?? 0.0,
+        texture: (json['texture'] as num?)?.toDouble() ?? 0.0,
+        dehaze: (json['dehaze'] as num?)?.toDouble() ?? 0.0,
+        sharpness: (json['sharpness'] as num?)?.toDouble() ?? 0.0,
       );
 
   @override
@@ -290,25 +351,39 @@ class MaskToneAdjustments {
           exposure == other.exposure &&
           brightness == other.brightness &&
           contrast == other.contrast &&
-          saturation == other.saturation &&
-          warmth == other.warmth &&
-          tint == other.tint &&
           highlights == other.highlights &&
           shadows == other.shadows &&
-          clarity == other.clarity;
+          whites == other.whites &&
+          blacks == other.blacks &&
+          warmth == other.warmth &&
+          tint == other.tint &&
+          saturation == other.saturation &&
+          vibrance == other.vibrance &&
+          hsl == other.hsl &&
+          clarity == other.clarity &&
+          texture == other.texture &&
+          dehaze == other.dehaze &&
+          sharpness == other.sharpness;
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     exposure,
     brightness,
     contrast,
-    saturation,
-    warmth,
-    tint,
     highlights,
     shadows,
+    whites,
+    blacks,
+    warmth,
+    tint,
+    saturation,
+    vibrance,
+    hsl,
     clarity,
-  );
+    texture,
+    dehaze,
+    sharpness,
+  ]);
 }
 
 /// A selective mask layer.
@@ -319,8 +394,13 @@ class SelectiveMask {
   final MaskType type;
   final bool inverted;
   final double opacity; // 0.0 .. 1.0
+  final double density; // 0.0 .. 1.0 (mask density scaling)
+  final double feather; // 0.0 .. 1.0 (edge softness / feathering)
   final bool isVisible;
   final List<MaskPoint> brushPoints;
+  final Uint8List? maskBytes; // 8-bit alpha buffer [0 .. 255]
+  final int? maskWidth;
+  final int? maskHeight;
   final LinearGradientData linearData;
   final RadialGradientData radialData;
   final MaskToneAdjustments adjustments;
@@ -331,8 +411,13 @@ class SelectiveMask {
     required this.type,
     this.inverted = false,
     this.opacity = 1.0,
+    this.density = 1.0,
+    this.feather = 0.0,
     this.isVisible = true,
     this.brushPoints = const [],
+    this.maskBytes,
+    this.maskWidth,
+    this.maskHeight,
     this.linearData = const LinearGradientData(),
     this.radialData = const RadialGradientData(),
     this.adjustments = const MaskToneAdjustments(),
@@ -341,7 +426,9 @@ class SelectiveMask {
   bool get isEmpty {
     switch (type) {
       case MaskType.brush:
-        return brushPoints.isEmpty;
+        return brushPoints.isEmpty && (maskBytes == null || maskBytes!.isEmpty);
+      case MaskType.subject:
+        return maskBytes == null || maskBytes!.isEmpty;
       case MaskType.linearGradient:
       case MaskType.radialGradient:
         return false;
@@ -354,8 +441,13 @@ class SelectiveMask {
     MaskType? type,
     bool? inverted,
     double? opacity,
+    double? density,
+    double? feather,
     bool? isVisible,
     List<MaskPoint>? brushPoints,
+    Uint8List? maskBytes,
+    int? maskWidth,
+    int? maskHeight,
     LinearGradientData? linearData,
     RadialGradientData? radialData,
     MaskToneAdjustments? adjustments,
@@ -365,8 +457,13 @@ class SelectiveMask {
     type: type ?? this.type,
     inverted: inverted ?? this.inverted,
     opacity: opacity ?? this.opacity,
+    density: density ?? this.density,
+    feather: feather ?? this.feather,
     isVisible: isVisible ?? this.isVisible,
     brushPoints: brushPoints ?? this.brushPoints,
+    maskBytes: maskBytes ?? this.maskBytes,
+    maskWidth: maskWidth ?? this.maskWidth,
+    maskHeight: maskHeight ?? this.maskHeight,
     linearData: linearData ?? this.linearData,
     radialData: radialData ?? this.radialData,
     adjustments: adjustments ?? this.adjustments,
@@ -378,8 +475,13 @@ class SelectiveMask {
     'type': type.name,
     'inverted': inverted,
     'opacity': opacity,
+    'density': density,
+    'feather': feather,
     'isVisible': isVisible,
     'brushPoints': brushPoints.map((p) => p.toJson()).toList(),
+    'maskBytes': maskBytes != null ? base64Encode(maskBytes!) : null,
+    'maskWidth': maskWidth,
+    'maskHeight': maskHeight,
     'linearData': linearData.toJson(),
     'radialData': radialData.toJson(),
     'adjustments': adjustments.toJson(),
@@ -394,12 +496,19 @@ class SelectiveMask {
     ),
     inverted: json['inverted'] as bool? ?? false,
     opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+    density: (json['density'] as num?)?.toDouble() ?? 1.0,
+    feather: (json['feather'] as num?)?.toDouble() ?? 0.0,
     isVisible: json['isVisible'] as bool? ?? true,
     brushPoints:
         (json['brushPoints'] as List?)
             ?.map((e) => MaskPoint.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList() ??
         const [],
+    maskBytes: json['maskBytes'] != null
+        ? Uint8List.fromList(base64Decode(json['maskBytes'] as String))
+        : null,
+    maskWidth: (json['maskWidth'] as num?)?.toInt(),
+    maskHeight: (json['maskHeight'] as num?)?.toInt(),
     linearData: json['linearData'] != null
         ? LinearGradientData.fromJson(Map<String, dynamic>.from(json['linearData'] as Map))
         : const LinearGradientData(),
@@ -421,8 +530,16 @@ class SelectiveMask {
           type == other.type &&
           inverted == other.inverted &&
           (opacity - other.opacity).abs() < 1e-4 &&
+          (density - other.density).abs() < 1e-4 &&
+          (feather - other.feather).abs() < 1e-4 &&
           isVisible == other.isVisible &&
           listEquals(brushPoints, other.brushPoints) &&
+          maskWidth == other.maskWidth &&
+          maskHeight == other.maskHeight &&
+          (maskBytes == null && other.maskBytes == null ||
+              maskBytes != null &&
+                  other.maskBytes != null &&
+                  listEquals(maskBytes, other.maskBytes)) &&
           linearData == other.linearData &&
           radialData == other.radialData &&
           adjustments == other.adjustments;
@@ -434,6 +551,8 @@ class SelectiveMask {
     type,
     inverted,
     (opacity * 100).round(),
+    (density * 100).round(),
+    (feather * 100).round(),
     isVisible,
     Object.hashAll(brushPoints),
     linearData,

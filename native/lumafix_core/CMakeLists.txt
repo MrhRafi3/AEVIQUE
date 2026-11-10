@@ -8,10 +8,30 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Public include directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+set(LUMAFIX_SOURCES src/lumafix_engine.cpp)
+
+if(APPLE)
+    enable_language(OBJCXX)
+    list(APPEND LUMAFIX_SOURCES src/lumafix_vision.mm)
+endif()
+
 # Main shared library target for Dart FFI
 add_library(lumafix_core SHARED
-    src/lumafix_engine.cpp
+    ${LUMAFIX_SOURCES}
 )
+
+if(APPLE)
+    find_library(VISION_FRAMEWORK Vision)
+    find_library(COREVIDEO_FRAMEWORK CoreVideo)
+    find_library(COREIMAGE_FRAMEWORK CoreImage)
+    find_library(FOUNDATION_FRAMEWORK Foundation)
+    target_link_libraries(lumafix_core PRIVATE
+        ${VISION_FRAMEWORK}
+        ${COREVIDEO_FRAMEWORK}
+        ${COREIMAGE_FRAMEWORK}
+        ${FOUNDATION_FRAMEWORK}
+    )
+endif()
 
 target_include_directories(lumafix_core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -33,22 +53,40 @@ if(NOT ANDROID)
     # Native unit test runner
     add_executable(test_lumafix_engine
         tests/test_lumafix_engine.cpp
-        src/lumafix_engine.cpp
+        ${LUMAFIX_SOURCES}
     )
 
     target_include_directories(test_lumafix_engine PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
 
+    if(APPLE)
+        target_link_libraries(test_lumafix_engine PRIVATE
+            ${VISION_FRAMEWORK}
+            ${COREVIDEO_FRAMEWORK}
+            ${COREIMAGE_FRAMEWORK}
+            ${FOUNDATION_FRAMEWORK}
+        )
+    endif()
+
     # Native standalone benchmark
     add_executable(bench_lumafix_engine
         benchmarks/bench_lumafix_engine.cpp
-        src/lumafix_engine.cpp
+        ${LUMAFIX_SOURCES}
     )
 
     target_include_directories(bench_lumafix_engine PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
+
+    if(APPLE)
+        target_link_libraries(bench_lumafix_engine PRIVATE
+            ${VISION_FRAMEWORK}
+            ${COREVIDEO_FRAMEWORK}
+            ${COREIMAGE_FRAMEWORK}
+            ${FOUNDATION_FRAMEWORK}
+        )
+    endif()
 
     enable_testing()
     add_test(NAME test_lumafix_engine COMMAND test_lumafix_engine)

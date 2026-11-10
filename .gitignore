@@ -47,3 +47,7 @@ native/**/build/
 
 # Review artifacts
 review_screenshots/
+
+# Knowledge graph
+graphify-out/
+

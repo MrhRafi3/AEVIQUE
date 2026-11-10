@@ -1,6 +1,8 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/models/edit_state.dart';
+import '../core/image_engine/lut_generator.dart';
 import '../theme/luma_theme.dart';
 import 'luma_glass.dart';
 
@@ -44,11 +46,11 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
       case CurveChannel.rgb:
         return LumaTheme.primaryBlueLight;
       case CurveChannel.red:
-        return LumaTheme.coralRed;
+        return const Color(0xFFEF4444);
       case CurveChannel.green:
         return const Color(0xFF10B981);
       case CurveChannel.blue:
-        return LumaTheme.primaryBlue;
+        return const Color(0xFF3B82F6);
     }
   }
 
@@ -77,7 +79,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
     final normY = (1.0 - (localPosition.dy / size.height)).clamp(0.0, 1.0);
 
     int? nearestIndex;
-    var minDistance = 24.0;
+    var minDistance = 32.0;
 
     for (var i = 0; i < points.length; i++) {
       final px = points[i].x * size.width;
@@ -94,12 +96,19 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
       HapticFeedback.selectionClick();
     } else {
       HapticFeedback.lightImpact();
+      // Add a new control point at the tapped location
       points.add(CurvePoint(normX, normY));
       points.sort((a, b) => a.x.compareTo(b.x));
       _activePointIndex = points.indexWhere((p) => (p.x - normX).abs() < 1e-4);
       _updateChannelPoints(points);
     }
     setState(() {});
+  }
+
+  void _handlePanStart(Offset localPosition, Size size) {
+    if (_activePointIndex == null) {
+      _handlePanDown(localPosition, size);
+    }
   }
 
   void _handlePanUpdate(Offset localPosition, Size size) {
@@ -112,13 +121,17 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
     final normY = (1.0 - (localPosition.dy / size.height)).clamp(0.0, 1.0);
 
     if (_activePointIndex == 0) {
+      // First endpoint fixed at x=0.0
       points[0] = CurvePoint(0.0, normY);
     } else if (_activePointIndex == points.length - 1) {
+      // Last endpoint fixed at x=1.0
       points[points.length - 1] = CurvePoint(1.0, normY);
     } else {
-      points[_activePointIndex!] = CurvePoint(normX, normY);
-      points.sort((a, b) => a.x.compareTo(b.x));
-      _activePointIndex = points.indexWhere((p) => (p.x - normX).abs() < 1e-4);
+      // Interior points bounded between neighbor points
+      final minX = points[_activePointIndex! - 1].x + 0.01;
+      final maxX = points[_activePointIndex! + 1].x - 0.01;
+      final clampedX = minX < maxX ? normX.clamp(minX, maxX) : points[_activePointIndex!].x;
+      points[_activePointIndex!] = CurvePoint(clampedX, normY);
     }
 
     _updateChannelPoints(points);
@@ -126,13 +139,14 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
   }
 
   void _handlePanEnd() {
-    _activePointIndex = null;
     setState(() {});
   }
 
   void _resetCurrentChannel() {
     HapticFeedback.lightImpact();
+    _activePointIndex = null;
     _updateChannelPoints(const [CurvePoint(0.0, 0.0), CurvePoint(1.0, 1.0)]);
+    setState(() {});
   }
 
   void _resetAllChannels() {
@@ -160,7 +174,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
       final px = points[i].x * size.width;
       final py = (1.0 - points[i].y) * size.height;
       final dist = (Offset(px, py) - details.localPosition).distance;
-      if (dist < 28.0) {
+      if (dist < 32.0) {
         HapticFeedback.lightImpact();
         points.removeAt(i);
         _activePointIndex = null;
@@ -201,42 +215,44 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
       );
     }
 
+    final activePoint = (_activePointIndex != null &&
+            _activePointIndex! >= 0 &&
+            _activePointIndex! < _activePoints.length)
+        ? _activePoints[_activePointIndex!]
+        : null;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Channel Selector Tabs
+        // 1. Channel Selector Tabs & Actions (Responsive & Overflow-Free)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  _buildChannelTab(
-                    CurveChannel.rgb,
-                    'RGB',
-                    LumaTheme.primaryBlueLight,
+              // Scrollable Channel Pills
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildChannelTab(CurveChannel.rgb, 'RGB', LumaTheme.primaryBlueLight),
+                      const SizedBox(width: 6),
+                      _buildChannelTab(CurveChannel.red, 'Red', const Color(0xFFEF4444)),
+                      const SizedBox(width: 6),
+                      _buildChannelTab(CurveChannel.green, 'Green', const Color(0xFF10B981)),
+                      const SizedBox(width: 6),
+                      _buildChannelTab(CurveChannel.blue, 'Blue', const Color(0xFF3B82F6)),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  _buildChannelTab(
-                    CurveChannel.red,
-                    'Red',
-                    const Color(0xFFEF4444),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildChannelTab(
-                    CurveChannel.green,
-                    'Green',
-                    const Color(0xFF10B981),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildChannelTab(
-                    CurveChannel.blue,
-                    'Blue',
-                    const Color(0xFF3B82F6),
-                  ),
-                ],
+                ),
               ),
+
+              const SizedBox(width: 8),
+
+              // Action Buttons
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -244,6 +260,9 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                       _activePointIndex! > 0 &&
                       _activePointIndex! < _activePoints.length - 1)
                     IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(),
                       icon: const Icon(
                         Icons.delete_outline_rounded,
                         size: 18,
@@ -252,7 +271,11 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                       tooltip: 'Delete Point',
                       onPressed: _deleteSelectedPoint,
                     ),
+                  const SizedBox(width: 4),
                   IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
                     icon: const Icon(
                       Icons.refresh_rounded,
                       size: 18,
@@ -261,8 +284,12 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                     tooltip: 'Reset Channel',
                     onPressed: _resetCurrentChannel,
                   ),
-                  if (!widget.curves.isIdentity)
+                  if (!widget.curves.isIdentity) ...[
+                    const SizedBox(width: 4),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(),
                       icon: const Icon(
                         Icons.restart_alt_rounded,
                         size: 18,
@@ -271,43 +298,74 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
                       tooltip: 'Reset All Channels',
                       onPressed: _resetAllChannels,
                     ),
+                  ],
                 ],
               ),
             ],
           ),
         ),
 
-        // Interactive Tone Curve Canvas
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-          child: AspectRatio(
-            aspectRatio: 1.0,
-            child: LumaGlass(
-              borderRadius: BorderRadius.circular(20),
-              padding: const EdgeInsets.all(12),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  );
-                  return GestureDetector(
-                    onDoubleTapDown: (d) => _handleDoubleTapDown(d, size),
-                    onPanDown: (d) => _handlePanDown(d.localPosition, size),
-                    onPanUpdate: (d) => _handlePanUpdate(d.localPosition, size),
-                    onPanEnd: (_) => _handlePanEnd(),
-                    child: CustomPaint(
-                      size: size,
-                      painter: _CurvePainter(
-                        points: _activePoints,
-                        curveColor: _activeColor,
-                        activePointIndex: _activePointIndex,
-                      ),
-                    ),
-                  );
-                },
-              ),
+        // Value readout badge if point is active
+        if (activePoint != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 2.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  'In: ${(activePoint.x * 255).round()}   Out: ${(activePoint.y * 255).round()}',
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white60,
+                  ),
+                ),
+              ],
             ),
+          ),
+
+        // 2. Interactive Tone Curve Canvas with Responsive Bounded Sizing
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final side = math.min(constraints.maxWidth, 260.0);
+              return Center(
+                child: SizedBox(
+                  width: side,
+                  height: side,
+                  child: LumaGlass(
+                    borderRadius: BorderRadius.circular(20),
+                    padding: const EdgeInsets.all(12),
+                    child: LayoutBuilder(
+                      builder: (context, innerConstraints) {
+                        final size = Size(
+                          innerConstraints.maxWidth,
+                          innerConstraints.maxHeight,
+                        );
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onDoubleTapDown: (d) => _handleDoubleTapDown(d, size),
+                          onPanDown: (d) => _handlePanDown(d.localPosition, size),
+                          onPanStart: (d) => _handlePanStart(d.localPosition, size),
+                          onPanUpdate: (d) => _handlePanUpdate(d.localPosition, size),
+                          onPanEnd: (_) => _handlePanEnd(),
+                          child: CustomPaint(
+                            size: size,
+                            painter: _CurvePainter(
+                              points: _activePoints,
+                              curveColor: _activeColor,
+                              activePointIndex: _activePointIndex,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -319,16 +377,17 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
-        setState(() => _selectedChannel = channel);
+        setState(() {
+          _selectedChannel = channel;
+          _activePointIndex = null;
+        });
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: 0.2)
-              : const Color(0x401E1E26),
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? color.withValues(alpha: 0.25) : const Color(0x401E1E26),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected ? color : LumaTheme.border,
             width: isSelected ? 1.2 : 0.8,
@@ -338,7 +397,7 @@ class _CurveEditorWidgetState extends State<CurveEditorWidget> {
           label,
           style: TextStyle(
             fontFamily: 'Inter',
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             color: isSelected ? Colors.white : LumaTheme.textSecondary,
           ),
@@ -384,16 +443,15 @@ class _CurvePainter extends CustomPainter {
 
     if (points.length < 2) return;
 
-    // 3. Glowing Spline curve
+    // 3. Monotone Cubic Spline curve path
     final curvePath = Path();
     final firstPx = points.first.x * w;
     final firstPy = (1.0 - points.first.y) * h;
     curvePath.moveTo(firstPx, firstPy);
 
-    // Natural cubic spline sampling
     for (var x = 0; x <= w; x += 2) {
       final normX = x / w;
-      final normY = _evaluateSpline(normX, points);
+      final normY = LutGenerator.evaluateMonotoneSpline(normX, points);
       final py = (1.0 - normY) * h;
       curvePath.lineTo(x.toDouble(), py);
     }
@@ -426,7 +484,7 @@ class _CurvePainter extends CustomPainter {
       final px = points[i].x * w;
       final py = (1.0 - points[i].y) * h;
       final isActive = i == activePointIndex;
-      final radius = isActive ? 6.5 : 4.5;
+      final radius = isActive ? 7.0 : 4.5;
 
       canvas.drawCircle(Offset(px, py), radius, pointBgPaint);
       canvas.drawCircle(Offset(px, py), radius, pointStrokePaint);
@@ -438,30 +496,6 @@ class _CurvePainter extends CustomPainter {
         canvas.drawCircle(Offset(px, py), radius * 0.5, activeFill);
       }
     }
-  }
-
-  double _evaluateSpline(double x, List<CurvePoint> pts) {
-    if (x <= pts.first.x) return pts.first.y;
-    if (x >= pts.last.x) return pts.last.y;
-
-    for (var i = 0; i < pts.length - 1; i++) {
-      if (x >= pts[i].x && x <= pts[i + 1].x) {
-        final dx = pts[i + 1].x - pts[i].x;
-        if (dx.abs() < 1e-6) return pts[i].y;
-        final t = (x - pts[i].x) / dx;
-        // Smooth Hermite interpolation
-        final h00 = (1 + 2 * t) * (1 - t) * (1 - t);
-        final h10 = t * (1 - t) * (1 - t);
-        final h01 = t * t * (3 - 2 * t);
-        final h11 = t * t * (t - 1);
-        final m0 = (pts[i + 1].y - pts[i].y);
-        final m1 = m0;
-        final y =
-            h00 * pts[i].y + h10 * dx * m0 + h01 * pts[i + 1].y + h11 * dx * m1;
-        return y.clamp(0.0, 1.0);
-      }
-    }
-    return x;
   }
 
   @override

@@ -334,6 +334,21 @@ typedef _ProcessHslDart =
       ffi.Pointer<LumaFixHslParameters> params,
     );
 
+typedef _SegmentPersonC =
+    ffi.Int32 Function(
+      ffi.Pointer<LumaFixImageBuffer> src,
+      ffi.Pointer<ffi.Uint8> outMask,
+      ffi.Int32 outWidth,
+      ffi.Int32 outHeight,
+    );
+typedef _SegmentPersonDart =
+    int Function(
+      ffi.Pointer<LumaFixImageBuffer> src,
+      ffi.Pointer<ffi.Uint8> outMask,
+      int outWidth,
+      int outHeight,
+    );
+
 /// Safe, high-level Dart FFI wrapper for LumaFix native C++ engine.
 class LumaFixNativeEngine {
   /// Global engine execution mode.
@@ -397,6 +412,7 @@ class LumaFixNativeEngine {
   late final _ProcessMonochromeDart _processMonochrome;
   late final _ProcessVignetteDart _processVignette;
   late final _ProcessHslDart _processHsl;
+  late final _SegmentPersonDart _segmentPerson;
 
   LumaFixNativeEngine._(this._dylib) {
     _getVersion = _dylib.lookupFunction<_GetVersionC, _GetVersionDart>(
@@ -435,6 +451,9 @@ class LumaFixNativeEngine {
         );
     _processHsl = _dylib.lookupFunction<_ProcessHslC, _ProcessHslDart>(
       'lumafix_process_hsl_rgba8',
+    );
+    _segmentPerson = _dylib.lookupFunction<_SegmentPersonC, _SegmentPersonDart>(
+      'lumafix_segment_person_rgba8',
     );
   }
 
@@ -914,6 +933,56 @@ class LumaFixNativeEngine {
         calloc.free(dstBuf);
         calloc.free(dstDataPtr);
       }
+      calloc.free(srcBuf);
+      calloc.free(srcDataPtr);
+    }
+  }
+
+  /// Segments human subject(s) from [rgbaBytes] and returns an 8-bit alpha mask of size [outWidth]x[outHeight].
+  ///
+  /// On macOS/iOS: Hardware-accelerated Apple Vision Neural Engine.
+  /// On other platforms: Portable on-device skin-tone chrominance, spatial saliency, and boundary refinement.
+  Uint8List segmentPersonRgba8({
+    required Uint8List rgbaBytes,
+    required int width,
+    required int height,
+    int? outWidth,
+    int? outHeight,
+  }) {
+    if (width <= 0 || height <= 0 || width > 65536 || height > 65536) {
+      throw ArgumentError(
+        'Invalid image dimensions for person segmentation: ${width}x$height',
+      );
+    }
+    final outW = outWidth ?? width;
+    final outH = outHeight ?? height;
+    final totalSrcBytes = width * height * 4;
+    final totalMaskBytes = outW * outH;
+
+    final srcBuf = calloc<LumaFixImageBuffer>();
+    final srcDataPtr = calloc<ffi.Uint8>(totalSrcBytes);
+    final maskDataPtr = calloc<ffi.Uint8>(totalMaskBytes);
+
+    try {
+      srcDataPtr.asTypedList(totalSrcBytes).setRange(0, totalSrcBytes, rgbaBytes);
+      srcBuf.ref.data = srcDataPtr;
+      srcBuf.ref.width = width;
+      srcBuf.ref.height = height;
+      srcBuf.ref.strideBytes = width * 4;
+      srcBuf.ref.format = LumaFixPixelFormat.rgba8888;
+
+      final status = _segmentPerson(srcBuf, maskDataPtr, outW, outH);
+      if (status != LumaFixStatusCode.success) {
+        throw StateError(
+          'lumafix_segment_person_rgba8 failed with code $status: ${getStatusString(status)}',
+        );
+      }
+
+      final outList = Uint8List(totalMaskBytes);
+      outList.setRange(0, totalMaskBytes, maskDataPtr.asTypedList(totalMaskBytes));
+      return outList;
+    } finally {
+      calloc.free(maskDataPtr);
       calloc.free(srcBuf);
       calloc.free(srcDataPtr);
     }

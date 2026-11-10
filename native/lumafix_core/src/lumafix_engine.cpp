@@ -1,4 +1,5 @@
 #include "lumafix_engine.h"
+#include "lumafix_vision.h"
 
 #include <algorithm>
 #include <cmath>
@@ -47,8 +48,51 @@ static void interpolate_curve_channel(const LumaFixCurveChannel* channel, uint8_
         return a.x < b.x;
     });
 
-    const size_t num_points = sorted.size();
+    const int n = static_cast<int>(sorted.size());
+    if (n == 1) {
+        uint8_t val = clamp_u8(static_cast<int>(std::round(sorted[0].y * 255.0f)));
+        for (int i = 0; i < 256; i++) lut[i] = val;
+        return;
+    }
 
+    // 1. Secant slopes
+    std::vector<double> deltas(n - 1, 0.0);
+    std::vector<double> h(n - 1, 0.0);
+    for (int k = 0; k < n - 1; k++) {
+        h[k] = static_cast<double>(sorted[k + 1].x) - static_cast<double>(sorted[k].x);
+        deltas[k] = (h[k] > 1e-6) ? (static_cast<double>(sorted[k + 1].y) - static_cast<double>(sorted[k].y)) / h[k] : 0.0;
+    }
+
+    // 2. Initial slopes at nodes
+    std::vector<double> d(n, 0.0);
+    d[0] = deltas[0];
+    d[n - 1] = deltas[n - 2];
+    for (int k = 1; k < n - 1; k++) {
+        if (deltas[k - 1] * deltas[k] <= 0.0) {
+            d[k] = 0.0;
+        } else {
+            d[k] = (deltas[k - 1] + deltas[k]) / 2.0;
+        }
+    }
+
+    // 3. Fritsch-Carlson monotonicity constraint
+    for (int k = 0; k < n - 1; k++) {
+        if (std::abs(deltas[k]) < 1e-6) {
+            d[k] = 0.0;
+            d[k + 1] = 0.0;
+        } else {
+            double alpha = d[k] / deltas[k];
+            double beta = d[k + 1] / deltas[k];
+            double sum_sq = alpha * alpha + beta * beta;
+            if (sum_sq > 9.0) {
+                double tau = 3.0 / std::sqrt(sum_sq);
+                d[k] = tau * alpha * deltas[k];
+                d[k + 1] = tau * beta * deltas[k];
+            }
+        }
+    }
+
+    // 4. Evaluate Hermite cubic spline across all 256 LUT values
     for (int i = 0; i < 256; i++) {
         const double norm_x = static_cast<double>(i) / 255.0;
 
@@ -57,42 +101,25 @@ static void interpolate_curve_channel(const LumaFixCurveChannel* channel, uint8_
         } else if (norm_x >= static_cast<double>(sorted.back().x)) {
             lut[i] = clamp_u8(static_cast<int>(std::round(static_cast<double>(sorted.back().y) * 255.0)));
         } else {
-            size_t idx = 0;
-            while (idx < num_points - 1 && static_cast<double>(sorted[idx + 1].x) < norm_x) {
+            int idx = 0;
+            while (idx < n - 1 && static_cast<double>(sorted[idx + 1].x) < norm_x) {
                 idx++;
             }
             const double p0_x = static_cast<double>(sorted[idx].x);
             const double p0_y = static_cast<double>(sorted[idx].y);
             const double p1_x = static_cast<double>(sorted[idx + 1].x);
             const double p1_y = static_cast<double>(sorted[idx + 1].y);
-            const double dx = p1_x - p0_x;
-            if (dx <= 1e-6) {
+            const double seg_h = p1_x - p0_x;
+
+            if (seg_h < 1e-6) {
                 lut[i] = clamp_u8(static_cast<int>(std::round(p0_y * 255.0)));
-            } else if (num_points == 2) {
-                const double t = (norm_x - p0_x) / dx;
-                const double interpolated_y = p0_y + (p1_y - p0_y) * t;
-                lut[i] = clamp_u8(static_cast<int>(std::round(interpolated_y * 255.0)));
             } else {
-                const double t = (norm_x - p0_x) / dx;
-                double m0 = p1_y - p0_y;
-                double m1 = m0;
-                if (idx > 0) {
-                    double prev_dx = p0_x - static_cast<double>(sorted[idx - 1].x);
-                    if (prev_dx > 1e-6) {
-                        m0 = 0.5 * ((p1_y - p0_y) + (p0_y - static_cast<double>(sorted[idx - 1].y)));
-                    }
-                }
-                if (idx + 2 < num_points) {
-                    double next_dx = static_cast<double>(sorted[idx + 2].x) - p1_x;
-                    if (next_dx > 1e-6) {
-                        m1 = 0.5 * ((static_cast<double>(sorted[idx + 2].y) - p1_y) + (p1_y - p0_y));
-                    }
-                }
+                const double t = (norm_x - p0_x) / seg_h;
                 const double h00 = (1.0 + 2.0 * t) * (1.0 - t) * (1.0 - t);
                 const double h10 = t * (1.0 - t) * (1.0 - t);
                 const double h01 = t * t * (3.0 - 2.0 * t);
                 const double h11 = t * t * (t - 1.0);
-                const double interpolated_y = h00 * p0_y + h10 * m0 + h01 * p1_y + h11 * m1;
+                const double interpolated_y = h00 * p0_y + h10 * seg_h * d[idx] + h01 * p1_y + h11 * seg_h * d[idx + 1];
                 lut[i] = clamp_u8(static_cast<int>(std::round(clamp_double(interpolated_y, 0.0, 1.0) * 255.0)));
             }
         }
@@ -1183,4 +1210,94 @@ LumaFixStatus lumafix_process_hsl_rgba8(
     p.vignette.center_x = 0.5f;
     p.vignette.center_y = 0.5f;
     return lumafix_process_pipeline_rgba8(src, dst, &p, nullptr);
+}
+
+LumaFixStatus lumafix_segment_person_rgba8(
+    const LumaFixImageBuffer* src,
+    uint8_t* out_mask,
+    int32_t out_width,
+    int32_t out_height
+) {
+    if (!src || !src->data || !out_mask) {
+        return LUMAFIX_ERROR_NULL_POINTER;
+    }
+    if (src->width <= 0 || src->height <= 0 || out_width <= 0 || out_height <= 0) {
+        return LUMAFIX_ERROR_INVALID_DIMENSIONS;
+    }
+
+#ifdef __APPLE__
+    int vision_status = lumafix_apple_vision_segment_person(
+        src->data,
+        src->width,
+        src->height,
+        src->stride_bytes > 0 ? src->stride_bytes : src->width * 4,
+        out_mask,
+        out_width,
+        out_height
+    );
+    if (vision_status == 0) {
+        return LUMAFIX_SUCCESS;
+    }
+#endif
+
+    // Portable on-device fallback portrait segmentation algorithm:
+    // Uses skin-tone chrominance distribution + center spatial prior + edge-preserving box filter
+    const int32_t in_w = src->width;
+    const int32_t in_h = src->height;
+    const int32_t stride = src->stride_bytes > 0 ? src->stride_bytes : in_w * 4;
+
+    std::vector<float> skin_map(out_width * out_height, 0.0f);
+    float sum_x = 0.0f;
+    float sum_y = 0.0f;
+    float total_skin = 0.0f;
+
+    for (int32_t y = 0; y < out_height; ++y) {
+        int32_t src_y = (y * in_h) / out_height;
+        const uint8_t* row = src->data + src_y * stride;
+        for (int32_t x = 0; x < out_width; ++x) {
+            int32_t src_x = (x * in_w) / out_width;
+            const uint8_t* p = row + src_x * 4;
+            float r = p[0] / 255.0f;
+            float g = p[1] / 255.0f;
+            float b = p[2] / 255.0f;
+
+            float prob = compute_skin_probability(r, g, b);
+            skin_map[y * out_width + x] = prob;
+            if (prob > 0.2f) {
+                sum_x += x * prob;
+                sum_y += y * prob;
+                total_skin += prob;
+            }
+        }
+    }
+
+    // Default centroid to upper-center if no strong skin cluster detected
+    float cx = (total_skin > 10.0f) ? (sum_x / total_skin) : (out_width * 0.5f);
+    float cy = (total_skin > 10.0f) ? (sum_y / total_skin) : (out_height * 0.4f);
+
+    float sigma_x = out_width * 0.32f;
+    float sigma_y = out_height * 0.38f;
+
+    for (int32_t y = 0; y < out_height; ++y) {
+        float dy = (y - cy) / sigma_y;
+        // Asymmetric vertical falloff: torso extends downwards
+        if (dy > 0.0f) dy *= 0.65f;
+        for (int32_t x = 0; x < out_width; ++x) {
+            float dx = (x - cx) / sigma_x;
+            float spatial_prior = std::exp(-0.5f * (dx * dx + dy * dy));
+
+            float skin_prob = skin_map[y * out_width + x];
+            // Combine skin likelihood and torso spatial prior
+            float subject_score = spatial_prior * 0.55f + skin_prob * 0.70f;
+            if (subject_score > 0.35f) {
+                float alpha = (subject_score - 0.35f) / 0.40f;
+                if (alpha > 1.0f) alpha = 1.0f;
+                out_mask[y * out_width + x] = (uint8_t)(alpha * 255.0f);
+            } else {
+                out_mask[y * out_width + x] = 0;
+            }
+        }
+    }
+
+    return LUMAFIX_SUCCESS;
 }

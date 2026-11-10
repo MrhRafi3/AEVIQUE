@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import '../models/edit_state.dart';
 
@@ -110,10 +111,80 @@ class LutGenerator {
     return ChannelLuts(rLut: rLut, gLut: gLut, bLut: bLut);
   }
 
+  /// Evaluates Fritsch-Carlson monotone cubic spline interpolation at [x] for [points].
+  static double evaluateMonotoneSpline(double x, List<CurvePoint> points) {
+    if (points.isEmpty) return x;
+    if (points.length == 1) return points.first.y;
+
+    final sorted = List<CurvePoint>.from(points)
+      ..sort((a, b) => a.x.compareTo(b.x));
+    final n = sorted.length;
+
+    if (x <= sorted.first.x) return sorted.first.y;
+    if (x >= sorted.last.x) return sorted.last.y;
+
+    // 1. Secant slopes
+    final deltas = List<double>.filled(n - 1, 0.0);
+    final h = List<double>.filled(n - 1, 0.0);
+    for (var k = 0; k < n - 1; k++) {
+      h[k] = sorted[k + 1].x - sorted[k].x;
+      deltas[k] = h[k] > 1e-6 ? (sorted[k + 1].y - sorted[k].y) / h[k] : 0.0;
+    }
+
+    // 2. Initial slopes at nodes
+    final d = List<double>.filled(n, 0.0);
+    d[0] = deltas[0];
+    d[n - 1] = deltas[n - 2];
+    for (var k = 1; k < n - 1; k++) {
+      if (deltas[k - 1] * deltas[k] <= 0.0) {
+        d[k] = 0.0;
+      } else {
+        d[k] = (deltas[k - 1] + deltas[k]) / 2.0;
+      }
+    }
+
+    // 3. Fritsch-Carlson monotonicity constraint
+    for (var k = 0; k < n - 1; k++) {
+      if (deltas[k].abs() < 1e-6) {
+        d[k] = 0.0;
+        d[k + 1] = 0.0;
+      } else {
+        final alpha = d[k] / deltas[k];
+        final beta = d[k + 1] / deltas[k];
+        final sumSq = alpha * alpha + beta * beta;
+        if (sumSq > 9.0) {
+          final tau = 3.0 / math.sqrt(sumSq);
+          d[k] = tau * alpha * deltas[k];
+          d[k + 1] = tau * beta * deltas[k];
+        }
+      }
+    }
+
+    // 4. Find segment and evaluate Hermite spline
+    var idx = 0;
+    while (idx < n - 1 && sorted[idx + 1].x < x) {
+      idx++;
+    }
+
+    final p0 = sorted[idx];
+    final p1 = sorted[idx + 1];
+    final segH = p1.x - p0.x;
+    if (segH < 1e-6) return p0.y;
+
+    final t = (x - p0.x) / segH;
+    final h00 = (1.0 + 2.0 * t) * (1.0 - t) * (1.0 - t);
+    final h10 = t * (1.0 - t) * (1.0 - t);
+    final h01 = t * t * (3.0 - 2.0 * t);
+    final h11 = t * t * (t - 1.0);
+
+    final y = h00 * p0.y + h10 * segH * d[idx] + h01 * p1.y + h11 * segH * d[idx + 1];
+    return y.clamp(0.0, 1.0);
+  }
+
   /// Interpolates a list of CurvePoint into a 256-element uint8 LUT.
   /// If points represent an identity line (e.g. [(0,0), (1,1)]), it strictly
   /// produces the linear identity map without introducing unwanted S-curves.
-  /// For >2 points, applies smooth cubic Hermite spline interpolation matching native C++ core.
+  /// For >2 points, applies Fritsch-Carlson monotone cubic spline interpolation matching native C++ core.
   static Uint8List _interpolateCurve(List<CurvePoint> points) {
     final lut = Uint8List(256);
     if (points.isEmpty || _isIdentityCurve(points)) {
@@ -123,58 +194,10 @@ class LutGenerator {
       return lut;
     }
 
-    // Sort by x
-    final sorted = List<CurvePoint>.from(points)
-      ..sort((a, b) => a.x.compareTo(b.x));
-    final n = sorted.length;
-
     for (var i = 0; i < 256; i++) {
       final normX = i / 255.0;
-
-      if (normX <= sorted.first.x) {
-        lut[i] = (sorted.first.y * 255.0).clamp(0.0, 255.0).round();
-      } else if (normX >= sorted.last.x) {
-        lut[i] = (sorted.last.y * 255.0).clamp(0.0, 255.0).round();
-      } else {
-        // Find surrounding segment [idx, idx + 1]
-        var idx = 0;
-        while (idx < n - 1 && sorted[idx + 1].x < normX) {
-          idx++;
-        }
-        final p0 = sorted[idx];
-        final p1 = sorted[idx + 1];
-        final dx = p1.x - p0.x;
-        final t = dx > 1e-6 ? (normX - p0.x) / dx : 0.0;
-
-        if (n == 2) {
-          // Fast linear interpolation for 2 endpoints
-          final interpolatedY = p0.y + (p1.y - p0.y) * t;
-          lut[i] = (interpolatedY * 255.0).clamp(0.0, 255.0).round();
-        } else {
-          // Smooth Hermite cubic spline for n > 2
-          final t = (normX - p0.x) / dx;
-          var m0 = p1.y - p0.y;
-          var m1 = m0;
-          if (idx > 0) {
-            final prevDx = p0.x - sorted[idx - 1].x;
-            if (prevDx > 1e-6) {
-              m0 = 0.5 * ((p1.y - p0.y) + (p0.y - sorted[idx - 1].y));
-            }
-          }
-          if (idx + 2 < n) {
-            final nextDx = sorted[idx + 2].x - p1.x;
-            if (nextDx > 1e-6) {
-              m1 = 0.5 * ((sorted[idx + 2].y - p1.y) + (p1.y - p0.y));
-            }
-          }
-          final h00 = (1.0 + 2.0 * t) * (1.0 - t) * (1.0 - t);
-          final h10 = t * (1.0 - t) * (1.0 - t);
-          final h01 = t * t * (3.0 - 2.0 * t);
-          final h11 = t * t * (t - 1.0);
-          final interpolatedY = h00 * p0.y + h10 * m0 + h01 * p1.y + h11 * m1;
-          lut[i] = (interpolatedY.clamp(0.0, 1.0) * 255.0).round().clamp(0, 255);
-        }
-      }
+      final normY = evaluateMonotoneSpline(normX, points);
+      lut[i] = (normY * 255.0).round().clamp(0, 255);
     }
     return lut;
   }

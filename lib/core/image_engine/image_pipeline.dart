@@ -374,9 +374,10 @@ class ImagePipeline {
     }
 
     // 1. Geometry: Rotation and Flips
-    if (state.geometry.rotationQuarterTurns % 4 != 0) {
-      final angle = (state.geometry.rotationQuarterTurns % 4) * 90;
-      working = img.copyRotate(working, angle: angle);
+    final totalAngle = (state.geometry.rotationQuarterTurns % 4) * 90.0 +
+        state.geometry.rotationAngle;
+    if (totalAngle.abs() > 0.001) {
+      working = img.copyRotate(working, angle: totalAngle);
     }
     if (state.geometry.flipHorizontal) {
       working = img.flipHorizontal(working);

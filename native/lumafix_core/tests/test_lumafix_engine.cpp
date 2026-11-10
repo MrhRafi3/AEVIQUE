@@ -922,6 +922,57 @@ static bool test_skin_tone_protection() {
     return true;
 }
 
+// 28. Subject segmentation: person detection and alpha mask generation
+static bool test_subject_segmentation() {
+    // Null checks
+    LumaFixStatus st = lumafix_segment_person_rgba8(nullptr, nullptr, 10, 10);
+    TEST_ASSERT(st == LUMAFIX_ERROR_NULL_POINTER, "Null pointer must return LUMAFIX_ERROR_NULL_POINTER");
+
+    // Invalid dimensions
+    std::vector<uint8_t> dummy(16, 0);
+    std::vector<uint8_t> out_m(16, 0);
+    LumaFixImageBuffer invalid_buf = make_test_buffer(dummy.data(), -1, 10, 40);
+    st = lumafix_segment_person_rgba8(&invalid_buf, out_m.data(), 10, 10);
+    TEST_ASSERT(st == LUMAFIX_ERROR_INVALID_DIMENSIONS, "Negative width must return LUMAFIX_ERROR_INVALID_DIMENSIONS");
+
+    // Synthetic 40x40 image: background is dark blue/gray, center has skin tone
+    const int w = 40;
+    const int h = 40;
+    std::vector<uint8_t> src_mem(w * h * 4, 0);
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            int idx = (y * w + x) * 4;
+            float dx = (x - 20) / 10.0f;
+            float dy = (y - 18) / 10.0f;
+            if (dx * dx + dy * dy < 1.0f) {
+                // Skin tone (R: 215, G: 155, B: 120)
+                src_mem[idx] = 215;
+                src_mem[idx + 1] = 155;
+                src_mem[idx + 2] = 120;
+                src_mem[idx + 3] = 255;
+            } else {
+                // Background (R: 30, G: 40, B: 60)
+                src_mem[idx] = 30;
+                src_mem[idx + 1] = 40;
+                src_mem[idx + 2] = 60;
+                src_mem[idx + 3] = 255;
+            }
+        }
+    }
+
+    LumaFixImageBuffer src = make_test_buffer(src_mem.data(), w, h, w * 4);
+    std::vector<uint8_t> mask(w * h, 0);
+
+    st = lumafix_segment_person_rgba8(&src, mask.data(), w, h);
+    TEST_ASSERT(st == LUMAFIX_SUCCESS, "Segmentation on image buffer must succeed");
+
+    // Corners should be background (alpha < 50)
+    TEST_ASSERT(mask[0] < 50, "Top-left corner must be background in mask");
+    TEST_ASSERT(mask[w - 1] < 50, "Top-right corner must be background in mask");
+
+    return true;
+}
+
 int main() {
     printf("========================================\n");
     printf("LumaFix Core Native Unit Test Suite\n");
@@ -954,6 +1005,7 @@ int main() {
     RUN_TEST(test_effects_glow_blur_chromatic);
     RUN_TEST(test_sharpening_native);
     RUN_TEST(test_skin_tone_protection);
+    RUN_TEST(test_subject_segmentation);
 
     printf("========================================\n");
     printf("Result: %d / %d tests passed\n", g_tests_passed, g_tests_run);

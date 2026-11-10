@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import '../core/image_engine/image_pipeline.dart';
+import '../core/image_engine/subject_segmentation_service.dart';
+import '../core/image_engine/coordinate_transformer.dart';
+import '../core/image_engine/mask_engine.dart';
 import '../core/models/edit_state.dart';
 import '../core/models/history_manager.dart';
 import '../core/native_engine/lumafix_ffi.dart';
@@ -67,8 +70,17 @@ class _EditorScreenState extends State<EditorScreen> {
   String?
   _activeTool; // 'crop', 'adjust', 'filter', 'curves', 'effects', 'presets', 'portrait', 'hsl', 'mask'
   int? _activeMaskIndex;
+  double? _selectedCropAspectRatio;
   bool _isBlemishModeActive = false;
   double _blemishRadius = 0.025;
+  Offset? _lastStrokePoint;
+  final List<Uint8List> _maskUndoStack = [];
+  double _brushSize = 35.0;
+  double _brushHardness = 0.7;
+  double _brushOpacity = 1.0;
+  bool _isMaskEraseMode = false;
+  bool _isSegmentingSubject = false;
+  final TransformationController _transformationController = TransformationController();
 
   @override
   void initState() {
@@ -106,6 +118,7 @@ class _EditorScreenState extends State<EditorScreen> {
     _debounceTimer?.cancel();
     _previewUiImage?.dispose();
     _previewUiImage = null;
+    _transformationController.dispose();
     super.dispose();
   }
 
@@ -248,6 +261,9 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _openTool(String toolId) {
     HapticFeedback.selectionClick();
+    if (toolId == 'crop' || toolId == 'mask' || toolId == 'masks') {
+      _transformationController.value = Matrix4.identity();
+    }
     setState(() {
       _activeTool = toolId;
       _workingState = _history.current;
@@ -473,41 +489,160 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  void _handleBrushStroke(Offset localPos, Size boxSize) {
+  Offset? _transformToImageCoords(Offset localPos, Size boxSize) {
+    if (_basePreviewImage == null) return null;
+    final scenePos = _transformationController.toScene(localPos);
+    final isRotatedQuarter = _workingState.geometry.rotationQuarterTurns % 2 == 1;
+    final aspect = isRotatedQuarter
+        ? (_basePreviewImage!.height / _basePreviewImage!.width)
+        : (_basePreviewImage!.width / _basePreviewImage!.height);
+    final rect = ImageCoordinateTransformer.getDisplayRect(
+      viewportSize: boxSize,
+      imageAspectRatio: aspect,
+    );
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    final normX = ((scenePos.dx - rect.left) / rect.width).clamp(0.0, 1.0);
+    final normY = ((scenePos.dy - rect.top) / rect.height).clamp(0.0, 1.0);
+    return Offset(
+      normX * _basePreviewImage!.width,
+      normY * _basePreviewImage!.height,
+    );
+  }
+
+  void _handleBrushPanStart(Offset localPos, Size boxSize) {
     if (_workingState.masks.isEmpty || _basePreviewImage == null) return;
-    final idx =
-        (_activeMaskIndex ?? 0).clamp(0, _workingState.masks.length - 1);
+    final idx = (_activeMaskIndex ?? 0).clamp(0, _workingState.masks.length - 1);
     final mask = _workingState.masks[idx];
-    if (mask.type != MaskType.brush) return;
 
-    final aspect = _basePreviewImage!.width / _basePreviewImage!.height;
-    double renderW, renderH, offsetX = 0, offsetY = 0;
-    final boxAspect = boxSize.width / boxSize.height;
-
-    if (boxAspect > aspect) {
-      renderH = boxSize.height;
-      renderW = renderH * aspect;
-      offsetX = (boxSize.width - renderW) / 2;
+    final maskW = _basePreviewImage!.width;
+    final maskH = _basePreviewImage!.height;
+    Uint8List buffer;
+    if (mask.maskBytes != null && mask.maskWidth == maskW && mask.maskHeight == maskH) {
+      buffer = Uint8List.fromList(mask.maskBytes!);
     } else {
-      renderW = boxSize.width;
-      renderH = renderW / aspect;
-      offsetY = (boxSize.height - renderH) / 2;
+      buffer = Uint8List(maskW * maskH);
     }
 
-    final imgX = (localPos.dx - offsetX) / renderW;
-    final imgY = (localPos.dy - offsetY) / renderH;
+    _maskUndoStack.add(Uint8List.fromList(buffer));
+    if (_maskUndoStack.length > 25) {
+      _maskUndoStack.removeAt(0);
+    }
 
-    if (imgX < 0 || imgX > 1 || imgY < 0 || imgY > 1) return;
+    final pt = _transformToImageCoords(localPos, boxSize);
+    if (pt == null) return;
+    _lastStrokePoint = pt;
 
-    final points = List<MaskPoint>.from(mask.brushPoints)
-      ..add(MaskPoint(x: imgX, y: imgY, radius: 0.04, feather: 0.5));
+    _paintSegmentIntoMask(idx, buffer, pt, pt, maskW, maskH);
+  }
 
-    final updatedMasks = List<SelectiveMask>.from(_workingState.masks);
-    updatedMasks[idx] = mask.copyWith(brushPoints: points);
+  void _handleBrushPanUpdate(Offset localPos, Size boxSize) {
+    if (_workingState.masks.isEmpty || _basePreviewImage == null) return;
+    final idx = (_activeMaskIndex ?? 0).clamp(0, _workingState.masks.length - 1);
+    final mask = _workingState.masks[idx];
+    if (mask.maskBytes == null) return;
+
+    final pt = _transformToImageCoords(localPos, boxSize);
+    if (pt == null) return;
+    final prev = _lastStrokePoint ?? pt;
+    _lastStrokePoint = pt;
+
+    final maskW = mask.maskWidth ?? _basePreviewImage!.width;
+    final maskH = mask.maskHeight ?? _basePreviewImage!.height;
+    final buffer = Uint8List.fromList(mask.maskBytes!);
+
+    _paintSegmentIntoMask(idx, buffer, prev, pt, maskW, maskH);
+  }
+
+  void _handleBrushPanEnd() {
+    _lastStrokePoint = null;
+  }
+
+  void _paintSegmentIntoMask(
+    int maskIdx,
+    Uint8List buffer,
+    Offset p0,
+    Offset p1,
+    int width,
+    int height,
+  ) {
+    MaskEngine.paintStrokeIntoBuffer(
+      buffer: buffer,
+      width: width,
+      height: height,
+      x0: p0.dx,
+      y0: p0.dy,
+      x1: p1.dx,
+      y1: p1.dy,
+      radius: _brushSize,
+      hardness: _brushHardness,
+      opacity: _brushOpacity,
+      isErase: _isMaskEraseMode,
+    );
+
+    final updatedMask = _workingState.masks[maskIdx].copyWith(
+      maskBytes: buffer,
+      maskWidth: width,
+      maskHeight: height,
+    );
+
+    final updatedList = List<SelectiveMask>.from(_workingState.masks);
+    updatedList[maskIdx] = updatedMask;
 
     _requestRender(
-      _workingState.copyWith(masks: updatedMasks, showMaskOverlay: true),
+      _workingState.copyWith(masks: updatedList, showMaskOverlay: true),
     );
+  }
+
+  void _handleUndoMaskStroke() {
+    if (_maskUndoStack.isEmpty || _workingState.masks.isEmpty) return;
+    final previousBuffer = _maskUndoStack.removeLast();
+    final idx = (_activeMaskIndex ?? 0).clamp(0, _workingState.masks.length - 1);
+    final mask = _workingState.masks[idx];
+    final updatedMask = mask.copyWith(maskBytes: previousBuffer);
+    final updatedList = List<SelectiveMask>.from(_workingState.masks);
+    updatedList[idx] = updatedMask;
+    _requestRender(_workingState.copyWith(masks: updatedList));
+  }
+
+  Future<void> _handleSelectSubject() async {
+    if (_basePreviewImage == null) return;
+    setState(() => _isSegmentingSubject = true);
+    HapticFeedback.mediumImpact();
+
+    try {
+      final result = await SubjectSegmentationService.segmentSubject(_basePreviewImage!);
+      if (!mounted) return;
+
+      final count = _workingState.masks.length + 1;
+      final newMask = SelectiveMask(
+        id: 'subject_${DateTime.now().millisecondsSinceEpoch}',
+        name: 'Subject $count',
+        type: MaskType.subject,
+        opacity: 1.0,
+        density: 1.0,
+        isVisible: true,
+        maskBytes: result.maskBytes,
+        maskWidth: result.width,
+        maskHeight: result.height,
+        adjustments: const MaskToneAdjustments(exposure: 15.0),
+      );
+
+      final updated = List<SelectiveMask>.from(_workingState.masks)..add(newMask);
+      setState(() {
+        _activeMaskIndex = updated.length - 1;
+        _isSegmentingSubject = false;
+      });
+
+      _requestRender(
+        _workingState.copyWith(masks: updated, showMaskOverlay: true),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSegmentingSubject = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Subject selection failed: $e')),
+      );
+    }
   }
 
   @override
@@ -643,6 +778,15 @@ class _EditorScreenState extends State<EditorScreen> {
         if (!_isLoadingBase &&
             (_previewUiImage != null || _previewBytes != null))
           InteractiveViewer(
+            transformationController: _transformationController,
+            panEnabled: _activeTool != 'crop' &&
+                _activeTool != 'mask' &&
+                _activeTool != 'masks' &&
+                !_isBlemishModeActive,
+            scaleEnabled: _activeTool != 'crop' &&
+                _activeTool != 'mask' &&
+                _activeTool != 'masks' &&
+                !_isBlemishModeActive,
             maxScale: 4.0,
             minScale: 0.8,
             child: Center(
@@ -673,6 +817,12 @@ class _EditorScreenState extends State<EditorScreen> {
               cropTop: _workingState.geometry.cropTop,
               cropRight: _workingState.geometry.cropRight,
               cropBottom: _workingState.geometry.cropBottom,
+              imageAspectRatio: _basePreviewImage != null
+                  ? ((_workingState.geometry.rotationQuarterTurns % 2 == 1)
+                      ? (_basePreviewImage!.height / _basePreviewImage!.width)
+                      : (_basePreviewImage!.width / _basePreviewImage!.height))
+                  : 1.0,
+              lockedAspectRatio: _selectedCropAspectRatio,
               onCropChanged: (l, t, r, b) {
                 _requestRender(
                   _workingState.copyWith(
@@ -696,8 +846,10 @@ class _EditorScreenState extends State<EditorScreen> {
               builder: (context, constraints) {
                 return GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onPanDown: (d) => _handleBrushStroke(d.localPosition, constraints.biggest),
-                  onPanUpdate: (d) => _handleBrushStroke(d.localPosition, constraints.biggest),
+                  onPanDown: (d) => _handleBrushPanStart(d.localPosition, constraints.biggest),
+                  onPanUpdate: (d) => _handleBrushPanUpdate(d.localPosition, constraints.biggest),
+                  onPanEnd: (_) => _handleBrushPanEnd(),
+                  onPanCancel: () => _handleBrushPanEnd(),
                 );
               },
             ),
@@ -1193,7 +1345,12 @@ class _EditorScreenState extends State<EditorScreen> {
     return LumaPillChip(
       label: label,
       isSelected: isSelected,
-      onTap: () => setState(() => _activeTool = id),
+      onTap: () {
+        if (id == 'crop' || id == 'mask' || id == 'masks') {
+          _transformationController.value = Matrix4.identity();
+        }
+        setState(() => _activeTool = id);
+      },
     );
   }
 
@@ -1232,6 +1389,14 @@ class _EditorScreenState extends State<EditorScreen> {
       case 'crop':
         return CropPanel(
           geometry: _workingState.geometry,
+          imageAspectRatio: _basePreviewImage != null
+              ? ((_workingState.geometry.rotationQuarterTurns % 2 == 1)
+                  ? (_basePreviewImage!.height / _basePreviewImage!.width)
+                  : (_basePreviewImage!.width / _basePreviewImage!.height))
+              : 1.0,
+          onAspectRatioChanged: (ratio) {
+            setState(() => _selectedCropAspectRatio = ratio);
+          },
           onChanged: (g) => _requestRender(_workingState.copyWith(geometry: g)),
         );
       case 'adjust':
@@ -1310,9 +1475,22 @@ class _EditorScreenState extends State<EditorScreen> {
         return MaskPanel(
           masks: _workingState.masks,
           showMaskOverlay: _workingState.showMaskOverlay,
+          activeMaskIndex: _activeMaskIndex,
           onMasksChanged: (m) => _requestRender(_workingState.copyWith(masks: m)),
           onOverlayToggled: (ov) => _requestRender(_workingState.copyWith(showMaskOverlay: ov)),
           onActiveMaskChanged: (idx) => setState(() => _activeMaskIndex = idx),
+          brushSize: _brushSize,
+          brushHardness: _brushHardness,
+          brushOpacity: _brushOpacity,
+          isEraseMode: _isMaskEraseMode,
+          onBrushSizeChanged: (v) => setState(() => _brushSize = v),
+          onBrushHardnessChanged: (v) => setState(() => _brushHardness = v),
+          onBrushOpacityChanged: (v) => setState(() => _brushOpacity = v),
+          onEraseModeChanged: (v) => setState(() => _isMaskEraseMode = v),
+          onUndoStroke: _handleUndoMaskStroke,
+          canUndoStroke: _maskUndoStack.isNotEmpty,
+          onSelectSubject: _handleSelectSubject,
+          isSegmentingSubject: _isSegmentingSubject,
         );
       case 'effects':
         return EffectsPanel(

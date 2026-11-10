@@ -382,6 +382,7 @@ class GeometryAdjustments {
   final double cropRight; // 0.0 .. 1.0
   final double cropBottom; // 0.0 .. 1.0
   final int rotationQuarterTurns; // 0, 1, 2, 3 (each is 90 deg clockwise)
+  final double rotationAngle; // continuous rotation in degrees, e.g. -45.0 .. +45.0
   final bool flipHorizontal;
   final bool flipVertical;
 
@@ -391,6 +392,7 @@ class GeometryAdjustments {
     this.cropRight = 1.0,
     this.cropBottom = 1.0,
     this.rotationQuarterTurns = 0,
+    this.rotationAngle = 0.0,
     this.flipHorizontal = false,
     this.flipVertical = false,
   });
@@ -401,6 +403,7 @@ class GeometryAdjustments {
       cropRight == 1.0 &&
       cropBottom == 1.0 &&
       (rotationQuarterTurns % 4 == 0) &&
+      rotationAngle.abs() < 1e-4 &&
       !flipHorizontal &&
       !flipVertical;
 
@@ -416,6 +419,7 @@ class GeometryAdjustments {
     double? cropRight,
     double? cropBottom,
     int? rotationQuarterTurns,
+    double? rotationAngle,
     bool? flipHorizontal,
     bool? flipVertical,
   }) => GeometryAdjustments(
@@ -425,6 +429,7 @@ class GeometryAdjustments {
     cropBottom: cropBottom ?? this.cropBottom,
     rotationQuarterTurns:
         (rotationQuarterTurns ?? this.rotationQuarterTurns) % 4,
+    rotationAngle: rotationAngle ?? this.rotationAngle,
     flipHorizontal: flipHorizontal ?? this.flipHorizontal,
     flipVertical: flipVertical ?? this.flipVertical,
   );
@@ -435,6 +440,7 @@ class GeometryAdjustments {
     'cropRight': cropRight,
     'cropBottom': cropBottom,
     'rotationQuarterTurns': rotationQuarterTurns,
+    'rotationAngle': rotationAngle,
     'flipHorizontal': flipHorizontal,
     'flipVertical': flipVertical,
   };
@@ -447,6 +453,7 @@ class GeometryAdjustments {
         cropBottom: (json['cropBottom'] as num?)?.toDouble() ?? 1.0,
         rotationQuarterTurns:
             (json['rotationQuarterTurns'] as num?)?.toInt() ?? 0,
+        rotationAngle: (json['rotationAngle'] as num?)?.toDouble() ?? 0.0,
         flipHorizontal: json['flipHorizontal'] as bool? ?? false,
         flipVertical: json['flipVertical'] as bool? ?? false,
       );
@@ -461,6 +468,7 @@ class GeometryAdjustments {
           cropRight == other.cropRight &&
           cropBottom == other.cropBottom &&
           rotationQuarterTurns == other.rotationQuarterTurns &&
+          (rotationAngle - other.rotationAngle).abs() < 1e-4 &&
           flipHorizontal == other.flipHorizontal &&
           flipVertical == other.flipVertical;
 
@@ -471,6 +479,7 @@ class GeometryAdjustments {
     cropRight,
     cropBottom,
     rotationQuarterTurns,
+    (rotationAngle * 100).round(),
     flipHorizontal,
     flipVertical,
   );

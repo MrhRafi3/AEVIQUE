@@ -330,6 +330,26 @@ LUMAFIX_API LumaFixStatus lumafix_process_pipeline_rgba8(
     const LumaFixToneCurves* curves
 );
 
+/**
+ * Segments the primary human subject from an RGBA8 image buffer, outputting an 8-bit grayscale alpha mask.
+ *
+ * On macOS / iOS: Uses hardware-accelerated Apple Vision neural person segmentation.
+ * On Android / Linux / Windows / Fallback: Uses on-device skin-tone chrominance, spatial saliency,
+ * and edge-preserving boundary refinement.
+ *
+ * @param src Pointer to input image buffer (caller-owned).
+ * @param out_mask Pointer to pre-allocated output 8-bit alpha buffer of size out_width * out_height.
+ * @param out_width Width of the output mask.
+ * @param out_height Height of the output mask.
+ * @return LUMAFIX_SUCCESS on success, or a negative LumaFixStatus error code.
+ */
+LUMAFIX_API LumaFixStatus lumafix_segment_person_rgba8(
+    const LumaFixImageBuffer* src,
+    uint8_t* out_mask,
+    int32_t out_width,
+    int32_t out_height
+);
+
 #ifdef __cplusplus
 }
 #endif

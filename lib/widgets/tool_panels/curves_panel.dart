@@ -10,8 +10,6 @@ class CurvesPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: CurveEditorWidget(curves: curves, onCurvesChanged: onChanged),
-    );
+    return CurveEditorWidget(curves: curves, onCurvesChanged: onChanged);
   }
 }
